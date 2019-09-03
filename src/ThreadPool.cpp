@@ -4,6 +4,7 @@
 #include <vector>
 #include <atomic>
 #include <condition_variable>
+#include <algorithm>
 
 // 线程池数据结构体
 struct ThreadPoolStructure
@@ -38,8 +39,7 @@ ThreadPool::ThreadPool(size_type threads, size_type maxThreads)
 	//setTimeSlice(timeSlice);
 	setMaxThreads(maxThreads);	// 设置最大线程数量
 	// 保证工作线程数量不超过最大线程数量
-	if (threads > maxThreads)
-		threads = maxThreads;
+	threads = std::min(threads, maxThreads);
 
 	/* 工作线程主动于任务队列获取任务，获取失败时回调通知线程池，
 	空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的管理线程 */
@@ -152,7 +152,7 @@ ThreadPool::size_type ThreadPool::getTasks() const
 void ThreadPool::pushTask(functor process, functor callback)
 {
 	using std::move;
-	data->taskQueue->push(TaskPair(move(process), move(callback)));
+	data->taskQueue->push(std::make_pair(move(process), move(callback)));
 	// 如果未添加任务之前，任务队列为空，唤醒或许阻塞的管理线程
 	if (data->taskQueue->size() == 0x01)
 		data->signal.notify_one();
@@ -208,8 +208,8 @@ void ThreadPool::destroy()
 // 管理线程主函数
 void ThreadPool::execute(data_type data)
 {
-	// 创建unique_lock互斥锁，指定延迟锁定策略，用于互斥访问工作线程表
-	// 由于unique_lock析构之时，自动释放锁，因此无需手动释放
+	/* 创建std::unique_lock互斥锁，指定延迟锁定策略，用于互斥访问工作线程表
+	由于std::unique_lock析构之时，自动释放锁，因此无需手动释放 */
 	using lock_type = std::unique_lock<std::mutex>;
 	using std::defer_lock;
 	lock_type threadLocker(data->mutex, defer_lock);
