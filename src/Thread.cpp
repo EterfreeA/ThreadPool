@@ -128,7 +128,7 @@ void Thread::execute(data_type data)
 			//else
 			//	callback();	// 执行默认回调函数
 		}
-		catch (std::exception exception)	// 执行函数子时捕获异常，防止线程泄漏
+		catch (std::exception& exception)	// 执行函数子时捕获异常，防止线程泄漏
 		{
 			std::cerr << exception.what() << std::endl;
 		}
