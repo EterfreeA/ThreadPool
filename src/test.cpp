@@ -29,9 +29,9 @@ void callback()
 	callbackMutex.unlock();
 }
 
-void eterfree(ThreadPool &threadPool)
+void Eterfree(eterfree::ThreadPool &threadPool)
 {
-	using TaskPair = ThreadPool::TaskPair;
+	using TaskPair = eterfree::ThreadPool::TaskPair;
 	for (int i = 0; i < 100000; ++i)
 		//threadPool.pushTask(process, nullptr);
 		threadPool.pushTask(TaskPair(process, nullptr));
@@ -41,7 +41,7 @@ void eterfree(ThreadPool &threadPool)
 	threadPool.pushTask(tasks);
 }
 
-// void boost(boost::threadpool::thread_pool<> &threadPool)
+// void Boost(boost::threadpool::thread_pool<> &threadPool)
 // {
 // 	for (int i = 0; i < 100000; ++i)
 // 	{
@@ -59,16 +59,16 @@ void eterfree(ThreadPool &threadPool)
 
 int main()
 {
-	ThreadPool threadPool(100);
+	eterfree::ThreadPool threadPool(100);
 	//boost::threadpool::thread_pool<> threadPool(100);
 	clock_t begin = clock();
 
-	eterfree(threadPool);
-	//boost(threadPool);
+	Eterfree(threadPool);
+	//Boost(threadPool);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 	std::cout << "任务数量：" << taskCounter << std::endl << "回调次数：" << callbackCounter << std::endl;
 	std::cout << "执行时间：" << (double)(clock() - begin)/CLOCKS_PER_SEC*1000 << std::endl;
-	ThreadPool(std::move(threadPool));
+	eterfree::ThreadPool(std::move(threadPool));
 	return 0;
 }

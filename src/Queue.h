@@ -9,11 +9,11 @@ All rights reserved.
 1.此头文件声明双缓冲队列类模板。
 2.双缓冲队列包括写入队列和读取队列，两个队列的操作均为加锁操作，并且有不同锁，因此接口线程安全。
 
-当前版本：V1.2
+当前版本：V1.3
 作者：许聪
 邮箱: 2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2019年08月31日
+更新日期：2019年09月27日
 
 修正日志：
 V1.1
@@ -21,6 +21,8 @@ V1.1
 	从而减少读写之间的影响，提高读写效率
 V1.2
 1.调整命名风格
+V1.3
+1.归入名称空间eterfree
 */
 
 #pragma once
@@ -29,7 +31,11 @@ V1.2
 #include <mutex>
 #include <atomic>
 
-#define DEFAULT_UPPER_LIMIT 10000
+#include "core.h"
+
+ETERFREE_BEGIN
+
+constexpr auto DEFAULT_UPPER_LIMIT = 10000U;
 
 template <typename Type>
 class Queue
@@ -108,3 +114,5 @@ void Queue<Type>::pop()
 	--counter;
 	readQueue.pop_front();
 }
+
+ETERFREE_END
