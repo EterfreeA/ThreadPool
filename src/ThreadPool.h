@@ -15,7 +15,7 @@ All rights reserved.
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2019年09月27日
+更新日期：2019年09月29日
 
 修正日志：
 V1.1
@@ -37,6 +37,7 @@ V1.5
 2.归入名称空间eterfree
 3.运用析构函数自动销毁线程
 4.以weak_ptr解决shared_ptr循环引用问题，防止销毁线程池时内存泄漏
+5.类ThreadPool内外分别声明和定义结构体ThreadPoolStructure，避免污染类外名称空间，从而增强类的封装性
 V100
 1.智能增减线程方案：线程池守护线程根据任务队列中任务数量级，改变当前线程数量
 	根据任务数量，适当增加或者减少线程，增加线程数量，实现高并发执行任务，释放空闲线程，提高资源利用率
@@ -53,11 +54,10 @@ V100
 ETERFREE_BEGIN
 //#define DEFAULT_TIME_SLICE 2
 
-struct ThreadPoolStructure;
-
 class ThreadPool
 {
 	//friend class Thread;
+	struct ThreadPoolStructure;
 	using data_type = std::shared_ptr<ThreadPoolStructure>;
 	data_type data;
 public:

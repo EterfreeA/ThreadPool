@@ -9,7 +9,7 @@
 ETERFREE_BEGIN
 
 // 线程池数据结构体
-struct ThreadPoolStructure
+struct ThreadPool::ThreadPoolStructure
 {
 	using size_type = ThreadPool::size_type;
 	using TaskQueue = Queue<ThreadPool::TaskPair>;

@@ -9,7 +9,7 @@
 ETERFREE_BEGIN
 
 // 线程数据结构体
-struct ThreadStructure
+struct Thread::ThreadStructure
 {
 	std::thread thread;										// 工作线程
 	std::mutex mutex;										// 互斥元
@@ -39,7 +39,8 @@ Thread::~Thread()
 	destroy();
 }
 
-bool Thread::configure(std::shared_ptr<Queue<TaskPair>> taskQueue, std::function<void(bool, ThreadID)> callback)
+bool Thread::configure(std::shared_ptr<Queue<TaskPair>> taskQueue,
+	std::function<void(bool, ThreadID)> callback)
 {
 	if (getRunning(data))
 		return false;

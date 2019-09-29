@@ -16,7 +16,7 @@ All rights reserved.
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2019年09月27日
+更新日期：2019年09月29日
 
 修正日志：
 V1.1
@@ -34,6 +34,7 @@ V1.3
 V1.4
 1.优化成员函数访问权限
 2.归入名称空间eterfree
+3.类Thread内外分别声明和定义结构体ThreadStructure，避免污染类外名称空间，从而增强类的封装性
 */
 
 #pragma once
@@ -46,8 +47,6 @@ V1.4
 
 ETERFREE_BEGIN
 
-struct ThreadStructure;
-
 /* 继承enable_shared_from_this模板类，当Thread被shared_ptr托管，
 而在Thread把类成员指针this作为参数传给其他函数时，
 需要传递this的shared_ptr，调用shared_from_this函数获取this的shared_ptr。
@@ -56,6 +55,7 @@ struct ThreadStructure;
 class Thread
 	//: public std::enable_shared_from_this<Thread>
 {
+	struct ThreadStructure;
 	using data_type = std::shared_ptr<ThreadStructure>;
 	data_type data;
 public:
@@ -68,7 +68,8 @@ public:
 	~Thread();
 	Thread& operator=(const Thread&) = delete;
 	Thread& operator=(Thread&&) = default;
-	bool configure(std::shared_ptr<Queue<TaskPair>> taskQueue, std::function<void(bool, ThreadID)> callback);
+	bool configure(std::shared_ptr<Queue<TaskPair>> taskQueue,
+		std::function<void(bool, ThreadID)> callback);
 	bool configure(const TaskPair& task);
 	bool start();
 	ThreadID getThreadID() const;
