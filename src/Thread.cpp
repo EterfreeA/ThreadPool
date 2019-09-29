@@ -112,26 +112,6 @@ inline bool Thread::getRunning(const data_type& data)
 	return data->running;
 }
 
-// 销毁线程
-void Thread::destroy()
-{
-	// 若数据为空，无需销毁，以支持移动语义
-	if (data == nullptr)
-		return;
-	// 若已经销毁过线程，忽略以下步骤
-	if (getClosed(data))
-		return;
-	setClosed(data, true);	// 设置线程为关闭状态，即销毁状态
-
-	// 工作线程或许处于阻塞状态，通过条件变量发送信号唤醒工作线程
-	data->signal.notify_one();
-	// 等待工作线程执行结束
-	if (data->thread.joinable())
-		data->thread.join();
-	// 预留等待时间
-	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
-}
-
 // 工作线程主函数
 void Thread::execute(data_type data)
 {
@@ -220,5 +200,25 @@ void Thread::execute(data_type data)
 //void Thread::callback()
 //{
 //}
+
+// 销毁线程
+void Thread::destroy()
+{
+	// 若数据为空，无需销毁，以支持移动语义
+	if (data == nullptr)
+		return;
+	// 若已经销毁过线程，忽略以下步骤
+	if (getClosed(data))
+		return;
+	setClosed(data, true);	// 设置线程为关闭状态，即销毁状态
+
+	// 工作线程或许处于阻塞状态，通过条件变量发送信号唤醒工作线程
+	data->signal.notify_one();
+	// 等待工作线程执行结束
+	if (data->thread.joinable())
+		data->thread.join();
+	// 预留等待时间
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
+}
 
 ETERFREE_END

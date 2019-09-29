@@ -80,10 +80,10 @@ private:
 	static bool getClosed(const data_type& data);
 	static void setRunning(data_type& data, bool running);
 	static bool getRunning(const data_type& data);
-	void destroy();
 	static void execute(data_type data);
 	//virtual void process();
 	//virtual void callback();
+	void destroy();
 };
 
 ETERFREE_END

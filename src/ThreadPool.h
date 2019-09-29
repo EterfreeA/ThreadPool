@@ -85,9 +85,9 @@ public:
 private:
 	static void setClosed(data_type& data, bool closed);
 	static bool getClosed(const data_type& data);
+	static void execute(data_type data);
 	//bool getTask(std::shared_ptr<Thread> thread);
 	void destroy();
-	static void execute(data_type data);
 };
 
 ETERFREE_END

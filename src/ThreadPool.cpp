@@ -199,39 +199,6 @@ inline bool ThreadPool::getClosed(const data_type& data)
 	return data->closed;
 }
 
-//bool ThreadPool::getTask(std::shared_ptr<Thread> thread)
-//{
-//	std::unique_lock<std::mutex> locker(data->tasks->mutex());
-//	if (!data->tasks->empty())	// 任务队列非空
-//	{
-//		thread->configure(std::move(data->tasks->front()));	// 为线程配置新任务
-//		data->tasks->pop();	// 任务队列弹出已经配置的任务
-//		return true;
-//	}
-//	locker.unlock();
-//
-//	// 任务队列为空，空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的守护线程
-//	if (++data->freeThreads == 0x01)
-//		data->signal.notify_one();
-//	return false;
-//}
-
-// 销毁线程池
-void ThreadPool::destroy()
-{
-	// 若数据为空，无需销毁，以支持移动语义
-	if (data == nullptr)
-		return;
-	// 若已经销毁线程池，忽略以下步骤
-	if (getClosed(data))
-		return;
-	setClosed(data, true);	// 设置线程池为关闭状态，即销毁状态
-
-	data->thread.detach();	// 分离线程池守护线程
-	data->signal.notify_one();	// 唤醒阻塞的守护线程
-	//std::this_thread::sleep_for(std::chrono::milliseconds(10));
-}
-
 // 守护线程主函数
 void ThreadPool::execute(data_type data)
 {
@@ -303,6 +270,39 @@ void ThreadPool::execute(data_type data)
 		threadLocker.unlock();	// 释放线程互斥锁
 	}
 	//destroy();	// 守护线程结束之时，销毁线程
+}
+
+//bool ThreadPool::getTask(std::shared_ptr<Thread> thread)
+//{
+//	std::unique_lock<std::mutex> locker(data->tasks->mutex());
+//	if (!data->tasks->empty())	// 任务队列非空
+//	{
+//		thread->configure(std::move(data->tasks->front()));	// 为线程配置新任务
+//		data->tasks->pop();	// 任务队列弹出已经配置的任务
+//		return true;
+//	}
+//	locker.unlock();
+//
+//	// 任务队列为空，空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的守护线程
+//	if (++data->freeThreads == 0x01)
+//		data->signal.notify_one();
+//	return false;
+//}
+
+// 销毁线程池
+void ThreadPool::destroy()
+{
+	// 若数据为空，无需销毁，以支持移动语义
+	if (data == nullptr)
+		return;
+	// 若已经销毁线程池，忽略以下步骤
+	if (getClosed(data))
+		return;
+	setClosed(data, true);	// 设置线程池为关闭状态，即销毁状态
+
+	data->thread.detach();	// 分离线程池守护线程
+	data->signal.notify_one();	// 唤醒阻塞的守护线程
+	//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 ETERFREE_END
