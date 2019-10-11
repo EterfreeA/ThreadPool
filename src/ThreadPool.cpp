@@ -23,22 +23,19 @@ struct ThreadPool::ThreadPoolStructure
 	//std::atomic_int timeSlice;
 	std::atomic<size_type> maxThreads;						// 最大线程数
 	std::atomic<size_type> freeThreads;						// 空闲线程数
-
+	// 构造函数
 	ThreadPoolStructure()
-	{
-		taskQueue = std::make_shared<TaskQueue>();
-	}
+		: taskQueue(std::make_shared<TaskQueue>()) {}
 };
 
 // 线程池构造函数
 ThreadPool::ThreadPool(size_type threads, size_type maxThreads)
-{
 	/* shared_ptr需要维护引用计数，若调用构造函数（即先以new运算符创建对象，再传递给shared_ptr），
 	一共申请两次内存，先申请对象内存，再申请控制块内存，对象内存和控制块内存不连续。
-	而使用make_shared方法只申请一次内存，对象内存和控制块内存在一起。 */
-	data = std::make_shared<ThreadPoolStructure>();
-
-	setClosed(data, false);	// 设置线程未关闭
+	而使用make_shared方法只申请一次内存，对象内存和控制块内存连续。 */
+	: data(std::make_shared<ThreadPoolStructure>())
+{
+	setClosed(data, false);	// 线程池设为未关闭
 	//setTimeSlice(timeSlice);
 	setMaxThreads(maxThreads);	// 设置最大线程数量
 	// 保证线程数量不超过最大线程数量
@@ -187,13 +184,13 @@ void ThreadPool::pushTask(std::list<TaskPair>& tasks)
 		data->signal.notify_one();
 }
 
-// 设置线程池的关闭状态，用于初始线程池状态和关闭线程池
+// 设置关闭状态，用于初始或者关闭线程池
 inline void ThreadPool::setClosed(data_type& data, bool closed)
 {
 	data->closed = closed;
 }
 
-// 获取线程池的关闭状态
+// 获取关闭状态
 inline bool ThreadPool::getClosed(const data_type& data)
 {
 	return data->closed;
@@ -298,7 +295,7 @@ void ThreadPool::destroy()
 	// 若已经销毁线程池，忽略以下步骤
 	if (getClosed(data))
 		return;
-	setClosed(data, true);	// 设置线程池为关闭状态，即销毁状态
+	setClosed(data, true);	// 线程池设为关闭状态，即销毁状态
 
 	data->thread.detach();	// 分离线程池守护线程
 	data->signal.notify_one();	// 唤醒阻塞的守护线程

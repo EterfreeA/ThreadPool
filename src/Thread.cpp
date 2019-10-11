@@ -26,8 +26,8 @@ struct Thread::ThreadStructure
 
 // 线程构造函数
 Thread::Thread()
+	: data(std::make_shared<ThreadStructure>())
 {
-	data = std::make_shared<ThreadStructure>();
 	setClosed(data, false);	// 设置线程未关闭
 	setRunning(data, false);	// 设置线程未运行
 	data->thread = std::thread(Thread::execute, data);	// 创建thread，执行Thread类的execute函数
@@ -72,7 +72,7 @@ bool Thread::start()
 }
 
 // 获取线程id
-std::thread::id Thread::getThreadID() const
+Thread::ThreadID Thread::getThreadID() const
 {
 	return data->thread.get_id();
 }
