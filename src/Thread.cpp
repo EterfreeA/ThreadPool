@@ -71,7 +71,7 @@ bool Thread::start()
 	return true;
 }
 
-// 获取线程id
+// 获取线程ID
 Thread::ThreadID Thread::getThreadID() const
 {
 	return data->thread.get_id();
@@ -88,25 +88,25 @@ bool Thread::free() const
 //	return data->vpParameters;
 //}
 
-// 设置线程关闭状态
+// 设置关闭状态
 inline void Thread::setClosed(data_type& data, bool closed)
 {
 	data->closed = closed;
 }
 
-// 获取线程关闭状态
+// 获取关闭状态
 inline bool Thread::getClosed(const data_type& data)
 {
 	return data->closed;
 }
 
-// 设置线程运行状态
+// 设置运行状态
 inline void Thread::setRunning(data_type& data, bool running)
 {
 	data->running = running;
 }
 
-// 获取线程运行状态
+// 获取运行状态
 inline bool Thread::getRunning(const data_type& data)
 {
 	return data->running;
@@ -131,7 +131,7 @@ void Thread::execute(data_type data)
 
 	while (!getClosed(data))	// 工作线程退出通道
 	{
-		setRunning(data, true);	// 设置线程为运行状态
+		setRunning(data, true);	// 线程设为运行状态
 		try
 		{
 			if (data->task.first)	// 若任务函数子非空
@@ -179,7 +179,7 @@ void Thread::execute(data_type data)
 
 		if (empty)	// 任务队列指针非空且队列为空
 		{
-			setRunning(data, false);	// 设置线程为未运行状态，即允许分配任务
+			setRunning(data, false);	// 线程设为未运行状态，即允许分配任务
 			if (data->callback)	// 若回调函数子非空
 				data->callback(empty, data->thread.get_id());	// 执行回调函数子
 			// 阻塞线程，等待条件变量的唤醒信号，直到配置新任务或者关闭线程
@@ -210,7 +210,7 @@ void Thread::destroy()
 	// 若已经销毁过线程，忽略以下步骤
 	if (getClosed(data))
 		return;
-	setClosed(data, true);	// 设置线程为关闭状态，即销毁状态
+	setClosed(data, true);	// 线程设为关闭状态，即销毁状态
 
 	// 工作线程或许处于阻塞状态，通过条件变量发送信号唤醒工作线程
 	data->signal.notify_one();
