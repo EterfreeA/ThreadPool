@@ -1,32 +1,26 @@
 ﻿#include "ThreadPool.h"
 //#include <threadpool/threadpool.hpp>
 
+#include <thread>
+#include <atomic>
 #include <ctime>
 #include <iostream>
-#include <thread>
-#include <mutex>
 
-int taskCounter = 0;
-int callbackCounter = 0;
-std::mutex processMutex;
-std::mutex callbackMutex;
+std::atomic_ulong taskCounter = 0;
+std::atomic_ulong callbackCounter = 0;
 
 void process()
 {
 	for (int counter = 0; counter < 100; ++counter);
 	std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	processMutex.lock();
 	++taskCounter;
-	processMutex.unlock();
 }
 
 void callback()
 {
 	for (int counter = 0; counter < 100; ++counter);
 	std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	callbackMutex.lock();
 	++callbackCounter;
-	callbackMutex.unlock();
 }
 
 void Eterfree(eterfree::ThreadPool &threadPool)
