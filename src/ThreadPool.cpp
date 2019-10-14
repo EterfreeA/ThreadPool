@@ -1,4 +1,4 @@
-#include "ThreadPool.h"
+﻿#include "ThreadPool.h"
 #include "Thread.h"
 
 #include <vector>
@@ -12,13 +12,13 @@ ETERFREE_BEGIN
 struct ThreadPool::ThreadPoolStructure
 {
 	using size_type = ThreadPool::size_type;
-	using TaskQueue = Queue<ThreadPool::TaskPair>;
+	using TaskQueue = Queue<ThreadPool::functor>;
 	std::vector<std::unique_ptr<Thread>> threadTable;		// 线程表
 	std::shared_ptr<TaskQueue> taskQueue;					// 任务队列
 	std::function<void(bool, Thread::ThreadID)> callback;	// 回调函数子
 	std::thread thread;										// 守护线程
 	std::mutex mutex;										// 互斥元
-	std::condition_variable signal;							// 条件变量
+	std::condition_variable condition;						// 条件变量
 	std::atomic_bool closed;								// 关闭标记
 	//std::atomic_int timeSlice;
 	std::atomic<size_type> maxThreads;						// 最大线程数
@@ -49,7 +49,7 @@ ThreadPool::ThreadPool(size_type threads, size_type maxThreads)
 		{
 			auto shared_data = data.lock();
 			if (shared_data && ++shared_data->freeThreads == 0x01)
-				shared_data->signal.notify_one();
+				shared_data->condition.notify_one();
 		}
 	};
 
@@ -128,7 +128,7 @@ bool ThreadPool::setThreads(size_type threads)
 		data->freeThreads += number;
 		// 如果未添加线程之前，无空闲线程，唤醒或许阻塞的守护线程
 		if (data->freeThreads == number)
-			data->signal.notify_one();
+			data->condition.notify_one();
 		return true;
 	}
 	// 减少线程（未制定策略）
@@ -158,30 +158,21 @@ ThreadPool::size_type ThreadPool::getTasks() const
 }
 
 // 向任务队列添加单任务
-void ThreadPool::pushTask(functor process, functor callback)
-{
-	using std::move;
-	data->taskQueue->push(std::make_pair(move(process), move(callback)));
-	// 如果未添加任务之前，任务队列为空，唤醒或许阻塞的守护线程
-	if (data->taskQueue->size() == 0x01)
-		data->signal.notify_one();
-}
-
-// 向任务队列添加单任务
-void ThreadPool::pushTask(TaskPair&& task)
+void ThreadPool::pushTask(functor&& task)
 {
 	data->taskQueue->push(std::move(task));
+	// 如果未添加任务之前，任务队列为空，唤醒或许阻塞的守护线程
 	if (data->taskQueue->size() == 0x01)
-		data->signal.notify_one();
+		data->condition.notify_one();
 }
 
 // 向任务队列批量添加任务
-void ThreadPool::pushTask(std::list<TaskPair>& tasks)
+void ThreadPool::pushTask(std::list<functor>& tasks)
 {
 	auto size = tasks.size();
 	data->taskQueue->push(tasks);
 	if (data->taskQueue->size() == size)
-		data->signal.notify_one();
+		data->condition.notify_one();
 }
 
 // 设置关闭状态，用于初始或者关闭线程池
@@ -226,7 +217,7 @@ void ThreadPool::execute(data_type data)
 		{
 			/* 再次锁定线程锁，阻塞守护线程，等待条件变量的唤醒信号，
 			直到空闲线程数量非零或者关闭线程池，释放一次线程锁 */
-			data->signal.wait(threadLocker, 
+			data->condition.wait(threadLocker, 
 				[&data] {return data->freeThreads || getClosed(data); });
 			// 若线程池为关闭状态，退出循环，结束线程
 			if (getClosed(data))
@@ -246,7 +237,7 @@ void ThreadPool::execute(data_type data)
 				{
 					/* 再次锁定任务锁，阻塞守护线程，等待条件变量的唤醒信号，
 					直到任务队列非空或者关闭线程池，释放一次任务锁 */
-					data->signal.wait(taskLocker, 
+					data->condition.wait(taskLocker, 
 						[&data] {return !data->taskQueue->empty() || getClosed(data); });
 					if (getClosed(data))
 					{
@@ -282,23 +273,20 @@ void ThreadPool::execute(data_type data)
 //
 //	// 任务队列为空，空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的守护线程
 //	if (++data->freeThreads == 0x01)
-//		data->signal.notify_one();
+//		data->condition.notify_one();
 //	return false;
 //}
 
 // 销毁线程池
 void ThreadPool::destroy()
 {
-	// 若数据为空，无需销毁，以支持移动语义
-	if (data == nullptr)
-		return;
-	// 若已经销毁线程池，忽略以下步骤
-	if (getClosed(data))
+	// 若数据为空或者已经关闭线程池，无需销毁线程池，以支持移动语义
+	if (data == nullptr || getClosed(data))
 		return;
 	setClosed(data, true);	// 线程池设为关闭状态，即销毁状态
 
 	data->thread.detach();	// 分离线程池守护线程
-	data->signal.notify_one();	// 唤醒阻塞的守护线程
+	data->condition.notify_one();	// 唤醒阻塞的守护线程
 	//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 

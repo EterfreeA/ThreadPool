@@ -1,4 +1,4 @@
-#include "Thread.h"
+﻿#include "Thread.h"
 
 #include <mutex>
 #include <condition_variable>
@@ -13,61 +13,64 @@ struct Thread::ThreadStructure
 {
 	std::thread thread;										// 工作线程
 	std::mutex mutex;										// 互斥元
-	std::condition_variable signal;							// 条件变量
+	std::condition_variable condition;						// 条件变量
 	std::atomic_bool closed;								// 关闭状态标志
 	std::atomic_bool running;								// 运行状态标志
 	//ThreadPool *threadPool;								// 线程池指针
-	std::shared_ptr<Queue<Thread::TaskPair>> taskQueue;		// 任务队列
+	std::shared_ptr<Queue<Thread::functor>> taskQueue;		// 任务队列
 	std::function<void(bool, Thread::ThreadID)> callback;	// 回调函数子
-	Thread::TaskPair task;									// 任务函数子
+	Thread::functor task;									// 任务函数子
 	// 线程过程参数解决方案：虚基类指针，过程类继承虚基类，通过强制类型转换，在过程函数中访问
 	//void *vpParameters;
 };
 
-// 线程构造函数
+// 默认构造函数
 Thread::Thread()
 	: data(std::make_shared<ThreadStructure>())
 {
-	setClosed(data, false);	// 设置线程未关闭
-	setRunning(data, false);	// 设置线程未运行
-	data->thread = std::thread(Thread::execute, data);	// 创建thread，执行Thread类的execute函数
+	// 线程设为未关闭未运行状态
+	setClosed(data, false);
+	setRunning(data, false);
+	// 创建std::thread对象，即工作线程，以data为参数，执行execute函数
+	data->thread = std::thread(Thread::execute, data);
 }
 
-// 线程析构函数
+// 默认析构函数
 Thread::~Thread()
 {
 	destroy();
 }
 
-bool Thread::configure(std::shared_ptr<Queue<TaskPair>> taskQueue,
+// 任务队列及回调函数子配置方法
+bool Thread::configure(std::shared_ptr<Queue<functor>> taskQueue,
 	std::function<void(bool, ThreadID)> callback)
 {
 	if (getRunning(data))
 		return false;
-	//data->threadPool = threadPool;	// 指向线程池，便于自动获取任务队列的任务
+	//data->threadPool = threadPool;	// 指向线程池，便于自动从任务队列获取任务
 	data->taskQueue = taskQueue;	// 指向任务队列，便于自动获取任务
-	data->callback = callback;	// 回调函数子，用于通知守护线程获取任务失败，进入阻塞状态
+	data->callback = callback;	// 回调函数子，用于通知守护线程获取任务失败，线程进入阻塞状态
 	return true;
 }
 
-// 配置任务
-bool Thread::configure(const TaskPair& task)
+// 任务配置方法
+bool Thread::configure(const functor& task)
 {
-	// 若处于运行状态，说明正在执行任务，配置新任务失败
+	// 若处于运行状态，标志正在执行任务，配置新任务失败
 	if (getRunning(data))
 		return false;
-	data->task = task;	// 赋予线程任务函数子
+	data->task = task;	// 配置任务函数子
 	//data->vpParameters = vpParameters;
 	return true;
 }
 
-// 唤醒线程
+// 启动工作线程
 bool Thread::start()
 {
-	// 若处于运行状态，标志正在执行任务，唤醒线程失败
+	// 若处于运行状态，标志正在执行任务，不必唤醒工作线程
 	if (getRunning(data))
 		return false;
-	data->signal.notify_one();	// 通过条件变量发送信号，唤醒线程
+	data->condition.notify_one();	// 通过条件变量唤醒工作线程
 	return true;
 }
 
@@ -77,7 +80,7 @@ Thread::ThreadID Thread::getThreadID() const
 	return data->thread.get_id();
 }
 
-// 返回线程空闲状态
+// 获取空闲状态
 bool Thread::free() const
 {
 	return !getRunning(data);
@@ -115,17 +118,17 @@ inline bool Thread::getRunning(const data_type& data)
 // 工作线程主函数
 void Thread::execute(data_type data)
 {
-	// 调用mem_fn获取函数子getTask，保存指向ThreadPool::getTask的指针，并且重载运算符operator()
+	// 调用mem_fn获取函数子getTask，其拥有指向ThreadPool::getTask的指针，并且重载运算符operator()
 	//auto &&getTask = std::mem_fn(&ThreadPool::getTask);
 
 	// 创建unique_lock互斥锁，用于阻塞和唤醒工作线程，未指定锁策略默认立即锁住互斥元
 	using lock_type = std::unique_lock<std::mutex>;
 	lock_type threadLocker(data->mutex);
-	// 运用条件变量锁定线程互斥锁，若之前锁定过互斥锁，阻塞线程，等待条件变量的唤醒信号
-	data->signal.wait(threadLocker);
+	// 运用条件变量锁定线程互斥锁，若之前锁定过互斥锁，工作线程进入阻塞状态，等待条件变量的唤醒消息
+	data->condition.wait(threadLocker);
 
+	// 若任务队列指针非空，创建互斥锁，指定延迟锁定策略，用于从任务队列互斥读取任务
 	lock_type taskLocker;
-	// 若任务队列指针非空，创建互斥锁，指定延迟锁定策略，用于互斥读取任务队列的任务
 	if (data->taskQueue)
 		taskLocker = decltype(taskLocker)(data->taskQueue->mutex(), std::defer_lock);
 
@@ -134,20 +137,16 @@ void Thread::execute(data_type data)
 		setRunning(data, true);	// 线程设为运行状态
 		try
 		{
-			if (data->task.first)	// 若任务函数子非空
-				data->task.first();	// 执行任务函数子
+			if (data->task)	// 若任务函数子非空
+				data->task();	// 执行任务函数子
 			//else
 			//	process();	// 执行默认任务函数
-			if (data->task.second)	// 若回调函数子非空
-				data->task.second();	// 执行回调函数子
-			//else
-			//	callback();	// 执行默认回调函数
 		}
 		catch (std::exception& exception)	// 执行函数子时捕获异常，防止线程泄漏
 		{
 			std::cerr << exception.what() << std::endl;
 		}
-		data->task = { nullptr, nullptr };	// 执行完毕之后清除任务
+		data->task = nullptr;	// 执行完毕清除任务
 
 		/* 以data->threadPool->getTask(this->shared_from_this())的形式
 		调用ThreadPool::getTask函数获取线程池任务队列的任务
@@ -158,13 +157,13 @@ void Thread::execute(data_type data)
 		//	if (getClosed())	// 工作线程退出通道
 		//		break;
 		//	setRunning(false);	// 允许守护线程分配任务
-		//	data->signal.wait(threadLocker);	// 阻塞线程，等待唤醒信号
+		//	data->condition.wait(threadLocker);	// 以条件变量锁定互斥锁，进入阻塞状态
 		//}
 
 		if (getClosed(data))	// 工作线程退出通道
 			break;
 
-		bool empty = true;	// 用于判断是否进入阻塞状态的标志
+		bool empty = true;	// 任务获取标志，用于判断是否进入阻塞状态
 		// 若任务队列指针非空，并且队列非空，则配置新任务
 		if (data->taskQueue)
 		{
@@ -182,11 +181,11 @@ void Thread::execute(data_type data)
 			setRunning(data, false);	// 线程设为未运行状态，即允许分配任务
 			if (data->callback)	// 若回调函数子非空
 				data->callback(empty, data->thread.get_id());	// 执行回调函数子
-			// 阻塞线程，等待条件变量的唤醒信号，直到配置新任务或者关闭线程
-			data->signal.wait(threadLocker,
-				[&data] { return data->task.first || data->task.second || getClosed(data); });
+			// 进入阻塞状态，等待条件变量的唤醒消息，直到配置新任务或者关闭线程
+			data->condition.wait(threadLocker,
+				[&data] { return data->task || getClosed(data); });
 		}
-		else if (data->callback)
+		else if (data->callback)	// 无后续任务，同样在回调函数子非空时执行回调函数子
 			data->callback(empty, data->thread.get_id());
 	}
 }
@@ -195,26 +194,18 @@ void Thread::execute(data_type data)
 //void Thread::process()
 //{
 //}
-//
-//// 线程默认回调函数，用于继承扩展线程，形成钩子
-//void Thread::callback()
-//{
-//}
 
 // 销毁线程
 void Thread::destroy()
 {
-	// 若数据为空，无需销毁，以支持移动语义
-	if (data == nullptr)
-		return;
-	// 若已经销毁过线程，忽略以下步骤
-	if (getClosed(data))
+	// 若数据为空或者已经关闭线程，无需销毁线程，以支持移动语义
+	if (data == nullptr || getClosed(data))
 		return;
 	setClosed(data, true);	// 线程设为关闭状态，即销毁状态
 
-	// 工作线程或许处于阻塞状态，通过条件变量发送信号唤醒工作线程
-	data->signal.notify_one();
-	// 等待工作线程执行结束
+	// 工作线程或许处于阻塞状态，通过条件变量唤醒工作线程
+	data->condition.notify_one();
+	// 阻塞线程直到工作线程结束
 	if (data->thread.joinable())
 		data->thread.join();
 	// 预留等待时间

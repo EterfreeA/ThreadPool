@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef __cplusplus
 
@@ -6,7 +6,8 @@
 
 #endif
 
-#define ETERFREE_BEGIN namespace eterfree{
+// 自定义名称空间
+#define ETERFREE_BEGIN namespace eterfree {
 #define ETERFREE_END }
 
 // 自动加双引号
