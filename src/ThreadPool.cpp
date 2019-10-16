@@ -1,9 +1,9 @@
 ﻿#include "ThreadPool.h"
 #include "Thread.h"
 
-#include <vector>
 #include <condition_variable>
 #include <atomic>
+#include <vector>
 #include <algorithm>
 
 ETERFREE_BEGIN
@@ -28,21 +28,21 @@ struct ThreadPool::ThreadPoolStructure
 		: taskQueue(std::make_shared<TaskQueue>()) {}
 };
 
-// 线程池构造函数
+// 默认构造函数
 ThreadPool::ThreadPool(size_type threads, size_type maxThreads)
-	/* shared_ptr需要维护引用计数，若调用构造函数（即先以new运算符创建对象，再传递给shared_ptr），
+	/* 智能指针std::shared_ptr需要维护引用计数，若调用构造函数（即先以new运算符创建对象，再传递给std::shared_ptr），
 	一共申请两次内存，先申请对象内存，再申请控制块内存，对象内存和控制块内存不连续。
-	而使用make_shared方法只申请一次内存，对象内存和控制块内存连续。 */
+	而使用std::make_shared方法只申请一次内存，对象内存和控制块内存连续。 */
 	: data(std::make_shared<ThreadPoolStructure>())
 {
-	setClosed(data, false);	// 线程池设为未关闭
+	setClosed(data, false);	// 线程池设为未关闭状态
 	//setTimeSlice(timeSlice);
 	setMaxThreads(maxThreads);	// 设置最大线程数量
 	// 保证线程数量不超过最大线程数量
 	threads = std::min(threads, maxThreads);
 
 	/* 定义Lambda函数，线程主动于任务队列获取任务，获取失败时回调通知线程池，
-	空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的守护线程 */
+	空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的守护线程。 */
 	data->callback = [data = std::weak_ptr(data)](bool free, Thread::ThreadID)
 	{
 		if (free)
@@ -62,10 +62,11 @@ ThreadPool::ThreadPool(size_type threads, size_type maxThreads)
 		data->threadTable.push_back(std::move(thread));
 	}
 	data->freeThreads = data->threadTable.size();	// 设置空闲线程数量
-	data->thread = std::thread(ThreadPool::execute, data);	// 创建thread，执行ThreadPool类的execute函数
+	// 创建std::thread对象，即守护线程，以data为参数，执行execute函数
+	data->thread = std::thread(ThreadPool::execute, data);
 }
 
-// 线程池析构函数
+// 默认析构函数
 ThreadPool::~ThreadPool()
 {
 	destroy();
@@ -111,10 +112,10 @@ bool ThreadPool::setThreads(size_type threads)
 	if (threads > getMaxThreads())
 		return false;
 	// 增加线程
-	if (auto number = threads - data->threadTable.size(); 
+	if (auto number = threads - data->threadTable.size();
 		number > 0)
 	{
-		std::unique_lock<std::mutex> locker(data->mutex);	// 死锁
+		std::unique_lock locker(data->mutex);	// 死锁隐患
 		data->threadTable.reserve(threads);	// 增加线程表容量
 		// 向线程表添加线程
 		for (decltype(number) counter = 0; counter < number; ++counter)
@@ -126,7 +127,7 @@ bool ThreadPool::setThreads(size_type threads)
 		locker.unlock();
 
 		data->freeThreads += number;
-		// 如果未添加线程之前，无空闲线程，唤醒或许阻塞的守护线程
+		// 如果添加线程之前无空闲线程，唤醒或许阻塞的守护线程
 		if (data->freeThreads == number)
 			data->condition.notify_one();
 		return true;
@@ -160,8 +161,11 @@ ThreadPool::size_type ThreadPool::getTasks() const
 // 向任务队列添加单任务
 void ThreadPool::pushTask(functor&& task)
 {
+	// 过滤空任务，防止守护线程配置任务时无法启动线程
+	if (task == nullptr)
+		return;
 	data->taskQueue->push(std::move(task));
-	// 如果未添加任务之前，任务队列为空，唤醒或许阻塞的守护线程
+	// 如果添加任务之前任务队列为空，唤醒或许阻塞的守护线程
 	if (data->taskQueue->size() == 0x01)
 		data->condition.notify_one();
 }
@@ -169,13 +173,22 @@ void ThreadPool::pushTask(functor&& task)
 // 向任务队列批量添加任务
 void ThreadPool::pushTask(std::list<functor>& tasks)
 {
-	auto size = tasks.size();
-	data->taskQueue->push(tasks);
-	if (data->taskQueue->size() == size)
-		data->condition.notify_one();
+	// 过滤空任务，防止守护线程配置任务时无法启动线程
+	for (auto it = tasks.cbegin(); it != tasks.cend(); ++it)
+		if (*it == nullptr)
+			it = tasks.erase(it);
+		else
+			++it;
+	if (auto size = tasks.size(); size > 0)
+	{
+		data->taskQueue->push(tasks);
+		// 如果添加任务之前任务队列为空，唤醒或许阻塞的守护线程
+		if (data->taskQueue->size() == size)
+			data->condition.notify_one();
+	}
 }
 
-// 设置关闭状态，用于初始或者关闭线程池
+// 设置关闭状态
 inline void ThreadPool::setClosed(data_type& data, bool closed)
 {
 	data->closed = closed;
@@ -190,61 +203,36 @@ inline bool ThreadPool::getClosed(const data_type& data)
 // 守护线程主函数
 void ThreadPool::execute(data_type data)
 {
-	/* 创建std::unique_lock互斥锁，指定延迟锁定策略，用于互斥访问线程表
-	由于std::unique_lock析构之时，自动释放锁，因此无需手动释放 */
-	using lock_type = std::unique_lock<std::mutex>;
+	/* 创建std::unique_lock对象，作为线程互斥锁，指定延迟锁定策略，用于互斥访问线程表。
+	由于析构互斥锁之时，自动释放互斥元，因此不必手动释放。 */
 	using std::defer_lock;
-	lock_type threadLocker(data->mutex, defer_lock);
-	// 创建互斥锁，延迟锁定任务队列互斥元，用于互斥访问任务队列
-	lock_type taskLocker(data->taskQueue->mutex(), defer_lock);
-
-	// 定义Lambda函数，用于销毁线程
-	//auto destroy = [&data]
-	//{
-	//	//std::lock_guard<std::mutex> locker(data->mutex);
-	//	// 遍历线程表，销毁所有线程
-	//	//for (auto it = data->threads.cbegin(); it != data->threads.cend(); ++it)
-	//	//	it->get()->destroy();
-	//	for (auto& thread : data->threadTable)
-	//		thread->destroy();
-	//};
+	std::unique_lock threadLocker(data->mutex, defer_lock);
+	// 创建任务互斥锁，延迟锁定任务队列互斥元，用于互斥访问任务队列
+	std::unique_lock taskLocker(data->taskQueue->mutex(), defer_lock);
 
 	while (!getClosed(data))	// 守护线程退出通道
 	{
-		threadLocker.lock();	// 锁定线程互斥锁
-		// 无空闲线程
-		if (data->freeThreads == 0)
-		{
-			/* 再次锁定线程锁，阻塞守护线程，等待条件变量的唤醒信号，
-			直到空闲线程数量非零或者关闭线程池，释放一次线程锁 */
-			data->condition.wait(threadLocker, 
-				[&data] {return data->freeThreads || getClosed(data); });
-			// 若线程池为关闭状态，退出循环，结束线程
-			if (getClosed(data))
-				break;
-		}
+		threadLocker.lock();	// 锁定线程互斥元
+		/* 检查空闲线程数量和线程池关闭状态。
+		如果无空闲线程并且线程池未关闭，守护进程进入阻塞状态，等待条件变量的唤醒信号；否则守护线程继续顺序执行指令。
+		当条件变量唤醒守护进程时，再次检查空闲线程数量和线程池关闭状态。 */
+		data->condition.wait(threadLocker,
+			[&data] { return data->freeThreads || getClosed(data); });
+		// 若线程池设为关闭状态，退出循环，结束守护线程
+		if (getClosed(data))
+			break;
 
 		// 遍历线程表，给空闲线程分配任务
-		for (auto it = data->threadTable.begin(); 
+		for (auto it = data->threadTable.begin();
 			it != data->threadTable.end() && data->freeThreads && !getClosed(data); ++it)
 		{
 			if (auto& thread = *it; thread->free())	// 若线程处于空闲状态
 			{
-				taskLocker.lock();	// 锁定任务队列互斥锁
-				/* 若任务队列为空，阻塞守护线程，等待条件变量的唤醒信号，
-				并且唤醒后任务队列应残留任务，未被其他线程取走，否则再次阻塞线程 */
-				while (data->taskQueue->empty())
-				{
-					/* 再次锁定任务锁，阻塞守护线程，等待条件变量的唤醒信号，
-					直到任务队列非空或者关闭线程池，释放一次任务锁 */
-					data->condition.wait(taskLocker, 
-						[&data] {return !data->taskQueue->empty() || getClosed(data); });
-					if (getClosed(data))
-					{
-						//destroy();	// 守护线程结束之时，销毁线程
-						return;
-					}
-				}
+				taskLocker.lock();	// 锁定任务队列互斥元
+				data->condition.wait(taskLocker,
+					[&data] { return !data->taskQueue->empty() || getClosed(data); });
+				if (getClosed(data))
+					return;
 
 				if (thread->configure(data->taskQueue->front())		// 为线程分配新任务
 					&& thread->start())	// 唤醒阻塞的线程
@@ -252,12 +240,11 @@ void ThreadPool::execute(data_type data)
 					data->taskQueue->pop();	// 任务队列弹出已经配置的任务
 					--data->freeThreads;	// 空闲线程数量减一
 				}
-				taskLocker.unlock();	// 释放任务队列互斥锁
+				taskLocker.unlock();	// 释放任务队列互斥元
 			}
 		}
-		threadLocker.unlock();	// 释放线程互斥锁
+		threadLocker.unlock();	// 释放线程互斥元
 	}
-	//destroy();	// 守护线程结束之时，销毁线程
 }
 
 //bool ThreadPool::getTask(std::shared_ptr<Thread> thread)
@@ -271,7 +258,7 @@ void ThreadPool::execute(data_type data)
 //	}
 //	locker.unlock();
 //
-//	// 任务队列为空，空闲线程数量加一，若未增加之前，空闲线程数量为零，则唤醒阻塞的守护线程
+//	// 任务队列为空，空闲线程数量加一，若增加之前空闲线程数量为零，则唤醒阻塞的守护线程
 //	if (++data->freeThreads == 0x01)
 //		data->condition.notify_one();
 //	return false;
@@ -280,7 +267,7 @@ void ThreadPool::execute(data_type data)
 // 销毁线程池
 void ThreadPool::destroy()
 {
-	// 若数据为空或者已经关闭线程池，无需销毁线程池，以支持移动语义
+	// 若数据为空或者已经关闭线程池，不再销毁线程池，以支持移动语义
 	if (data == nullptr || getClosed(data))
 		return;
 	setClosed(data, true);	// 线程池设为关闭状态，即销毁状态

@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include <ctime>
+//#include <fstream>
 #include <iostream>
 
 std::atomic_ulong counter = 0;
@@ -17,10 +18,9 @@ void process()
 
 void Eterfree(eterfree::ThreadPool &threadPool)
 {
-	using functor = eterfree::ThreadPool::functor;
 	for (int i = 0; i < 100000; ++i)
 		threadPool.pushTask(process);
-	std::list<functor> tasks;
+	std::list<eterfree::ThreadPool::functor> tasks;
 	for (int i = 0; i < 100000; ++i)
 		tasks.push_back(process);
 	threadPool.pushTask(tasks);
@@ -38,12 +38,13 @@ void Eterfree(eterfree::ThreadPool &threadPool)
 // 	}
 // }
 
-#include "Thread.h"
-
 int main()
 {
 	eterfree::ThreadPool threadPool(100);
 	//boost::threadpool::thread_pool<> threadPool(100);
+
+	//std::ofstream ofs("ThreadPool.log", std::ios::app);
+	//auto os = std::cout.rdbuf(ofs.rdbuf());
 	clock_t begin = clock();
 
 	Eterfree(threadPool);
@@ -53,5 +54,8 @@ int main()
 	std::cout << "任务数量：" << counter << std::endl;
 	std::cout << "执行时间：" << (double)(clock() - begin)/CLOCKS_PER_SEC*1000 << std::endl;
 	eterfree::ThreadPool(std::move(threadPool));
+
+	//std::cout << std::endl;
+	//std::cout.rdbuf(os);
 	return 0;
 }
