@@ -1,4 +1,5 @@
 ﻿#include "Thread.h"
+#include "Queue.h"
 
 #include <mutex>
 #include <condition_variable>

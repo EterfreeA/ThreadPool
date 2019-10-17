@@ -3,7 +3,7 @@
 
 #include <thread>
 #include <atomic>
-#include <ctime>
+#include <chrono>
 //#include <fstream>
 #include <iostream>
 
@@ -45,14 +45,17 @@ int main()
 
 	//std::ofstream ofs("ThreadPool.log", std::ios::app);
 	//auto os = std::cout.rdbuf(ofs.rdbuf());
-	clock_t begin = clock();
 
+	using namespace std::chrono;
+	auto begin = system_clock::now();
 	Eterfree(threadPool);
 	//Boost(threadPool);
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+	std::this_thread::sleep_for(milliseconds(10000));
 	std::cout << "任务数量：" << counter << std::endl;
-	std::cout << "执行时间：" << (double)(clock() - begin)/CLOCKS_PER_SEC*1000 << std::endl;
+	auto end = system_clock::now();
+	auto duration = duration_cast<milliseconds>(end - begin);
+	std::cout << "执行时间：" << duration.count() << std::endl;
 	eterfree::ThreadPool(std::move(threadPool));
 
 	//std::cout << std::endl;

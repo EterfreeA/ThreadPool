@@ -1,6 +1,8 @@
 ﻿#include "ThreadPool.h"
 #include "Thread.h"
+#include "Queue.h"
 
+#include <mutex>
 #include <condition_variable>
 #include <atomic>
 #include <vector>

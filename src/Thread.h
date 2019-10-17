@@ -15,7 +15,7 @@ All rights reserved.
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2019年10月16日
+更新日期：2019年10月17日
 
 修正日志：
 V1.1
@@ -43,6 +43,7 @@ V1.6
 1.优化虚假唤醒解决方案，于启动方法判断任务是否为空，取消条件变量成立判别式。
 2.尝试解决唤醒先于阻塞的隐患，在等待条件变量之前，若满足执行条件就不必等待。
 3.工作线程退出通道增设条件，保证在退出之前，执行已配置任务。
+4.于头文件移动Queue.h的引用至源文件，以双缓冲队列模板的声明式替换其定义式，除去Thread.h对Queue.h的编译依存性。
 */
 
 #pragma once
@@ -51,9 +52,12 @@ V1.6
 #include <memory>
 #include <functional>
 
-#include "Queue.h"
+#include "core.h"
 
 ETERFREE_BEGIN
+
+template <typename Type>
+class Queue;
 
 /* 继承enable_shared_from_this模板类，当Thread被shared_ptr托管，
 而在Thread把类成员指针this作为参数传给其他函数时，
