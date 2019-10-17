@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+//#include <filesystem>
 //#include <fstream>
 #include <iostream>
 
@@ -43,8 +44,11 @@ int main()
 	eterfree::ThreadPool threadPool(100);
 	//boost::threadpool::thread_pool<> threadPool(100);
 
-	//std::ofstream ofs("ThreadPool.log", std::ios::app);
-	//auto os = std::cout.rdbuf(ofs.rdbuf());
+	//constexpr auto file = "ThreadPool.log";
+	//std::filesystem::remove(file);
+	//std::ofstream ofs(file, std::ios::app);
+	using std::cout;
+	//auto os = cout.rdbuf(ofs.rdbuf());
 
 	using namespace std::chrono;
 	auto begin = system_clock::now();
@@ -52,13 +56,14 @@ int main()
 	//Boost(threadPool);
 
 	std::this_thread::sleep_for(milliseconds(10000));
-	std::cout << "任务数量：" << counter << std::endl;
+	using std::endl;
+	cout << "任务数量：" << counter << endl;
 	auto end = system_clock::now();
 	auto duration = duration_cast<milliseconds>(end - begin);
-	std::cout << "执行时间：" << duration.count() << std::endl;
+	cout << "执行时间：" << duration.count() << endl;
 	eterfree::ThreadPool(std::move(threadPool));
 
-	//std::cout << std::endl;
+	//cout << endl;
 	//std::cout.rdbuf(os);
 	return 0;
 }
