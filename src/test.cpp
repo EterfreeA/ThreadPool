@@ -12,8 +12,8 @@ std::atomic_ulong counter = 0;
 
 void process()
 {
-	for (int counter = 0; counter < 100; ++counter);
-	std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	for (volatile int counter = 0; counter < 10000; ++counter);
+	std::this_thread::sleep_for(std::chrono::milliseconds(3));
 	++counter;
 }
 
@@ -22,7 +22,7 @@ void Eterfree(eterfree::ThreadPool &threadPool)
 	for (int i = 0; i < 100000; ++i)
 		threadPool.pushTask(process);
 	std::list<eterfree::ThreadPool::functor> tasks;
-	for (int i = 0; i < 100000; ++i)
+	for (int i = 0; i < 200000; ++i)
 		tasks.push_back(process);
 	threadPool.pushTask(tasks);
 }
@@ -41,7 +41,7 @@ void Eterfree(eterfree::ThreadPool &threadPool)
 
 int main()
 {
-	eterfree::ThreadPool threadPool(100);
+	eterfree::ThreadPool threadPool(100, 100);
 	//boost::threadpool::thread_pool<> threadPool(100);
 
 	//constexpr auto file = "ThreadPool.log";

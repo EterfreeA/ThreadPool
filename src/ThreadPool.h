@@ -70,15 +70,16 @@ class ThreadPool
 public:
 	using size_type = std::size_t;
 	using functor = std::function<void()>;
-	ThreadPool(size_type threads = 0, size_type maxThreads = getConcurrency() * 100);
+	ThreadPool(size_type threads = getConcurrency(),
+		size_type maxThreads = getConcurrency() << 0x01);
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool(ThreadPool&&) = default;
 	~ThreadPool();
 	ThreadPool& operator=(const ThreadPool&) = delete;
 	ThreadPool& operator=(ThreadPool&&) = default;
-	static size_type getConcurrency();
 	//bool setTimeSlice(size_type timeSlice);
 	//size_type getTimeSlice() const;
+	static size_type getConcurrency();
 	void setMaxThreads(size_type maxThreads);
 	size_type getMaxThreads() const;
 	bool setThreads(size_type threads);

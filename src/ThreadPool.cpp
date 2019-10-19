@@ -23,8 +23,8 @@ struct ThreadPool::ThreadPoolStructure
 	std::condition_variable condition;						// 条件变量
 	std::atomic_bool closed;								// 关闭标记
 	//std::atomic_int timeSlice;
-	std::atomic<size_type> maxThreads;						// 最大线程数
-	std::atomic<size_type> freeThreads;						// 空闲线程数
+	std::atomic<size_type> maxThreads;						// 最大线程数量
+	std::atomic<size_type> freeThreads;						// 空闲线程数量
 	// 构造函数
 	ThreadPoolStructure()
 		: taskQueue(std::make_shared<TaskQueue>()) {}
@@ -74,7 +74,7 @@ ThreadPool::~ThreadPool()
 	destroy();
 }
 
-// 获取硬件设备并发运行的最大线程数量
+// 获取支持的并发线程数量
 ThreadPool::size_type ThreadPool::getConcurrency()
 {
 	return std::thread::hardware_concurrency();
@@ -154,7 +154,7 @@ ThreadPool::size_type ThreadPool::getFreeThreads() const
 	return data->freeThreads;
 }
 
-// 获取任务队列的任务数
+// 获取任务数量
 ThreadPool::size_type ThreadPool::getTasks() const
 {
 	return data->taskQueue->size();
@@ -269,7 +269,7 @@ void ThreadPool::execute(data_type data)
 // 销毁线程池
 void ThreadPool::destroy()
 {
-	// 若数据为空或者已经关闭线程池，不再销毁线程池，以支持移动语义
+	// 若数据为空或者线程池已关闭，无需销毁线程池，以支持移动语义
 	if (data == nullptr || getClosed(data))
 		return;
 	setClosed(data, true);	// 线程池设为关闭状态，即销毁状态
