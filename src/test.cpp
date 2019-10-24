@@ -22,7 +22,7 @@
 
 static std::atomic_ulong counter = 0;
 
-static void process()
+static void task()
 {
 	for (volatile int counter = 0; counter < 10000; ++counter);
 	std::this_thread::sleep_for(std::chrono::milliseconds(3));
@@ -30,33 +30,27 @@ static void process()
 }
 
 #if defined ETERFREE
-static void Eterfree(eterfree::ThreadPool &threadPool)
+static void process(eterfree::ThreadPool &threadPool)
 {
 	for (int i = 0; i < 100000; ++i)
-		threadPool.pushTask(process);
+		threadPool.pushTask(task);
 	std::list<eterfree::ThreadPool::functor> tasks;
 	for (int i = 0; i < 200000; ++i)
-		tasks.push_back(process);
+		tasks.push_back(task);
 	threadPool.pushTask(tasks);
 }
 #elif defined BOOST
-static void Boost(boost::threadpool::thread_pool<> &threadPool)
+static void process(boost::threadpool::thread_pool<> &threadPool)
 {
 	for (int i = 0; i < 100000; ++i)
-		threadPool.schedule(process);
+		threadPool.schedule(task);
 	for (int i = 0; i < 200000; ++i)
-		threadPool.schedule(process);
+		threadPool.schedule(task);
 }
 #endif
 
 int main()
 {
-#if defined ETERFREE
-	eterfree::ThreadPool threadPool(100, 100);
-#elif defined BOOST
-	boost::threadpool::thread_pool<> threadPool(100);
-#endif
-
 	using std::cout;
 #ifdef FILE_STREAM
 	constexpr auto file = "ThreadPool.log";
@@ -67,13 +61,15 @@ int main()
 	auto os = cout.rdbuf(ofs.rdbuf());
 #endif
 
+#if defined ETERFREE
+	eterfree::ThreadPool threadPool(100, 100);
+#elif defined BOOST
+	boost::threadpool::thread_pool<> threadPool(100);
+#endif
+
 	using namespace std::chrono;
 	auto begin = system_clock::now();
-#if defined ETERFREE
-	Eterfree(threadPool);
-#elif defined BOOST
-	Boost(threadPool);
-#endif
+	process(threadPool);
 
 	std::this_thread::sleep_for(milliseconds(10000));
 	using std::endl;
