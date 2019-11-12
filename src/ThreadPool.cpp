@@ -13,7 +13,6 @@ ETERFREE_BEGIN
 // 线程池数据结构体
 struct ThreadPool::Structure
 {
-	using size_type = ThreadPool::size_type;
 	using TaskQueue = Queue<ThreadPool::functor>;
 	std::vector<std::unique_ptr<Thread>> threadTable;		// 线程表
 	std::shared_ptr<TaskQueue> taskQueue;					// 任务队列

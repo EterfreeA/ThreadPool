@@ -12,15 +12,15 @@ ETERFREE_BEGIN
 // 线程数据结构体
 struct Thread::Structure
 {
-	std::thread thread;										// 工作线程
-	std::mutex mutex;										// 互斥元
-	std::condition_variable condition;						// 条件变量
-	std::atomic_bool closed;								// 关闭状态标志
-	std::atomic_bool running;								// 运行状态标志
-	//ThreadPool *threadPool;								// 线程池指针
-	std::shared_ptr<Queue<Thread::functor>> taskQueue;		// 任务队列
-	std::function<void(bool, Thread::ThreadID)> callback;	// 回调函数子
-	Thread::functor task;									// 任务函数子
+	std::thread thread;								// 工作线程
+	std::mutex mutex;								// 互斥元
+	std::condition_variable condition;				// 条件变量
+	std::atomic_bool closed;						// 关闭状态标志
+	std::atomic_bool running;						// 运行状态标志
+	//ThreadPool *threadPool;						// 线程池指针
+	std::shared_ptr<Queue<functor>> taskQueue;		// 任务队列
+	std::function<void(bool, ThreadID)> callback;	// 回调函数子
+	functor task;									// 任务函数子
 	//// 线程过程参数解决方案：虚基类指针，过程类继承虚基类，通过强制类型转换，在过程函数中访问
 	//void *vpParameters;
 };
