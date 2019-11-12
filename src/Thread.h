@@ -35,7 +35,7 @@ V1.3
 V1.4
 1.优化成员函数访问权限。
 2.归入名称空间eterfree。
-3.类Thread内外分别声明和定义结构体ThreadStructure，避免污染类外名称空间，从而增强类的封装性。
+3.类Thread内外分别声明和定义结构体Structure，避免污染类外名称空间，从而增强类的封装性。
 V1.5
 1.优化构造函数，以构造初始化成员变量，去掉多余赋值步骤。
 2.精简任务形式为函数子，不再含有回调函数子，若执行任务需要回调，可以在任务函数子之内进行回调步骤。
@@ -67,8 +67,8 @@ class Queue;
 class Thread
 	//: public std::enable_shared_from_this<Thread>
 {
-	struct ThreadStructure;
-	using data_type = std::shared_ptr<ThreadStructure>;
+	struct Structure;
+	using data_type = std::shared_ptr<Structure>;
 	data_type data;
 public:
 	using functor = std::function<void()>;

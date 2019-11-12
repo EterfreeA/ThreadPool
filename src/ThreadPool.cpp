@@ -11,7 +11,7 @@
 ETERFREE_BEGIN
 
 // 线程池数据结构体
-struct ThreadPool::ThreadPoolStructure
+struct ThreadPool::Structure
 {
 	using size_type = ThreadPool::size_type;
 	using TaskQueue = Queue<ThreadPool::functor>;
@@ -26,7 +26,7 @@ struct ThreadPool::ThreadPoolStructure
 	std::atomic<size_type> maxThreads;						// 最大线程数量
 	std::atomic<size_type> freeThreads;						// 空闲线程数量
 	// 构造函数
-	ThreadPoolStructure()
+	Structure()
 		: taskQueue(std::make_shared<TaskQueue>()) {}
 };
 
@@ -35,7 +35,7 @@ ThreadPool::ThreadPool(size_type threads, size_type maxThreads)
 	/* 智能指针std::shared_ptr需要维护引用计数，若调用构造函数（即先以new运算符创建对象，再传递给std::shared_ptr），
 	一共申请两次内存，先申请对象内存，再申请控制块内存，对象内存和控制块内存不连续。
 	而使用std::make_shared方法只申请一次内存，对象内存和控制块内存连续。 */
-	: data(std::make_shared<ThreadPoolStructure>())
+	: data(std::make_shared<Structure>())
 {
 	setClosed(data, false);	// 线程池设为未关闭状态
 	//setTimeSlice(timeSlice);

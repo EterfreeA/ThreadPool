@@ -37,7 +37,7 @@ V1.5
 2.归入名称空间eterfree。
 3.运用析构函数自动销毁线程。
 4.以weak_ptr解决shared_ptr循环引用问题，防止销毁线程池时内存泄漏。
-5.类ThreadPool内外分别声明和定义结构体ThreadPoolStructure，避免污染类外名称空间，从而增强类的封装性。
+5.类ThreadPool内外分别声明和定义结构体Structure，避免污染类外名称空间，从而增强类的封装性。
 V1.6
 1.优化构造函数，以构造初始化成员变量，去掉多余赋值步骤。
 2.精简任务形式为函数子，不再含有回调函数子，以降低内存消耗。
@@ -64,8 +64,8 @@ ETERFREE_BEGIN
 class ThreadPool
 {
 	//friend class Thread;
-	struct ThreadPoolStructure;
-	using data_type = std::shared_ptr<ThreadPoolStructure>;
+	struct Structure;
+	using data_type = std::shared_ptr<Structure>;
 	data_type data;
 public:
 	using size_type = std::size_t;

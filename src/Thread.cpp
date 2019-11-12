@@ -10,7 +10,7 @@
 ETERFREE_BEGIN
 
 // 线程数据结构体
-struct Thread::ThreadStructure
+struct Thread::Structure
 {
 	std::thread thread;										// 工作线程
 	std::mutex mutex;										// 互斥元
@@ -27,7 +27,7 @@ struct Thread::ThreadStructure
 
 // 默认构造函数
 Thread::Thread()
-	: data(std::make_shared<ThreadStructure>())
+	: data(std::make_shared<Structure>())
 {
 	// 线程设为未关闭未运行状态
 	setClosed(data, false);
