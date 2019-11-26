@@ -149,6 +149,8 @@ void Thread::execute(DataType data)
 			std::cerr << exception.what() << std::endl;
 		}
 		data->task = nullptr;	// 执行完毕清除任务
+		// 工作线程退出通道
+		if (getClosed(data)) break;
 
 		/* 以data->threadPool->getTask(this->shared_from_this())的形式，
 		调用ThreadPool::getTask函数获取线程池任务队列的任务。
@@ -161,9 +163,6 @@ void Thread::execute(DataType data)
 		//	setRunning(false);	// 允许守护线程分配任务
 		//	data->condition.wait(threadLocker);	// 工作线程进入阻塞状态，等待条件变量的唤醒信号
 		//}
-
-		// 工作线程退出通道
-		if (getClosed(data)) break;
 
 		// 若任务队列指针非空，并且队列非空，则配置新任务
 		if (data->taskQueue)

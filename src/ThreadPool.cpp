@@ -13,9 +13,9 @@ ETERFREE_BEGIN
 // 线程池数据结构体
 struct ThreadPool::Structure
 {
-	using TaskQueue = Queue<ThreadPool::Functor>;
+	using QueueType = Queue<ThreadPool::Functor>;
 	std::vector<std::unique_ptr<Thread>> threadTable;		// 线程表
-	std::shared_ptr<TaskQueue> taskQueue;					// 任务队列
+	std::shared_ptr<QueueType> taskQueue;					// 任务队列
 	std::function<void(bool, Thread::ThreadID)> callback;	// 回调函数子
 	std::thread thread;										// 守护线程
 	std::mutex mutex;										// 互斥元
@@ -26,7 +26,7 @@ struct ThreadPool::Structure
 	std::atomic<SizeType> freeThreads;						// 空闲线程数量
 	// 构造函数
 	Structure()
-		: taskQueue(std::make_shared<TaskQueue>()) {}
+		: taskQueue(std::make_shared<QueueType>()) {}
 };
 
 // 默认构造函数
@@ -163,8 +163,7 @@ ThreadPool::SizeType ThreadPool::getTasks() const
 void ThreadPool::pushTask(Functor&& task)
 {
 	// 过滤空任务，防止守护线程配置任务时无法启动线程
-	if (task == nullptr)
-		return;
+	if (task == nullptr) return;
 	data->taskQueue->push(std::move(task));
 	// 如果添加任务之前任务队列为空，唤醒或许阻塞的守护线程
 	if (data->taskQueue->size() == 1U)

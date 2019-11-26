@@ -56,7 +56,7 @@ V1.6
 
 ETERFREE_BEGIN
 
-template <typename Type>
+template <typename DataType>
 class Queue;
 
 /* 继承enable_shared_from_this模板类，当Thread被shared_ptr托管，
