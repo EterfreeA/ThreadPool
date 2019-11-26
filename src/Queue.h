@@ -35,6 +35,8 @@ V1.3
 
 ETERFREE_BEGIN
 
+constexpr auto DEFAULT_UPPER_LIMIT = 10000U;
+
 template <typename DataType>
 class Queue
 {
@@ -43,7 +45,6 @@ public:
 	using SizeType = typename QueueType::size_type;
 	using CountType = std::atomic<SizeType>;
 	using Mutex = std::mutex;
-	static constexpr auto DEFAULT_UPPER_LIMIT = 10000U;
 	Queue(SizeType upperLimit = DEFAULT_UPPER_LIMIT);
 	~Queue();
 	const CountType& size() const { return counter; }
