@@ -21,7 +21,7 @@ struct ThreadPool::Structure
 	std::mutex mutex;										// 互斥元
 	std::condition_variable condition;						// 条件变量
 	std::atomic_bool closed;								// 关闭标记
-	//std::atomic_int timeSlice;
+	//std::atomic<SizeType> timeSlice;
 	std::atomic<SizeType> maxThreads;						// 最大线程数量
 	std::atomic<SizeType> freeThreads;						// 空闲线程数量
 	// 构造函数
@@ -49,14 +49,14 @@ ThreadPool::ThreadPool(SizeType threads, SizeType maxThreads)
 		if (free)
 		{
 			auto shared_data = data.lock();
-			if (shared_data && ++shared_data->freeThreads == 0x01)
+			if (shared_data && ++shared_data->freeThreads == 1U)
 				shared_data->condition.notify_one();
 		}
 	};
 
 	data->threadTable.reserve(threads);	// 预分配内存空间，但是不初始化内存，即未调用构造函数
 	// 初始化线程并放入线程表
-	for (decltype(threads) counter = 0; counter < threads; ++counter)
+	for (decltype(threads) counter = 0U; counter < threads; ++counter)
 	{
 		auto thread = std::make_unique<Thread>();
 		thread->configure(data->taskQueue, data->callback);
@@ -82,7 +82,7 @@ ThreadPool::SizeType ThreadPool::getConcurrency()
 //// 设置管理器轮询时间片
 //bool ThreadPool::setTimeSlice(SizeType timeSlice)
 //{
-//	if (timeSlice < 0)
+//	if (timeSlice < 0U)
 //		return false;
 //	data->timeSlice = timeSlice;
 //	return true;
@@ -97,7 +97,7 @@ ThreadPool::SizeType ThreadPool::getConcurrency()
 // 设置最大线程数量
 void ThreadPool::setMaxThreads(SizeType maxThreads)
 {
-	data->maxThreads = maxThreads > 0 ? maxThreads : 0x01;
+	data->maxThreads = maxThreads > 0U ? maxThreads : 1U;
 }
 
 // 获取最大线程数量
@@ -113,13 +113,13 @@ bool ThreadPool::setThreads(SizeType threads)
 	if (threads > getMaxThreads())
 		return false;
 	// 增加线程
-	if (auto number = threads - data->threadTable.size();
-		number > 0)
+	if (long long quantity = threads - data->threadTable.size(); \
+		quantity > 0)
 	{
 		std::unique_lock locker(data->mutex);	// 死锁隐患
 		data->threadTable.reserve(threads);	// 增加线程表容量
 		// 向线程表添加线程
-		for (decltype(number) counter = 0; counter < number; ++counter)
+		for (decltype(quantity) counter = 0; counter < quantity; ++counter)
 		{
 			auto thread = std::make_unique<Thread>();
 			thread->configure(data->taskQueue, data->callback);
@@ -127,14 +127,14 @@ bool ThreadPool::setThreads(SizeType threads)
 		}
 		locker.unlock();
 
-		data->freeThreads += number;
+		data->freeThreads += quantity;
 		// 如果添加线程之前无空闲线程，唤醒或许阻塞的守护线程
-		if (data->freeThreads == number)
+		if (data->freeThreads == quantity)
 			data->condition.notify_one();
 		return true;
 	}
 	// 减少线程（未制定策略）
-	else if (number < 0)
+	else if (quantity < 0)
 	{
 		return false;
 	}
@@ -167,7 +167,7 @@ void ThreadPool::pushTask(Functor&& task)
 		return;
 	data->taskQueue->push(std::move(task));
 	// 如果添加任务之前任务队列为空，唤醒或许阻塞的守护线程
-	if (data->taskQueue->size() == 0x01)
+	if (data->taskQueue->size() == 1U)
 		data->condition.notify_one();
 }
 
@@ -175,12 +175,10 @@ void ThreadPool::pushTask(Functor&& task)
 void ThreadPool::pushTask(std::list<Functor>& tasks)
 {
 	// 过滤空任务，防止守护线程配置任务时无法启动线程
-	for (auto it = tasks.cbegin(); it != tasks.cend(); ++it)
-		if (*it == nullptr)
-			it = tasks.erase(it);
-		else
-			++it;
-	if (auto size = tasks.size(); size > 0)
+	for (auto it = tasks.cbegin(); it != tasks.cend();)
+		if (*it) ++it;
+		else it = tasks.erase(it);
+	if (auto size = tasks.size(); size > 0U)
 	{
 		data->taskQueue->push(tasks);
 		// 如果添加任务之前任务队列为空，唤醒或许阻塞的守护线程
@@ -217,25 +215,25 @@ void ThreadPool::execute(DataType data)
 		/* 检查空闲线程数量和线程池关闭状态。
 		如果无空闲线程并且线程池未关闭，守护进程进入阻塞状态，等待条件变量的唤醒信号；否则守护线程继续顺序执行指令。
 		当条件变量唤醒守护进程时，再次检查空闲线程数量和线程池关闭状态。 */
-		data->condition.wait(threadLocker,
+		data->condition.wait(threadLocker, \
 			[&data] { return data->freeThreads || getClosed(data); });
 		// 若线程池设为关闭状态，退出循环，结束守护线程
-		if (getClosed(data))
-			break;
+		if (getClosed(data)) break;
 
 		// 遍历线程表，给空闲线程分配任务
-		for (auto it = data->threadTable.begin();
-			it != data->threadTable.end() && data->freeThreads && !getClosed(data); ++it)
+		for (auto it = data->threadTable.begin(); \
+			it != data->threadTable.end() \
+			&& data->freeThreads \
+			&& !getClosed(data); ++it)
 		{
 			if (auto& thread = *it; thread->free())	// 若线程处于空闲状态
 			{
 				taskLocker.lock();	// 锁定任务队列互斥元
-				data->condition.wait(taskLocker,
+				data->condition.wait(taskLocker, \
 					[&data] { return !data->taskQueue->empty() || getClosed(data); });
-				if (getClosed(data))
-					return;
+				if (getClosed(data)) return;
 
-				if (thread->configure(data->taskQueue->front())		// 为线程分配新任务
+				if (thread->configure(data->taskQueue->front()) 	// 为线程分配新任务
 					&& thread->start())	// 唤醒阻塞的线程
 				{
 					data->taskQueue->pop();	// 任务队列弹出已经配置的任务
@@ -260,7 +258,7 @@ void ThreadPool::execute(DataType data)
 //	locker.unlock();
 //
 //	// 任务队列为空，空闲线程数量加一，若增加之前空闲线程数量为零，则唤醒阻塞的守护线程
-//	if (++data->freeThreads == 0x01)
+//	if (++data->freeThreads == 1U)
 //		data->condition.notify_one();
 //	return false;
 //}

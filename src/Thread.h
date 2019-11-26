@@ -79,7 +79,7 @@ public:
 	~Thread();
 	Thread& operator=(const Thread&) = delete;
 	Thread& operator=(Thread&&) = default;
-	bool configure(std::shared_ptr<Queue<Functor>> taskQueue,
+	bool configure(std::shared_ptr<Queue<Functor>> taskQueue, \
 		std::function<void(bool, ThreadID)> callback);
 	bool configure(const Functor& task);
 	bool start();

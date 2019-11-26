@@ -42,7 +42,7 @@ static void process(eterfree::ThreadPool &threadPool)
 #elif defined BOOST
 static void process(boost::threadpool::thread_pool<> &threadPool)
 {
-	for (auto counter = 0UL; counter < 200000UL; ++counter)
+	for (auto counter = 0UL; counter < 100000UL; ++counter)
 		threadPool.schedule(task);
 	for (auto counter = 0UL; counter < 200000UL; ++counter)
 		threadPool.schedule(task);

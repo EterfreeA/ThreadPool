@@ -43,7 +43,7 @@ Thread::~Thread()
 }
 
 // 任务队列及回调函数子配置方法
-bool Thread::configure(std::shared_ptr<Queue<Functor>> taskQueue,
+bool Thread::configure(std::shared_ptr<Queue<Functor>> taskQueue, \
 	std::function<void(bool, ThreadID)> callback)
 {
 	if (getRunning(data))
@@ -141,10 +141,8 @@ void Thread::execute(DataType data)
 		try
 		{
 			// 若任务函数子非空，执行任务函数子
-			if (data->task)
-				data->task();
-			//else
-			//	process();	// 执行默认任务函数
+			if (data->task) data->task();
+			//else process();	// 执行默认任务函数
 		}
 		catch (std::exception& exception)
 		{
@@ -155,19 +153,17 @@ void Thread::execute(DataType data)
 		/* 以data->threadPool->getTask(this->shared_from_this())的形式，
 		调用ThreadPool::getTask函数获取线程池任务队列的任务。
 		若未成功获取任务，阻塞工作线程。 */
-		//if (!(data->threadPool
+		//if (!(data->threadPool \
 		//	&& getTask(data->threadPool, this->shared_from_this())))
 		//{
 		//	// 工作线程退出通道
-		//	if (getClosed())
-		//		break;
+		//	if (getClosed()) break;
 		//	setRunning(false);	// 允许守护线程分配任务
 		//	data->condition.wait(threadLocker);	// 工作线程进入阻塞状态，等待条件变量的唤醒信号
 		//}
 
 		// 工作线程退出通道
-		if (getClosed(data))
-			break;
+		if (getClosed(data)) break;
 
 		// 若任务队列指针非空，并且队列非空，则配置新任务
 		if (data->taskQueue)

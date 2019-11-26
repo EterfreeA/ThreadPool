@@ -42,7 +42,7 @@ V1.6
 1.优化构造函数，以构造初始化成员变量，去掉多余赋值步骤。
 2.精简任务形式为函数子，不再含有回调函数子，以降低内存消耗。
 V1.7
-1.添加任务时过滤空任务，增强线程池的健壮性，防止给线程配置任务成功而启动线程失败。
+1.添加任务之时过滤空任务，增强线程池的健壮性，防止给线程配置任务成功而启动线程失败。
 	空任务会导致守护线程失去启动线程的能力，在最坏的情况，所有线程处于阻塞状态，线程池无法处理任务，任务堆积过多，内存耗尽，最终程序崩溃。
 2.优化条件变量，去掉多余判断步骤。
 V100
@@ -70,8 +70,8 @@ class ThreadPool
 public:
 	using SizeType = std::size_t;
 	using Functor = std::function<void()>;
-	ThreadPool(SizeType threads = getConcurrency(),
-		SizeType maxThreads = getConcurrency() << 0x01);
+	ThreadPool(SizeType threads = getConcurrency(), \
+		SizeType maxThreads = getConcurrency() << 1U);
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool(ThreadPool&&) = default;
 	~ThreadPool();
