@@ -65,7 +65,7 @@ protected:
 template <typename DataType>
 Queue<DataType>::Queue(SizeType upperLimit)
 {
-	//if (upperLimit > 0)
+	//if (upperLimit > 0U)
 	//	this->upperLimit = upperLimit;
 }
 

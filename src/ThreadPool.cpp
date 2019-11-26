@@ -56,7 +56,7 @@ ThreadPool::ThreadPool(SizeType threads, SizeType maxThreads)
 
 	data->threadTable.reserve(threads);	// 预分配内存空间，但是不初始化内存，即未调用构造函数
 	// 初始化线程并放入线程表
-	for (decltype(threads) counter = 0U; counter < threads; ++counter)
+	for (decltype(threads) counter = 0; counter < threads; ++counter)
 	{
 		auto thread = std::make_unique<Thread>();
 		thread->configure(data->taskQueue, data->callback);
@@ -82,7 +82,7 @@ ThreadPool::SizeType ThreadPool::getConcurrency()
 //// 设置管理器轮询时间片
 //bool ThreadPool::setTimeSlice(SizeType timeSlice)
 //{
-//	if (timeSlice < 0U)
+//	if (timeSlice == 0)
 //		return false;
 //	data->timeSlice = timeSlice;
 //	return true;
