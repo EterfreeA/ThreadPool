@@ -24,7 +24,7 @@ static std::atomic_ulong counter = 0;
 
 static void task()
 {
-	for (volatile int counter = 0; counter < 10000; ++counter);
+	for (volatile auto counter = 0U; counter < 10000U; ++counter);
 	std::this_thread::sleep_for(std::chrono::milliseconds(3));
 	++counter;
 }
@@ -32,19 +32,19 @@ static void task()
 #if defined ETERFREE
 static void process(eterfree::ThreadPool &threadPool)
 {
-	for (int i = 0; i < 100000; ++i)
+	for (auto counter = 0UL; counter < 100000UL; ++counter)
 		threadPool.pushTask(task);
-	std::list<eterfree::ThreadPool::functor> tasks;
-	for (int i = 0; i < 200000; ++i)
+	std::list<eterfree::ThreadPool::Functor> tasks;
+	for (auto counter = 0UL; counter < 200000UL; ++counter)
 		tasks.push_back(task);
 	threadPool.pushTask(tasks);
 }
 #elif defined BOOST
 static void process(boost::threadpool::thread_pool<> &threadPool)
 {
-	for (int i = 0; i < 100000; ++i)
+	for (auto counter = 0UL; counter < 200000UL; ++counter)
 		threadPool.schedule(task);
-	for (int i = 0; i < 200000; ++i)
+	for (auto counter = 0UL; counter < 200000UL; ++counter)
 		threadPool.schedule(task);
 }
 #endif

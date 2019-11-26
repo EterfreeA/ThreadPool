@@ -65,33 +65,33 @@ class ThreadPool
 {
 	//friend class Thread;
 	struct Structure;
-	using data_type = std::shared_ptr<Structure>;
-	data_type data;
+	using DataType = std::shared_ptr<Structure>;
+	DataType data;
 public:
-	using size_type = std::size_t;
-	using functor = std::function<void()>;
-	ThreadPool(size_type threads = getConcurrency(),
-		size_type maxThreads = getConcurrency() << 0x01);
+	using SizeType = std::size_t;
+	using Functor = std::function<void()>;
+	ThreadPool(SizeType threads = getConcurrency(),
+		SizeType maxThreads = getConcurrency() << 0x01);
 	ThreadPool(const ThreadPool&) = delete;
 	ThreadPool(ThreadPool&&) = default;
 	~ThreadPool();
 	ThreadPool& operator=(const ThreadPool&) = delete;
 	ThreadPool& operator=(ThreadPool&&) = default;
-	//bool setTimeSlice(size_type timeSlice);
-	//size_type getTimeSlice() const;
-	static size_type getConcurrency();
-	void setMaxThreads(size_type maxThreads);
-	size_type getMaxThreads() const;
-	bool setThreads(size_type threads);
-	size_type getThreads() const;
-	size_type getFreeThreads() const;
-	size_type getTasks() const;
-	void pushTask(functor&& task);
-	void pushTask(std::list<functor>& tasks);
+	//bool setTimeSlice(SizeType timeSlice);
+	//SizeType getTimeSlice() const;
+	static SizeType getConcurrency();
+	void setMaxThreads(SizeType maxThreads);
+	SizeType getMaxThreads() const;
+	bool setThreads(SizeType threads);
+	SizeType getThreads() const;
+	SizeType getFreeThreads() const;
+	SizeType getTasks() const;
+	void pushTask(Functor&& task);
+	void pushTask(std::list<Functor>& tasks);
 private:
-	static void setClosed(data_type& data, bool closed);
-	static bool getClosed(const data_type& data);
-	static void execute(data_type data);
+	static void setClosed(DataType& data, bool closed);
+	static bool getClosed(const DataType& data);
+	static void execute(DataType data);
 	//bool getTask(std::shared_ptr<Thread> thread);
 	void destroy();
 };

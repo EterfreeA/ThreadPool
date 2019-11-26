@@ -68,10 +68,10 @@ class Thread
 	//: public std::enable_shared_from_this<Thread>
 {
 	struct Structure;
-	using data_type = std::shared_ptr<Structure>;
-	data_type data;
+	using DataType = std::shared_ptr<Structure>;
+	DataType data;
 public:
-	using functor = std::function<void()>;
+	using Functor = std::function<void()>;
 	using ThreadID = std::thread::id;
 	Thread();
 	Thread(const Thread&) = delete;
@@ -79,19 +79,19 @@ public:
 	~Thread();
 	Thread& operator=(const Thread&) = delete;
 	Thread& operator=(Thread&&) = default;
-	bool configure(std::shared_ptr<Queue<functor>> taskQueue,
+	bool configure(std::shared_ptr<Queue<Functor>> taskQueue,
 		std::function<void(bool, ThreadID)> callback);
-	bool configure(const functor& task);
+	bool configure(const Functor& task);
 	bool start();
 	ThreadID getThreadID() const;
 	bool free() const;
 	//const void *getParameters();
 private:
-	static void setClosed(data_type& data, bool closed);
-	static bool getClosed(const data_type& data);
-	static void setRunning(data_type& data, bool running);
-	static bool getRunning(const data_type& data);
-	static void execute(data_type data);
+	static void setClosed(DataType& data, bool closed);
+	static bool getClosed(const DataType& data);
+	static void setRunning(DataType& data, bool running);
+	static bool getRunning(const DataType& data);
+	static void execute(DataType data);
 	//virtual void process();
 	void destroy();
 };

@@ -35,59 +35,61 @@ V1.3
 
 ETERFREE_BEGIN
 
-constexpr auto DEFAULT_UPPER_LIMIT = 10000U;
-
-template <typename Type>
+template <typename DataType>
 class Queue
 {
 public:
-	using size_type = typename std::list<Type>::size_type;
-	Queue(size_type upperLimit = DEFAULT_UPPER_LIMIT);
+	using QueueType = std::list<DataType>;
+	using SizeType = typename QueueType::size_type;
+	using CountType = std::atomic<SizeType>;
+	using Mutex = std::mutex;
+	static constexpr auto DEFAULT_UPPER_LIMIT = 10000U;
+	Queue(SizeType upperLimit = DEFAULT_UPPER_LIMIT);
 	~Queue();
-	const std::atomic<size_type>& size() const { return counter; }
-	std::mutex& mutex() { return readMutex; }
+	const CountType& size() const { return counter; }
+	Mutex& mutex() { return readMutex; }
 	bool empty() const { return counter == 0; }
-	bool push(Type&& data);
-	bool push(std::list<Type>& data);
-	Type& front();
+	bool push(DataType&& data);
+	bool push(QueueType& data);
+	DataType& front();
 	void pop();
 protected:
-	//size_type upperLimit;
-	std::atomic<size_type> counter = 0;
-	std::mutex writeMutex;
-	std::mutex readMutex;
-	std::list<Type> writeQueue;
-	std::list<Type> readQueue;
+	//SizeType upperLimit;
+	CountType counter = 0;
+	Mutex writeMutex;
+	Mutex readMutex;
+	QueueType writeQueue;
+	QueueType readQueue;
 };
 
-template <typename Type>
-Queue<Type>::Queue(size_type upperLimit)
+template <typename DataType>
+Queue<DataType>::Queue(SizeType upperLimit)
 {
 	//if (upperLimit > 0)
 	//	this->upperLimit = upperLimit;
 }
 
-template <typename Type>
-Queue<Type>::~Queue()
+template <typename DataType>
+Queue<DataType>::~Queue()
 {
 	
 }
 
-template <typename Type>
-bool Queue<Type>::push(Type&& data)
+template <typename DataType>
+bool Queue<DataType>::push(DataType&& data)
 {
-	std::lock_guard<std::mutex> writeLocker(writeMutex);
+	std::lock_guard writeLocker(writeMutex);
 	//if (writeQueue.size() >= upperLimit)
 	//	return false;
-	writeQueue.push_back(std::forward<Type&&>(data));
+	writeQueue.push_back(std::forward<DataType&&>(data));
 	++counter;
 	return true;
 }
 
-template <typename Type>
-bool Queue<Type>::push(std::list<Type>& data)
+template <typename DataType>
+bool Queue<DataType>::push(QueueType& data)
 {
-	std::lock_guard<std::mutex> writeLocker(writeMutex);
+	std::lock_guard writeLocker(writeMutex);
 	auto quantity = data.size();
 	//if (writeQueue.size() + quantity >= upperLimit)
 	//	return false;
@@ -96,8 +98,8 @@ bool Queue<Type>::push(std::list<Type>& data)
 	return true;
 }
 
-template <typename Type>
-Type& Queue<Type>::front()
+template <typename DataType>
+DataType& Queue<DataType>::front()
 {
 	if (readQueue.empty())
 	{
@@ -108,8 +110,8 @@ Type& Queue<Type>::front()
 	return readQueue.front();
 }
 
-template <typename Type>
-void Queue<Type>::pop()
+template <typename DataType>
+void Queue<DataType>::pop()
 {
 	--counter;
 	readQueue.pop_front();
