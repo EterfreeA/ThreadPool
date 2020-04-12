@@ -28,8 +28,8 @@ V1.3
 #pragma once
 
 #include <list>
-#include <mutex>
 #include <atomic>
+#include <mutex>
 
 #include "core.h"
 

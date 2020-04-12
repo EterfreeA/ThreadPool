@@ -48,9 +48,9 @@ V1.6
 
 #pragma once
 
-#include <thread>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <thread>
 
 #include "core.h"
 

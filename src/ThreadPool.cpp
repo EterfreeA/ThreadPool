@@ -2,11 +2,10 @@
 #include "Thread.h"
 #include "Queue.h"
 
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
+#include <utility>
 #include <vector>
 #include <algorithm>
+#include <condition_variable>
 
 ETERFREE_BEGIN
 
