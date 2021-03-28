@@ -64,9 +64,9 @@ public:
 	std::optional<SizeType> push(DataType&& data);
 	std::optional<SizeType> push(QueueType& data);
 
-	[[deprecated("Useless and discarded.")]]
+	DEPRECATED
 	DataType& front();
-	[[deprecated("Useless and discarded.")]]
+	DEPRECATED
 	void pop() noexcept;
 
 	bool pop(DataType& data);
