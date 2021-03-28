@@ -1,215 +1,264 @@
 ﻿#include "Thread.h"
 #include "Queue.h"
+#include "Condition.hpp"
 
 #include <exception>
 #include <iostream>
-#include <condition_variable>
+#include <atomic>
+#include <mutex>
 
 ETERFREE_BEGIN
 
 // 线程数据结构体
 struct Thread::Structure
 {
-	std::thread thread;								// 工作线程
-	std::mutex mutex;								// 互斥元
-	std::condition_variable condition;				// 条件变量
-	std::atomic_bool closed;						// 关闭状态标志
-	std::atomic_bool running;						// 运行状态标志
-	//ThreadPool *threadPool;						// 线程池指针
-	std::shared_ptr<Queue<Functor>> taskQueue;		// 任务队列
-	std::function<void(bool, ThreadID)> callback;	// 回调函数子
-	Functor task;									// 任务函数子
-	//// 线程过程参数解决方案：虚基类指针，过程类继承虚基类，通过强制类型转换，在过程函数中访问
-	//void *vpParameters;
+	// 状态枚举
+	enum class State
+	{
+		EMPTY,		// 空态
+		INITIAL,	// 初始态
+		RUNNABLE,	// 就绪态
+		RUNNING,	// 运行态
+		BLOCKED,	// 阻塞态
+	};
+
+	std::thread thread;			// 线程实体
+	std::atomic<State> state;	// 原子状态
+	std::mutex threadMutex;		// 线程互斥元
+	Condition<> condition;		// 强化条件变量
+
+	TaskQueue taskQueue;		// 任务队列
+	std::mutex taskMutex;		// 任务互斥元
+	Functor task;				// 任务函数子
+	Callback callback;			// 回调函数子
+
+	// 设置状态
+	void setState(State state) noexcept
+	{
+		this->state.store(state, std::memory_order::memory_order_relaxed);
+	}
+
+	// 获取状态
+	State getState() const noexcept
+	{
+		return state.load(std::memory_order::memory_order_relaxed);
+	}
+
+	// 设置任务
+	void setTask(const Functor& task)
+	{
+		std::lock_guard locker(taskMutex);
+		this->task = task;
+	}
+
+	// 任务是否有效
+	bool getValidity()
+	{
+		std::lock_guard locker(taskMutex);
+		return static_cast<bool>(task);
+	}
 };
 
-// 默认构造函数
-Thread::Thread()
-	: data(std::make_shared<Structure>())
+// 获取任务
+bool Thread::setTask(DataType& data)
 {
-	// 线程设为未关闭未运行状态
-	setClosed(data, false);
-	setRunning(data, false);
-	// 创建std::thread对象，即工作线程，以data为参数，执行execute函数
-	data->thread = std::thread(Thread::execute, data);
-}
-
-// 默认析构函数
-Thread::~Thread()
-{
-	destroy();
-}
-
-// 任务队列及回调函数子配置方法
-bool Thread::configure(std::shared_ptr<Queue<Functor>> taskQueue, \
-	std::function<void(bool, ThreadID)> callback)
-{
-	if (getRunning(data))
+	// 无任务队列
+	if (data->taskQueue == nullptr)
 		return false;
-	//data->threadPool = threadPool;	// 指向线程池，便于自动从任务队列获取任务
-	data->taskQueue = taskQueue;	// 指向任务队列，便于自动获取任务
-	data->callback = callback;	// 回调函数子，用于通知守护线程获取任务失败，线程进入阻塞状态
-	return true;
-}
 
-// 任务配置方法
-bool Thread::configure(const Functor& task)
-{
-	// 若处于运行状态，标志正在执行任务，配置新任务失败
-	if (getRunning(data))
+	// 无任务
+	if (decltype(data->task) task; !data->taskQueue->pop(task))
 		return false;
-	data->task = task;	// 配置任务函数子
-	//data->vpParameters = vpParameters;
+	// 有任务
+	else
+	{
+		data->setState(Structure::State::RUNNABLE);
+		data->setTask(task);
+	}
 	return true;
+
+	//auto result = data->taskQueue->pop();
+	//if (result)
+	//{
+	//	data->setState(Structure::State::RUNNABLE);
+	//	data->setTask(result.value());
+	//}
+	//return static_cast<bool>(result);
 }
 
-// 启动工作线程
-bool Thread::start()
-{
-	// 若任务为空，不必唤醒工作线程，防止虚假唤醒
-	if (data->task == nullptr)
-		return false;
-	data->condition.notify_one();	// 通过条件变量唤醒工作线程
-	return true;
-}
-
-// 获取线程ID
-Thread::ThreadID Thread::getThreadID() const
-{
-	return data->thread.get_id();
-}
-
-// 获取空闲状态
-bool Thread::free() const
-{
-	return !getRunning(data);
-}
-
-//const void *Thread::getParameters()
-//{
-//	return data->vpParameters;
-//}
-
-// 设置关闭状态
-inline void Thread::setClosed(DataType& data, bool closed)
-{
-	data->closed = closed;
-}
-
-// 获取关闭状态
-inline bool Thread::getClosed(const DataType& data)
-{
-	return data->closed;
-}
-
-// 设置运行状态
-inline void Thread::setRunning(DataType& data, bool running)
-{
-	data->running = running;
-}
-
-// 获取运行状态
-inline bool Thread::getRunning(const DataType& data)
-{
-	return data->running;
-}
-
-// 工作线程主函数
+// 线程主函数
 void Thread::execute(DataType data)
 {
-	//// 调用std::mem_fn获取函数子getTask，其拥有指向ThreadPool::getTask的指针，并且重载运算符operator()
-	//auto &&getTask = std::mem_fn(&ThreadPool::getTask);
+	// 条件变量的谓词，若任务有效或者条件无效，则无需等待通知
+	auto predicate = [&data] { return data->getValidity() || !data->condition.valid(); };
 
-	// 创建std::unique_lock对象，作为线程互斥锁，未指定锁策略，默认立即锁住互斥元，用于阻塞工作线程
-	std::unique_lock threadLocker(data->mutex);
-	/* 条件变量通过线程互斥锁判断是否锁定互斥元。
-	若已锁定互斥元，自动释放互斥元，工作线程进入阻塞状态，等待条件变量的唤醒信号。
-	当条件变量唤醒唤醒工作线程时，再次锁定互斥元。 */
-	data->condition.wait(threadLocker);
+	// 若谓词为真，自动解锁互斥元，阻塞线程，直至通知激活，再次锁定互斥元
+	data->condition.wait(predicate);
 
-	// 若任务队列指针非空，创建任务互斥锁，指定延迟锁定策略，用于从任务队列互斥读取任务
-	std::unique_lock<std::mutex> taskLocker;
-	if (data->taskQueue)
-		taskLocker = decltype(taskLocker)(data->taskQueue->mutex(), std::defer_lock);
-
-	while (!getClosed(data) || data->task)	// 工作线程退出通道
+	// 线程退出通道
+	while (data->getValidity() || data->condition.valid())
 	{
-		setRunning(data, true);	// 线程设为运行状态
-		// 执行函数子时捕获异常，防止线程泄漏
+		using State = Structure::State;
+		data->setState(State::RUNNING);
+
+		// 执行函数子之时捕获异常，防止线程泄漏
 		try
 		{
-			// 若任务函数子非空，执行任务函数子
-			if (data->task) data->task();
-			//else process();	// 执行默认任务函数
+			// 若任务函数子有效，执行任务函数子
+			if (data->task)
+				data->task();
 		}
 		catch (std::exception& exception)
 		{
 			std::cerr << exception.what() << std::endl;
 		}
-		data->task = nullptr;	// 执行完毕清除任务
-		// 工作线程退出通道
-		if (getClosed(data)) break;
 
-		/* 以data->threadPool->getTask(this->shared_from_this())的形式，
-		调用ThreadPool::getTask函数获取线程池任务队列的任务。
-		若未成功获取任务，阻塞工作线程。 */
-		//if (!(data->threadPool \
-		//	&& getTask(data->threadPool, this->shared_from_this())))
-		//{
-		//	// 工作线程退出通道
-		//	if (getClosed()) break;
-		//	setRunning(false);	// 允许守护线程分配任务
-		//	data->condition.wait(threadLocker);	// 工作线程进入阻塞状态，等待条件变量的唤醒信号
-		//}
+		// 执行完毕清除任务
+		data->task = nullptr;
 
-		// 若任务队列指针非空，并且队列非空，则配置新任务
-		if (data->taskQueue)
-		{
-			taskLocker.lock();
-			if (!data->taskQueue->empty())
-			{
-				data->task = data->taskQueue->front();
-				data->taskQueue->pop();
-			}
-			taskLocker.unlock();
-		}
+		// 配置新任务
+		bool idle = !setTask(data);
+		if (idle)
+			data->setState(State::BLOCKED);
 
-		auto empty = data->task == nullptr;	// 空任务标志，用于判断是否进入阻塞状态
-		// 若回调函数子非空，执行回调函数子
+		// 若回调函数子有效，以闲置状态和线程标识为参数，执行回调函数子
 		if (data->callback)
-			data->callback(empty, data->thread.get_id());
-		// 根据空任务标志设置线程运行状态，若任务为空，线程设为未运行状态，否则线程设为运行状态
-		setRunning(data, !empty);
-		/* 在工作线程阻塞之前，判断任务是否为空，以及线程是否设为关闭状态。
-		若任务非空或者线程已关闭，放弃阻塞工作线程，以防止唤醒先于阻塞。*/
-		if (data->task == nullptr && !getClosed(data))
-			data->condition.wait(threadLocker);
-		//// 进入阻塞状态，等待条件变量的唤醒消息，直到配置新任务或者关闭线程
-		//data->condition.wait(threadLocker,
-		//	[&data] { return data->task || getClosed(data); });
+			data->callback(idle, data->thread.get_id());
+
+		// 根据谓词真假，决定是否阻塞线程
+		data->condition.wait(predicate);
 	}
 }
 
-//// 线程默认任务函数，用于继承扩展线程，形成钩子
-//void Thread::process()
-//{
-//}
+// 默认构造函数
+Thread::Thread()
+	: data(std::make_shared<Structure>())
+{
+	data->setState(Structure::State::EMPTY);
+	create();
+}
+
+// 默认析构函数
+Thread::~Thread()
+{
+	// 支持移动语义
+	if (data != nullptr)
+		destroy();
+}
+
+// 获取线程ID
+Thread::ThreadID Thread::getID()
+{
+	std::lock_guard locker(data->threadMutex);
+	return data->thread.get_id();
+}
+
+// 是否空闲
+bool Thread::free() const noexcept
+{
+	return idle();
+}
+
+// 是否闲置
+bool Thread::idle() const noexcept
+{
+	using State = Structure::State;
+	State state = data->getState();
+	return state == State::INITIAL || state == State::BLOCKED;
+}
+
+// 创建线程
+bool Thread::create()
+{
+	std::lock_guard locker(data->threadMutex);
+	using State = Structure::State;
+	if (data->getState() != State::EMPTY)
+		return false;
+
+	// 创建std::thread对象，以data为参数，执行函数execute
+	data->thread = std::thread(Thread::execute, data);
+	data->setState(State::INITIAL);
+	return true;
+}
 
 // 销毁线程
 void Thread::destroy()
 {
-	// 若数据为空或者线程已关闭，无需销毁线程，以支持移动语义
-	if (data == nullptr || getClosed(data))
+	std::lock_guard locker(data->threadMutex);
+	using State = Structure::State;
+	if (data->getState() == State::EMPTY)
 		return;
-	setClosed(data, true);	// 线程设为关闭状态，即销毁状态
 
-	// 工作线程或许处于阻塞状态，通过条件变量唤醒工作线程
-	data->condition.notify_one();
-	// 阻塞线程直到工作线程结束
+	// 通知线程退出
+	data->condition.exit();
+
+	// 挂起直到线程退出
 	if (data->thread.joinable())
 		data->thread.join();
-	// 预留等待时间
-	//std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+	// 清空配置项
+	data->callback = nullptr;
+	data->taskQueue = nullptr;
+	data->setState(State::EMPTY);
+}
+
+// 配置任务队列与回调函数子
+bool Thread::configure(TaskQueue taskQueue, Callback callback)
+{
+	// 无任务队列
+	if (taskQueue == nullptr)
+		return false;
+
+	std::lock_guard locker(data->threadMutex);
+	if (!idle())
+		return false;
+
+	data->taskQueue = taskQueue; // 配置任务队列，用以自动获取任务
+	data->callback = callback; // 配置回调函数子，每执行一次任务，通知守护线程，传递线程闲置状态
+	data->setState(Structure::State::BLOCKED);
+	return true;
+}
+
+// 配置单任务与回调函数子
+bool Thread::configure(const Functor& task, Callback callback)
+{
+	// 任务无效
+	if (!task)
+		return false;
+
+	std::lock_guard locker(data->threadMutex);
+	if (!idle())
+		return false;
+
+	data->setState(Structure::State::RUNNABLE);
+	data->callback = callback; // 配置回调函数子
+	data->setTask(task); // 设置任务
+	return true;
+}
+
+// 启动线程
+bool Thread::start()
+{
+	return notify();
+}
+
+// 激活线程
+bool Thread::notify()
+{
+	std::lock_guard locker(data->threadMutex);
+	using State = Structure::State;
+	State state = data->getState();
+
+	// 若处于阻塞状态则获取任务
+	if (state == State::BLOCKED && setTask(data))
+		state = State::RUNNABLE;
+
+	// 非就绪状态不必通知
+	if (state != State::RUNNABLE)
+		return false;
+
+	data->condition.notify_one();
+	return true;
 }
 
 ETERFREE_END

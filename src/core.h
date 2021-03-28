@@ -1,22 +1,21 @@
 ﻿#pragma once
 
 #ifndef __cplusplus
-
-#error You must use this file in C++ compiler, and you need to use ".cpp" as the suffix name of file.
-
+#error The file requires a C++ compiler.
 #endif
+
+// 字符串化
+#define STRING(content) #content
+
+// 拼接
+#define SPLICE(front, back) front##back
 
 // 自定义名称空间
 #define ETERFREE_BEGIN namespace eterfree {
 #define ETERFREE_END }
 
-// 自动加双引号
-#define GET_STR(x) #x
+#define DEPRECATED \
+[[deprecated("The name for this item is deprecated.")]]
 
-#if _MSC_VER >= 1900
-#define u8(str) u8##str
-#elif _MSC_VER >= 1800
-#define u8(str) QStringLiteral(str)
-#else
-#define u8(str) str
-#endif
+#define REPLACEMENT(description) \
+[[deprecated("The name for this item is deprecated. Instead, use the name: " STRING(reason) ".")]]

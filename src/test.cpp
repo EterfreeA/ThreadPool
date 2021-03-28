@@ -25,7 +25,7 @@ static std::atomic_ulong counter = 0;
 
 static void task()
 {
-	for (volatile auto counter = 0U; counter < 10000U; ++counter);
+	for (volatile auto index = 0UL; index < 10000UL; ++index);
 	std::this_thread::sleep_for(std::chrono::milliseconds(3));
 	++counter;
 }
@@ -33,19 +33,19 @@ static void task()
 #if defined ETERFREE
 static void process(eterfree::ThreadPool &threadPool)
 {
-	for (auto counter = 0UL; counter < 100000UL; ++counter)
+	for (auto index = 0UL; index < 20000UL; ++index)
 		threadPool.pushTask(task);
 	std::list<eterfree::ThreadPool::Functor> tasks;
-	for (auto counter = 0UL; counter < 200000UL; ++counter)
+	for (auto index = 0UL; index < 30000UL; ++index)
 		tasks.push_back(task);
 	threadPool.pushTask(tasks);
 }
 #elif defined BOOST
 static void process(boost::threadpool::thread_pool<> &threadPool)
 {
-	for (auto counter = 0UL; counter < 100000UL; ++counter)
+	for (auto index = 0UL; index < 20000UL; ++index)
 		threadPool.schedule(task);
-	for (auto counter = 0UL; counter < 200000UL; ++counter)
+	for (auto index = 0UL; index < 30000UL; ++index)
 		threadPool.schedule(task);
 }
 #endif
@@ -63,9 +63,9 @@ int main()
 #endif
 
 #if defined ETERFREE
-	eterfree::ThreadPool threadPool(100, 100);
+	eterfree::ThreadPool threadPool(16, 16);
 #elif defined BOOST
-	boost::threadpool::thread_pool<> threadPool(100);
+	boost::threadpool::thread_pool<> threadPool(16);
 #endif
 
 	using namespace std::chrono;
@@ -86,5 +86,6 @@ int main()
 	cout << endl;
 	std::cout.rdbuf(os);
 #endif
+	cout << "任务总数：" << counter << endl;
 	return 0;
 }
