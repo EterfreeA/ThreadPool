@@ -80,7 +80,7 @@ std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(DataTy
 	if (_capacity > 0 && size() >= _capacity)
 		return std::nullopt;
 
-	_writeQueue.push_back(std::forward<DataType&&>(_data));
+	_writeQueue.push_back(std::forward<DataType>(_data));
 	return _size.fetch_add(1, std::memory_order::memory_order_relaxed);
 }
 
