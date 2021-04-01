@@ -47,14 +47,14 @@ struct Thread::Structure
 	// 设置任务
 	void setTask(const Functor& task)
 	{
-		std::lock_guard locker(taskMutex);
+		std::lock_guard lock(taskMutex);
 		this->task = task;
 	}
 
 	// 任务是否有效
 	bool getValidity()
 	{
-		std::lock_guard locker(taskMutex);
+		std::lock_guard lock(taskMutex);
 		return static_cast<bool>(task);
 	}
 };
@@ -149,7 +149,7 @@ Thread::~Thread()
 // 获取线程ID
 Thread::ThreadID Thread::getID()
 {
-	std::lock_guard locker(data->threadMutex);
+	std::lock_guard lock(data->threadMutex);
 	return data->thread.get_id();
 }
 
@@ -170,7 +170,7 @@ bool Thread::idle() const noexcept
 // 创建线程
 bool Thread::create()
 {
-	std::lock_guard locker(data->threadMutex);
+	std::lock_guard lock(data->threadMutex);
 	using State = Structure::State;
 	if (data->getState() != State::EMPTY)
 		return false;
@@ -184,7 +184,7 @@ bool Thread::create()
 // 销毁线程
 void Thread::destroy()
 {
-	std::lock_guard locker(data->threadMutex);
+	std::lock_guard lock(data->threadMutex);
 	using State = Structure::State;
 	if (data->getState() == State::EMPTY)
 		return;
@@ -209,7 +209,7 @@ bool Thread::configure(TaskQueue taskQueue, Callback callback)
 	if (taskQueue == nullptr)
 		return false;
 
-	std::lock_guard locker(data->threadMutex);
+	std::lock_guard lock(data->threadMutex);
 	if (!idle())
 		return false;
 
@@ -226,7 +226,7 @@ bool Thread::configure(const Functor& task, Callback callback)
 	if (!task)
 		return false;
 
-	std::lock_guard locker(data->threadMutex);
+	std::lock_guard lock(data->threadMutex);
 	if (!idle())
 		return false;
 
@@ -245,7 +245,7 @@ bool Thread::start()
 // 激活线程
 bool Thread::notify()
 {
-	std::lock_guard locker(data->threadMutex);
+	std::lock_guard lock(data->threadMutex);
 	using State = Structure::State;
 	State state = data->getState();
 

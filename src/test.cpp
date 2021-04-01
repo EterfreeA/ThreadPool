@@ -31,7 +31,7 @@ static void task()
 }
 
 #if defined ETERFREE
-static void process(eterfree::ThreadPool &threadPool)
+static void process(eterfree::ThreadPool& threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
 		threadPool.pushTask(task);
@@ -41,7 +41,7 @@ static void process(eterfree::ThreadPool &threadPool)
 	threadPool.pushTask(tasks);
 }
 #elif defined BOOST
-static void process(boost::threadpool::thread_pool<> &threadPool)
+static void process(boost::threadpool::thread_pool<>& threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
 		threadPool.schedule(task);

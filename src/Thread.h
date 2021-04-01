@@ -79,7 +79,7 @@ public:
 	using Functor = std::function<void()>;
 	using TaskQueue = std::shared_ptr<Queue<Functor>>;
 	using ThreadID = std::thread::id;
-	using Callback = std::function <void(bool, ThreadID)>;
+	using Callback = std::function<void(bool, ThreadID)>;
 
 private:
 	DataType data;

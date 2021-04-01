@@ -61,39 +61,39 @@ public:
 	bool empty() const noexcept { return size() == 0; }
 	MutexType& mutex() noexcept { return _readMutex; }
 
-	std::optional<SizeType> push(DataType&& data);
-	std::optional<SizeType> push(QueueType& data);
+	std::optional<SizeType> push(DataType&& _data);
+	std::optional<SizeType> push(QueueType& _data);
 
 	DEPRECATED
 	DataType& front();
 	DEPRECATED
 	void pop() noexcept;
 
-	bool pop(DataType& data);
+	bool pop(DataType& _data);
 	//std::optional<DataType> pop();
 };
 
 template <typename _DataType>
-std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(DataType&& data)
+std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(DataType&& _data)
 {
 	std::lock_guard writeLocker(_writeMutex);
 	if (_capacity > 0 && size() >= _capacity)
 		return std::nullopt;
 
-	_writeQueue.push_back(std::forward<DataType&&>(data));
-	return _size.fetch_add(1, std::memory_order::memory_order_relaxed);;
+	_writeQueue.push_back(std::forward<DataType&&>(_data));
+	return _size.fetch_add(1, std::memory_order::memory_order_relaxed);
 }
 
 template <typename _DataType>
-std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(QueueType& data)
+std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(QueueType& _data)
 {
 	std::lock_guard writeLocker(_writeMutex);
-	auto quantity = data.size();
+	auto quantity = _data.size();
 	if (auto size = this->size(); \
 		_capacity > 0 && (size >= _capacity || quantity >= _capacity - size))
 		return std::nullopt;
 
-	_writeQueue.splice(_writeQueue.cend(), data);
+	_writeQueue.splice(_writeQueue.cend(), _data);
 	return _size.fetch_add(quantity, std::memory_order::memory_order_relaxed);
 }
 
@@ -117,9 +117,9 @@ void Queue<_DataType>::pop() noexcept
 }
 
 template <typename _DataType>
-bool Queue<_DataType>::pop(DataType& data)
+bool Queue<_DataType>::pop(DataType& _data)
 {
-	std::lock_guard locker(_readMutex);
+	std::lock_guard lock(_readMutex);
 	if (empty())
 		return false;
 
@@ -130,7 +130,7 @@ bool Queue<_DataType>::pop(DataType& data)
 		_writeMutex.unlock();
 	}
 
-	data = _readQueue.front();
+	_data = _readQueue.front();
 	_size.fetch_sub(1, std::memory_order::memory_order_relaxed);
 	_readQueue.pop_front();
 	return true;

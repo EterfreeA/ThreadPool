@@ -54,8 +54,9 @@ v1.8
 
 #pragma once
 
-#include <cstddef>
 #include <functional>
+#include <utility>
+#include <cstddef>
 #include <memory>
 #include <list>
 
@@ -144,10 +145,15 @@ public:
 	// 添加任务
 	bool pushTask(Functor&& task);
 	// 适配不同接口的任务，推进线程池的模板化
+	template <typename Functor>
+	bool pushTask(Functor&& task)
+	{
+		return pushTask(ThreadPool::Functor(std::forward<Functor>(task)));
+	}
 	template <typename Functor, typename... Args>
 	bool pushTask(Functor&& task, Args&&... args)
 	{
-		return pushTask(ThreadPool::Functor([task, args...]{ task(std::move<Args>(args)...); }));
+		return pushTask(ThreadPool::Functor([task, args...]{ task(args...); }));
 	}
 	// 批量添加任务
 	bool pushTask(std::list<Functor>& tasks);

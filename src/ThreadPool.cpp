@@ -3,8 +3,8 @@
 #include "Queue.h"
 #include "Condition.hpp"
 
-#include <utility>
-#include <algorithm>
+#include <atomic>
+#include <thread>
 
 ETERFREE_BEGIN
 
