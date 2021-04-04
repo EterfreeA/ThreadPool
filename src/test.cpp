@@ -4,16 +4,16 @@
 //#define FILE_SYSTEM
 
 #if defined ETERFREE
-#include "ThreadPool.h"
+#include "ThreadPool.hpp"
 #elif defined BOOST
 #include <threadpool/threadpool.hpp>
 #endif
 
 #include <utility>
 #include <chrono>
+#include <iostream>
 #include <atomic>
 #include <thread>
-#include <iostream>
 #ifdef FILE_STREAM
 #ifdef FILE_SYSTEM
 #include <filesystem>
@@ -31,17 +31,17 @@ static void task()
 }
 
 #if defined ETERFREE
-static void process(eterfree::ThreadPool &threadPool)
+static void process(eterfree::ThreadPool<>& threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
 		threadPool.pushTask(task);
-	std::list<eterfree::ThreadPool::Functor> tasks;
+	std::list<eterfree::ThreadPool<>::Functor> tasks;
 	for (auto index = 0UL; index < 30000UL; ++index)
 		tasks.push_back(task);
 	threadPool.pushTask(tasks);
 }
 #elif defined BOOST
-static void process(boost::threadpool::thread_pool<> &threadPool)
+static void process(boost::threadpool::thread_pool<>& threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
 		threadPool.schedule(task);
@@ -63,7 +63,7 @@ int main()
 #endif
 
 #if defined ETERFREE
-	eterfree::ThreadPool threadPool(16, 16);
+	eterfree::ThreadPool threadPool;
 #elif defined BOOST
 	boost::threadpool::thread_pool<> threadPool(16);
 #endif
@@ -79,7 +79,7 @@ int main()
 	auto duration = duration_cast<milliseconds>(end - begin);
 	cout << "执行时间：" << duration.count() << endl;
 #ifdef ETERFREE
-	eterfree::ThreadPool(std::move(threadPool));
+	{ eterfree::ThreadPool threadPool(std::move(threadPool)); }
 #endif
 
 #ifdef FILE_STREAM

@@ -5,11 +5,11 @@
 * 2.结合临界区与条件变量，并且采用谓词作为条件变量之函数wait的参数，确保激活已经阻塞的线程，或者线程在等待之前，谓词为真而无需阻塞。
 *	条件变量之函数notify并不会延迟通知，特别在精确调度事件之时，无法确保激活在调用notify之后，通过调用wait而阻塞的线程。
 * 
-* 版本：v1.0
+* 版本：v1.0.0
 * 作者：许聪
 * 邮箱：2592419242@qq.com
 * 创建日期：2021年03月13日
-* 更新日期：2021年03月21日
+* 更新日期：2021年04月04日
 */
 
 #pragma once
@@ -20,7 +20,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "core.h"
+#include "Core.hpp"
 
 ETERFREE_BEGIN
 
