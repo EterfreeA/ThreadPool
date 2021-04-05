@@ -81,8 +81,8 @@ private:
 		Condition _condition;									// 强化条件变量
 
 		std::atomic<SizeType> _capacity;						// 线程池容量
-		std::atomic<SizeType> _size;								// 线程数量
-		std::atomic<SizeType> _idleSize;							// 闲置线程数量
+		std::atomic<SizeType> _size;							// 线程数量
+		std::atomic<SizeType> _idleSize;						// 闲置线程数量
 
 		/*
 		 * 默认构造函数

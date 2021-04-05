@@ -24,9 +24,9 @@ struct Thread::Structure
 
 	using Condition = Condition<>;
 
-	std::thread _thread;			// 线程实体
+	std::thread _thread;		// 线程实体
 	std::atomic<State> _state;	// 原子状态
-	std::mutex _threadMutex;		// 线程互斥元
+	std::mutex _threadMutex;	// 线程互斥元
 	Condition _condition;		// 强化条件变量
 
 	TaskQueue _taskQueue;		// 任务队列
