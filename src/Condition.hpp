@@ -1,15 +1,21 @@
-/*
-* ÎÄ¼şÃû³Æ£ºCondition.hpp
-* ÕªÒª£º
-* 1.²ÎÕÕC++17±ê×¼µÄÌõ¼ş±äÁ¿Ààstd::condition_variable·â×°Ìõ¼şÀàÄ£°åCondition¡£
-* 2.½áºÏÁÙ½çÇøÓëÌõ¼ş±äÁ¿£¬²¢ÇÒ²ÉÓÃÎ½´Ê×÷ÎªÌõ¼ş±äÁ¿Ö®º¯ÊıwaitµÄ²ÎÊı£¬È·±£¼¤»îÒÑ¾­×èÈûµÄÏß³Ì£¬»òÕßÏß³ÌÔÚµÈ´ıÖ®Ç°£¬Î½´ÊÎªÕæ¶øÎŞĞè×èÈû¡£
-*	Ìõ¼ş±äÁ¿Ö®º¯Êınotify²¢²»»áÑÓ³ÙÍ¨Öª£¬ÌØ±ğÔÚ¾«È·µ÷¶ÈÊÂ¼şÖ®Ê±£¬ÎŞ·¨È·±£¼¤»îÔÚµ÷ÓÃnotifyÖ®ºó£¬Í¨¹ıµ÷ÓÃwait¶ø×èÈûµÄÏß³Ì¡£
-* 
-* °æ±¾£ºv1.0
-* ×÷Õß£ºĞí´Ï
-* ÓÊÏä£º2592419242@qq.com
-* ´´½¨ÈÕÆÚ£º2021Äê03ÔÂ13ÈÕ
-* ¸üĞÂÈÕÆÚ£º2021Äê03ÔÂ21ÈÕ
+ï»¿/*
+* æ–‡ä»¶åç§°ï¼šCondition.hpp
+* æ‘˜è¦ï¼š
+* 1.å‚ç…§C++17æ ‡å‡†çš„æ¡ä»¶å˜é‡ç±»std::condition_variableå°è£…æ¡ä»¶ç±»æ¨¡æ¿Conditionã€‚
+* 2.ç»“åˆä¸´ç•ŒåŒºä¸æ¡ä»¶å˜é‡ï¼Œå¹¶ä¸”é‡‡ç”¨è°“è¯ä½œä¸ºæ¡ä»¶å˜é‡ä¹‹å‡½æ•°waitçš„å‚æ•°ï¼Œç¡®ä¿æ¿€æ´»å·²ç»é˜»å¡çš„çº¿ç¨‹ï¼Œæˆ–è€…çº¿ç¨‹åœ¨ç­‰å¾…ä¹‹å‰ï¼Œè°“è¯ä¸ºçœŸè€Œæ— éœ€é˜»å¡ã€‚
+*	æ¡ä»¶å˜é‡ä¹‹å‡½æ•°notifyå¹¶ä¸ä¼šå»¶è¿Ÿé€šçŸ¥ï¼Œç‰¹åˆ«åœ¨ç²¾ç¡®è°ƒåº¦äº‹ä»¶ä¹‹æ—¶ï¼Œæ— æ³•ç¡®ä¿æ¿€æ´»åœ¨è°ƒç”¨notifyä¹‹åï¼Œé€šè¿‡è°ƒç”¨waitè€Œé˜»å¡çš„çº¿ç¨‹ã€‚
+*
+* ç‰ˆæœ¬ï¼šv1.0.1
+* ä½œè€…ï¼šè®¸èª
+* é‚®ç®±ï¼š2592419242@qq.com
+* åˆ›å»ºæ—¥æœŸï¼š2021å¹´03æœˆ13æ—¥
+* æ›´æ–°æ—¥æœŸï¼š2021å¹´04æœˆ05æ—¥
+*
+* å˜åŒ–ï¼š
+* v1.0.1
+* 1.æ–°å¢äº’æ–¥ç­–ç•¥æšä¸¾ï¼Œä¼˜åŒ–æ— è°“è¯notifyï¼Œé»˜è®¤é‡‡ç”¨ä¸¥æ ¼äº’æ–¥ç­–ç•¥ã€‚
+*	ä¸¥æ ¼äº’æ–¥ç­–ç•¥é€‚ç”¨äºæ— è°“è¯waitï¼Œé”å®šäº’æ–¥å…ƒä¹‹åæ¿€æ´»çº¿ç¨‹ï¼Œç¡®ä¿é˜»å¡ä¸æ¿€æ´»äº’æ–¥ã€‚
+*	å®½æ¾äº’æ–¥ç­–ç•¥é€‚ç”¨äºå¸¦è°“è¯waitï¼Œå…ˆé”å®šå¹¶é‡Šæ”¾äº’æ–¥å…ƒï¼Œå†æ¿€æ´»çº¿ç¨‹ï¼Œä»è€Œå‡å°‘çº¿ç¨‹çš„ä¸Šä¸‹æ–‡åˆ‡æ¢æ¬¡æ•°ã€‚
 */
 
 #pragma once
@@ -27,6 +33,11 @@ ETERFREE_BEGIN
 template <typename _Size = std::size_t>
 class Condition
 {
+public:
+	enum class Strategy { STRICT, RELAXED };
+	using Size = _Size;
+
+private:
 	std::mutex _mutex;
 	std::atomic_bool _validity;
 	std::condition_variable _condition;
@@ -44,11 +55,11 @@ public:
 
 	void exit();
 
-	void notify_one();
+	void notify_one(Strategy _strategy = Strategy::STRICT);
 
-	void notify_all();
+	void notify_all(Strategy _strategy = Strategy::STRICT);
 
-	void notify(_Size _size);
+	void notify(Size _size, Strategy _strategy = Strategy::STRICT);
 
 	template <typename _Predicate>
 	void notify_one(_Predicate _predicate);
@@ -57,7 +68,7 @@ public:
 	void notify_all(_Predicate _predicate);
 
 	template <typename _Predicate>
-	void notify(_Size _size, _Predicate _predicate);
+	void notify(Size _size, _Predicate _predicate);
 
 	void wait();
 
@@ -95,23 +106,30 @@ void Condition<_Size>::exit()
 }
 
 template <typename _Size>
-void Condition<_Size>::notify_one()
+void Condition<_Size>::notify_one(Strategy _strategy)
 {
-	std::lock_guard lock(_mutex);
+	std::unique_lock lock(_mutex);
+	if (_strategy == Strategy::RELAXED)
+		lock.unlock();
 	_condition.notify_one();
 }
 
 template <typename _Size>
-void Condition<_Size>::notify_all()
+void Condition<_Size>::notify_all(Strategy _strategy)
 {
-	std::lock_guard lock(_mutex);
+	std::unique_lock lock(_mutex);
+	if (_strategy == Strategy::RELAXED)
+		lock.unlock();
 	_condition.notify_all();
 }
 
 template <typename _Size>
-void Condition<_Size>::notify(_Size _size)
+void Condition<_Size>::notify(Size _size, Strategy _strategy)
 {
-	std::lock_guard lock(_mutex);
+	std::unique_lock lock(_mutex);
+	if (_strategy == Strategy::RELAXED)
+		lock.unlock();
+
 	for (decltype(_size) index = 0; index < _size; ++index)
 		_condition.notify_one();
 }
@@ -142,7 +160,7 @@ void Condition<_Size>::notify_all(_Predicate _predicate)
 
 template <typename _Size>
 template <typename _Predicate>
-void Condition<_Size>::notify(_Size _size, _Predicate _predicate)
+void Condition<_Size>::notify(Size _size, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
 	if (_predicate)

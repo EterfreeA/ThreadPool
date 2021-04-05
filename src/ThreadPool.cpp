@@ -30,13 +30,14 @@ SizeType funtor(SizeType size, Arithmetic arithmetic) noexcept \
 struct ThreadPool::Structure
 {
 	using QueueType = Queue<Functor>;
+	using Condition = Condition<>;
 
 	std::list<Thread> threadTable;							// 线程表
 	std::shared_ptr<QueueType> taskQueue;					// 任务队列
 	std::function<void(bool, Thread::ThreadID)> callback;	// 回调函数子
 
 	std::thread thread;										// 守护线程
-	Condition<> condition;									// 强化条件变量
+	Condition condition;									// 强化条件变量
 
 	std::atomic<SizeType> capacity;							// 线程池容量
 	std::atomic<SizeType> size;								// 线程数量
@@ -198,7 +199,7 @@ ThreadPool::ThreadPool(SizeType size, SizeType capacity)
 		// 若未增加之前，无闲置线程，则通知守护线程
 		if (auto data = weakData.lock(); \
 			data != nullptr && data->setIdleSize(1, Arithmetic::INCREASE) == 0)
-			data->condition.notify_one();
+			data->condition.notify_one(Structure::Condition::Strategy::RELAXED);
 	};
 
 	// 初始化线程并放入线程表
@@ -245,7 +246,7 @@ void ThreadPool::setCapacity(SizeType capacity)
 	if (capacity > 0)
 	{
 		data->setCapacity(capacity);
-		data->condition.notify_one();
+		data->condition.notify_one(Structure::Condition::Strategy::RELAXED);
 	}
 }
 
@@ -313,7 +314,7 @@ bool ThreadPool::pushTask(Functor&& task)
 	// 若添加任务之前，任务队列为空，则通知守护线程
 	auto result = data->taskQueue->push(std::move(task));
 	if (result && result.value() == 0)
-		data->condition.notify_one();
+		data->condition.notify_one(Structure::Condition::Strategy::RELAXED);
 	return result.has_value();
 }
 
@@ -337,7 +338,7 @@ bool ThreadPool::pushTask(std::list<Functor>& tasks)
 	// 若添加任务之前，任务队列为空，则通知守护线程
 	auto result = data->taskQueue->push(tasks);
 	if (result && result.value() == 0)
-		data->condition.notify_one();
+		data->condition.notify_one(Structure::Condition::Strategy::RELAXED);
 	return result.has_value();
 }
 

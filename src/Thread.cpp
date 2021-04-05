@@ -22,10 +22,12 @@ struct Thread::Structure
 		BLOCKED,	// 阻塞态
 	};
 
+	using Condition = Condition<>;
+
 	std::thread thread;			// 线程实体
 	std::atomic<State> state;	// 原子状态
 	std::mutex threadMutex;		// 线程互斥元
-	Condition<> condition;		// 强化条件变量
+	Condition condition;		// 强化条件变量
 
 	TaskQueue taskQueue;		// 任务队列
 	std::mutex taskMutex;		// 任务互斥元
@@ -257,7 +259,7 @@ bool Thread::notify()
 	if (state != State::RUNNABLE)
 		return false;
 
-	data->condition.notify_one();
+	data->condition.notify_one(Structure::Condition::Strategy::RELAXED);
 	return true;
 }
 
