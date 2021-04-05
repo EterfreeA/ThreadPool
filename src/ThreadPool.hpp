@@ -11,11 +11,15 @@
 7.引入条件类模板Condition，当激活先于阻塞之时，确保守护线程正常退出。
 8.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
 
-版本：v2.0.0
+版本：v2.0.1
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
 更新日期：2021年04月04日
+
+变化：
+v2.0.1
+1.运用Condition的宽松策略，提升激活守护线程的效率。
 */
 
 #pragma once
@@ -62,6 +66,8 @@ public:
 	using Functor = std::function<void()>;
 
 private:
+	using Condition = Condition<>;
+
 	// 线程池数据结构体
 	struct Structure
 	{
@@ -72,7 +78,7 @@ private:
 		std::function<void(bool, Thread::ThreadID)> _callback;	// 回调函数子
 
 		std::thread _thread;									// 守护线程
-		Condition<> _condition;									// 强化条件变量
+		Condition _condition;									// 强化条件变量
 
 		std::atomic<SizeType> _capacity;						// 线程池容量
 		std::atomic<SizeType> _size;								// 线程数量
@@ -166,7 +172,7 @@ public:
 		if (_capacity > 0)
 		{
 			_data->setCapacity(_capacity);
-			_data->_condition.notify_one();
+			_data->_condition.notify_one(Condition::Strategy::RELAXED);
 		}
 	}
 
@@ -331,7 +337,7 @@ ThreadPool<_SizeType>::ThreadPool(SizeType _capacity)
 		// 若未增加之前，无闲置线程，则通知守护线程
 		if (auto data = _data.lock(); \
 			data != nullptr && data->setIdleSize(1, Arithmetic::INCREASE) == 0)
-			data->_condition.notify_one();
+			data->_condition.notify_one(Condition::Strategy::RELAXED);
 	};
 
 	// 初始化线程并放入线程表
@@ -362,7 +368,7 @@ bool ThreadPool<_SizeType>::pushTask(Functor&& _task)
 	// 若添加任务之前，任务队列为空，则通知守护线程
 	auto result = _data->_taskQueue->push(std::move(_task));
 	if (result && result.value() == 0)
-		_data->_condition.notify_one();
+		_data->_condition.notify_one(Condition::Strategy::RELAXED);
 	return result.has_value();
 }
 
@@ -387,7 +393,7 @@ bool ThreadPool<_SizeType>::pushTask(std::list<Functor>& _tasks)
 	// 若添加任务之前，任务队列为空，则通知守护线程
 	auto result = _data->_taskQueue->push(_tasks);
 	if (result && result.value() == 0)
-		_data->_condition.notify_one();
+		_data->_condition.notify_one(Condition::Strategy::RELAXED);
 	return result.has_value();
 }
 
