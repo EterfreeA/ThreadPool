@@ -1,4 +1,4 @@
-# ThreadPool
+﻿# ThreadPool
 ## Introduction
 ThreadPool is a lightweight and highly concurrent thread pool for Eterfree library.
 
