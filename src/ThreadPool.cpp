@@ -235,7 +235,7 @@ ThreadPool::SizeType ThreadPool::getConcurrency() noexcept
 }
 
 // 设置最大线程数量
-void ThreadPool::setMaxThreads(SizeType capacity) noexcept
+void ThreadPool::setMaxThreads(SizeType capacity)
 {
 	setCapacity(capacity);
 }

@@ -107,7 +107,7 @@ public:
 
 	// 设置最大线程数量
 	REPLACEMENT(setCapacity)
-	void setMaxThreads(SizeType capacity) noexcept;
+	void setMaxThreads(SizeType capacity);
 
 	// 设置线程池容量
 	void setCapacity(SizeType capacity);
