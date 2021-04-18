@@ -124,14 +124,13 @@ void ThreadPool::execute(DataType data)
 		auto size = data->getSize();
 		auto capacity = data->getCapacity();
 		return idle && (!empty || size > capacity) \
-			|| !empty && (size < capacity) \
-			|| !data->condition.valid(); };
+			|| !empty && (size < capacity); };
 
 	// 若谓词为真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	data->condition.wait(predicate);
 
 	// 守护线程退出通道
-	while (data->condition.valid())
+	while (data->condition)
 	{
 		// 调整线程数量
 		auto size = adjust(data);
@@ -169,7 +168,7 @@ void ThreadPool::execute(DataType data)
 void ThreadPool::destroy()
 {
 	// 避免重复销毁
-	if (!data->condition.valid())
+	if (!data->condition)
 		return;
 
 	// 分离守护线程

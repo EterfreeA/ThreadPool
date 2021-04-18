@@ -92,13 +92,13 @@ bool Thread::setTask(DataType& data)
 void Thread::execute(DataType data)
 {
 	// 条件变量的谓词，若任务有效或者条件无效，则无需等待通知
-	auto predicate = [&data] { return data->getValidity() || !data->condition.valid(); };
+	auto predicate = [&data] { return data->getValidity(); };
 
 	// 若谓词为真，自动解锁互斥元，阻塞线程，直至通知激活，再次锁定互斥元
 	data->condition.wait(predicate);
 
 	// 线程退出通道
-	while (data->getValidity() || data->condition.valid())
+	while (data->getValidity() || data->condition)
 	{
 		using State = Structure::State;
 		data->setState(State::RUNNING);

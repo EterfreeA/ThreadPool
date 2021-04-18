@@ -4,18 +4,22 @@
 * 1.参照C++17标准的条件变量类std::condition_variable封装条件类模板Condition。
 * 2.结合临界区与条件变量，并且采用谓词作为条件变量之函数wait的参数，确保激活已经阻塞的线程，或者线程在等待之前，谓词为真而无需阻塞。
 *	条件变量之函数notify并不会延迟通知，特别在精确调度事件之时，无法确保激活在调用notify之后，通过调用wait而阻塞的线程。
-*
-* 版本：v1.0.1
+* 
+* 版本：v1.1.0
 * 作者：许聪
 * 邮箱：2592419242@qq.com
 * 创建日期：2021年03月13日
 * 更新日期：2021年04月05日
-*
+* 
 * 变化：
 * v1.0.1
 * 1.新增互斥策略枚举，优化无谓词notify，默认采用严格互斥策略。
 *	严格互斥策略适用于无谓词wait，锁定互斥元之后激活线程，确保阻塞与激活互斥。
 *	宽松互斥策略适用于带谓词wait，先锁定并释放互斥元，再激活线程，从而减少线程的上下文切换次数。
+* v1.1.0
+* 1.修复无谓词wait_for和wait_until的逻辑错误。
+*	若条件实例有效，则返回阻塞是否未超时，即是否被激活。而条件实例无效直接返回否定。
+* 2.优化带谓词wait，减少使用Lambda，降低谓词层级。
 */
 
 #pragma once
@@ -50,6 +54,8 @@ public:
 	~Condition() { exit(); }
 
 	Condition& operator=(const Condition&) = delete;
+
+	explicit operator bool() const noexcept { return valid(); }
 
 	bool valid() const noexcept { return _validity.load(std::memory_order::memory_order_relaxed); }
 
@@ -184,7 +190,8 @@ template <typename _Predicate>
 void Condition<_Size>::wait(_Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	_condition.wait(lock, [this, &_predicate] { return !valid() || _predicate(); });
+	while (valid() && !_predicate())
+		_condition.wait(lock);
 }
 
 template <typename _Size>
@@ -192,7 +199,7 @@ template <typename _Rep, typename _Period>
 bool Condition<_Size>::wait_for(std::chrono::duration<_Rep, _Period>& _relative)
 {
 	std::unique_lock lock(_mutex);
-	return !valid() || _condition.wait_for(lock, _relative) == std::cv_status::no_timeout;
+	return valid() && _condition.wait_for(lock, _relative) == std::cv_status::no_timeout;
 }
 
 template <typename _Size>
@@ -208,7 +215,7 @@ template <typename _Clock, typename _Duration>
 bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute)
 {
 	std::unique_lock lock(_mutex);
-	return !valid() || _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
+	return valid() && _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
 }
 
 template <typename _Size>
@@ -216,14 +223,16 @@ template <typename _Clock, typename _Duration, typename _Predicate>
 bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	return _condition.wait_until(lock, _absolute, [this, &_predicate] { return !valid() || _predicate(); });
+	while (valid() && !_predicate() \
+		&& _condition.wait_until(lock, _absolute) != std::cv_status::timeout);
+	return _predicate();
 }
 
 template <typename _Size>
 bool Condition<_Size>::wait_until(const xtime* const _absolute)
 {
 	std::unique_lock lock(_mutex);
-	return !valid() || _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
+	return valid() && _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
 }
 
 template <typename _Size>
@@ -231,7 +240,9 @@ template <typename _Predicate>
 bool Condition<_Size>::wait_until(const xtime* const _absolute, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	return _condition.wait_until(lock, _absolute, [this, &_predicate] { return !valid() || _predicate(); });
+	while (valid() && !_predicate() \
+		&& _condition.wait_until(lock, _absolute) != std::cv_status::timeout);
+	return _predicate();
 }
 
 ETERFREE_END
