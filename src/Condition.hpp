@@ -223,9 +223,8 @@ template <typename _Clock, typename _Duration, typename _Predicate>
 bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	while (valid() && !_predicate())
-		if (_condition.wait_until(lock, _absolute) == std::cv_status::timeout)
-			break;
+	while (valid() && !_predicate() \
+		&& _condition.wait_until(lock, _absolute) != std::cv_status::timeout);
 	return _predicate();
 }
 
@@ -241,9 +240,8 @@ template <typename _Predicate>
 bool Condition<_Size>::wait_until(const xtime* const _absolute, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	while (valid() && !_predicate())
-		if (_condition.wait_until(lock, _absolute) == std::cv_status::timeout)
-			break;
+	while (valid() && !_predicate() \
+		&& _condition.wait_until(lock, _absolute) != std::cv_status::timeout);
 	return _predicate();
 }
 
