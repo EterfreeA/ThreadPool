@@ -80,14 +80,14 @@ bool Thread::setTask(DataType& _data)
 // 线程主函数
 void Thread::execute(DataType _data)
 {
-	// 条件变量的谓词，若任务有效或者条件无效，则无需等待通知
-	auto predicate = [&_data] { return _data->getValidity() || !_data->_condition.valid(); };
+	// 条件变量的谓词，若任务有效，则无需等待通知
+	auto predicate = [&_data] { return _data->getValidity(); };
 
 	// 若谓词为真，自动解锁互斥元，阻塞线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
 
 	// 线程退出通道
-	while (_data->getValidity() || _data->_condition.valid())
+	while (_data->getValidity() || _data->_condition)
 	{
 		using State = Structure::State;
 		_data->setState(State::RUNNING);

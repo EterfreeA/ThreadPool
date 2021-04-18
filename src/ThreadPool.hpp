@@ -11,7 +11,7 @@
 7.引入条件类模板Condition，当激活先于阻塞之时，确保守护线程正常退出。
 8.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
 
-版本：v2.0.1
+版本：v2.0.2
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
@@ -20,6 +20,8 @@
 变化：
 v2.0.1
 1.运用Condition的宽松策略，提升激活守护线程的效率。
+v2.0.2
+1.消除谓词对条件实例有效性的重复判断。
 */
 
 #pragma once
@@ -260,14 +262,13 @@ void ThreadPool<_SizeType>::execute(DataType _data)
 		auto size = _data->getSize();
 		auto capacity = _data->getCapacity();
 		return idle && (!empty || size > capacity) \
-			|| !empty && (size < capacity) \
-			|| !_data->_condition.valid(); };
+			|| !empty && (size < capacity); };
 
 	// 若谓词为真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
 
 	// 守护线程退出通道
-	while (_data->_condition.valid())
+	while (_data->_condition)
 	{
 		// 调整线程数量
 		auto size = adjust(_data);
@@ -306,7 +307,7 @@ template <typename _SizeType>
 void ThreadPool<_SizeType>::destroy()
 {
 	// 避免重复销毁
-	if (!_data->_condition.valid())
+	if (!_data->_condition)
 		return;
 
 	// 分离守护线程
