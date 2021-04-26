@@ -264,7 +264,7 @@ void ThreadPool<_SizeType>::execute(DataType _data)
 		return idle && (!empty || size > capacity) \
 			|| !empty && (size < capacity); };
 
-	// 若谓词为真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
+	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
 
 	// 守护线程退出通道
