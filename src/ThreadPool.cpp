@@ -112,7 +112,7 @@ ThreadPool::SizeType ThreadPool::adjust(DataType& data)
 void ThreadPool::execute(DataType data)
 {
 	/*
-	 * 条件变量的谓词，无需等待通知的条件
+	 * 条件变量的谓词，不必等待通知的条件
 	 * 1.存在闲置线程并且任务队列非空。
 	 * 2.存在闲置线程并且需要删减线程。
 	 * 3.任务队列非空并且需要增加线程。
@@ -135,7 +135,7 @@ void ThreadPool::execute(DataType data)
 		// 调整线程数量
 		auto size = adjust(data);
 
-		// 遍历线程表，尝试通知闲置线程
+		// 遍历线程表，访问闲置线程
 		for (auto iterator = data->threadTable.begin(); \
 			iterator != data->threadTable.end() && data->getIdleSize() > 0;)
 		{
@@ -149,6 +149,7 @@ void ThreadPool::execute(DataType data)
 				else if (size > 0)
 				{
 					iterator = data->threadTable.erase(iterator);
+					data->setIdleSize(1, Structure::Arithmetic::DECREASE);
 					--size;
 					continue;
 				}
