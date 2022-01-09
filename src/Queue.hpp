@@ -6,15 +6,23 @@
 3.在放入元素之时，只锁定入口互斥元。在取出元素之时，先锁定出口互斥元，若出口队列为空，再锁定入口互斥元，并且交换两个队列。
 	以此降低两个队列的相互影响，从而提高出入队列的效率。
 
-版本：v1.5.0
+版本：v1.5.1
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2021年06月01日
+更新日期：2022年01月10日
+
+变化：
+v1.5.1
+1.入队列可选复制语义或者移动语义。
+2.支持批量出队列。
+3.新增清空队列方法。
 */
 
 #pragma once
 
+#include <type_traits>
+#include <utility>
 #include <optional>
 #include <list>
 #include <atomic>
@@ -22,81 +30,149 @@
 
 #include "Core.hpp"
 
-ETERFREE_BEGIN
+ETERFREE_SPACE_BEGIN
 
-template <typename _DataType>
+template <typename _ElementType>
 class Queue
 {
 public:
-	using DataType = _DataType;
-	using QueueType = std::list<DataType>;
+	using ElementType = _ElementType;
+	using QueueType = std::list<ElementType>;
 	using SizeType = typename QueueType::size_type;
 	using MutexType = std::mutex;
 
 private:
 	SizeType _capacity;
 	std::atomic<SizeType> _size;
+
 	MutexType _entryMutex;
-	MutexType _exitMutex;
 	QueueType _entryQueue;
+
+	MutexType _exitMutex;
 	QueueType _exitQueue;
+
+private:
+	inline auto add(SizeType _size) noexcept { return this->_size.fetch_add(_size, std::memory_order::relaxed); }
+	inline auto subtract(SizeType _size) noexcept { return this->_size.fetch_sub(_size, std::memory_order::relaxed); }
+	inline void set(SizeType _size) noexcept { this->_size.store(_size, std::memory_order::relaxed); }
 
 public:
 	// 若_capacity小于等于零，则无限制，否则为上限值
 	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
 
-	SizeType size() const noexcept { return _size.load(std::memory_order::memory_order_relaxed); }
-	bool empty() const noexcept { return size() == 0; }
-	MutexType& mutex() noexcept { return _exitMutex; }
+	inline auto size() const noexcept { return _size.load(std::memory_order::relaxed); }
+	inline bool empty() const noexcept { return size() == 0; }
 
-	std::optional<SizeType> push(DataType&& _data);
-	std::optional<SizeType> push(QueueType& _data);
+	std::optional<SizeType> push(const ElementType& _element);
+	std::optional<SizeType> push(ElementType&& _element);
 
-	std::optional<DataType> pop();
+	std::optional<SizeType> push(QueueType& _queue);
+	std::optional<SizeType> push(QueueType&& _queue);
+
+	bool pop(ElementType& _element);
+	std::optional<ElementType> pop()
+	{
+		ElementType element;
+		return pop(element) ? element : std::optional<ElementType>();
+	}
+
+	bool pop(QueueType& _queue);
+
+	void clear();
 };
 
-template <typename _DataType>
-std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(DataType&& _data)
+template <typename _ElementType>
+std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(const ElementType& _element)
 {
 	std::lock_guard lock(_entryMutex);
-	if (_capacity > 0 && size() >= _capacity)
+	if (_capacity > 0 and size() >= _capacity)
 		return std::nullopt;
 
-	_entryQueue.push_back(std::forward<DataType>(_data));
-	return _size.fetch_add(1, std::memory_order::memory_order_relaxed);
+	_entryQueue.emplace_back(_element);
+	return add(1);
 }
 
-template <typename _DataType>
-std::optional<typename Queue<_DataType>::SizeType> Queue<_DataType>::push(QueueType& _data)
+template <typename _ElementType>
+std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(ElementType&& _element)
 {
 	std::lock_guard lock(_entryMutex);
-	auto quantity = _data.size();
+	if (_capacity > 0 and size() >= _capacity)
+		return std::nullopt;
+
+	_entryQueue.emplace_back(std::forward<std::remove_reference_t<decltype(_element)>>(_element));
+	return add(1);
+}
+
+template <typename _ElementType>
+std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType& _queue)
+{
+	std::lock_guard lock(_entryMutex);
 	if (auto size = this->size(); \
-		_capacity > 0 && (size >= _capacity || quantity >= _capacity - size))
+		_capacity > 0 and (size >= _capacity or _queue.size() >= _capacity - size))
 		return std::nullopt;
 
-	_entryQueue.splice(_entryQueue.cend(), _data);
-	return _size.fetch_add(quantity, std::memory_order::memory_order_relaxed);
+	auto size = _queue.size();
+	_entryQueue.splice(_entryQueue.cend(), _queue);
+	return add(size);
 }
 
-template <typename _DataType>
-std::optional<typename Queue<_DataType>::DataType> Queue<_DataType>::pop()
+template <typename _ElementType>
+std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType&& _queue)
+{
+	std::lock_guard lock(_entryMutex);
+	if (auto size = this->size(); \
+		_capacity > 0 and (size >= _capacity or _queue.size() >= _capacity - size))
+		return std::nullopt;
+
+	auto size = _queue.size();
+	_entryQueue.splice(_entryQueue.cend(), _queue);
+	return add(size);
+}
+
+template <typename _ElementType>
+bool Queue<_ElementType>::pop(ElementType& _element)
 {
 	std::lock_guard lock(_exitMutex);
 	if (empty())
-		return std::nullopt;
+		return false;
 
 	if (_exitQueue.empty())
 	{
-		_entryMutex.lock();
+		std::lock_guard lock(_entryMutex);
 		_exitQueue.swap(_entryQueue);
-		_entryMutex.unlock();
 	}
 
-	std::optional data = _exitQueue.front();
-	_size.fetch_sub(1, std::memory_order::memory_order_relaxed);
+	_element = _exitQueue.front();
+	subtract(1);
 	_exitQueue.pop_front();
-	return data;
+	return true;
 }
 
-ETERFREE_END
+template <typename _ElementType>
+bool Queue<_ElementType>::pop(QueueType& _queue)
+{
+	std::lock_guard lock(_exitMutex);
+	if (empty())
+		return false;
+
+	_queue.splice(_queue.cend(), _exitQueue);
+
+	_entryMutex.lock();
+	_queue.splice(_queue.cend(), _entryQueue);
+	set(0);
+	_entryMutex.unlock();
+	return true;
+}
+
+template <typename _ElementType>
+void Queue<_ElementType>::clear()
+{
+	std::lock_guard exitLock(_exitMutex);
+	std::lock_guard entryLock(_entryMutex);
+
+	_exitQueue.clear();
+	_entryQueue.clear();
+	set(0);
+}
+
+ETERFREE_SPACE_END

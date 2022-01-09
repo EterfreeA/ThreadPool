@@ -10,7 +10,6 @@ Copyright © 2017 CDU Innovation Studio. Some Rights Reserved.
 [Queue.hpp](./src/Queue.hpp)  
 [Condition.hpp](./src/Condition.hpp)  
 [Thread.hpp](./src/Thread.hpp)  
-[Thread.cpp](./src/Thread.cpp)  
 [ThreadPool.hpp](./src/ThreadPool.hpp)  
 [test.cpp](./src/test.cpp)
 
