@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月09日
+更新日期：2022年01月11日
 
 变化：
 v2.0.1
@@ -95,7 +95,7 @@ private:
 		Structure() : _state(State::EMPTY) {}
 
 		// 获取线程唯一标识
-		inline ThreadID getID() { return _thread.get_id(); }
+		inline ThreadID getID() const noexcept { return _thread.get_id(); }
 
 		// 设置状态
 		inline void setState(State _state) noexcept
@@ -140,7 +140,7 @@ private:
 	static void execute(DataType _data);
 
 	// 加载非原子数据
-	inline DataType load() const
+	inline DataType load() const noexcept
 	{
 		return _data.load(std::memory_order::relaxed);
 	}

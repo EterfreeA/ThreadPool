@@ -108,7 +108,7 @@ private:
 
 		// 过滤任务
 		template <typename _TaskQueue>
-		static auto filterTask(_TaskQueue&& _taskQueue) -> decltype(_taskQueue.size());
+		static auto filterTask(_TaskQueue&& _taskQueue) noexcept -> decltype(_taskQueue.size());
 
 		// 放入任务
 		bool pushTask(const Functor& _task);
@@ -174,7 +174,7 @@ private:
 	static void execute(DataType _data);
 
 	// 加载非原子数据
-	inline DataType load() const
+	inline DataType load() const noexcept
 	{
 		return _data.load(std::memory_order::relaxed);
 	}
@@ -219,7 +219,7 @@ public:
 	}
 
 	// 获取代理
-	Proxy getProxy()
+	Proxy getProxy() noexcept
 	{
 		auto data = load();
 		return data ? data : nullptr;
@@ -234,7 +234,7 @@ public:
 	}
 
 	// 获取快照（包括线程池容量、线程数量、闲置线程数量、任务数量）
-	auto getSnapshot()
+	auto getSnapshot() const
 	{
 		auto data = load();
 		using CapacityType = decltype(data->getCapacity());
@@ -304,7 +304,7 @@ class ThreadPool<_Functor, _Queue>::Proxy
 public:
 	Proxy(DataType _data) noexcept : _data(_data) {}
 
-	inline explicit operator bool() { return static_cast<bool>(_data); }
+	inline explicit operator bool() const noexcept { return static_cast<bool>(_data); }
 
 	// 设置线程池容量
 	void setCapacity(SizeType _capacity)
@@ -393,7 +393,7 @@ public:
 // 过滤无效任务
 template <typename _Functor, typename _Queue>
 template <typename _TaskQueue>
-auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue&& _taskQueue) -> decltype(_taskQueue.size())
+auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue&& _taskQueue) noexcept -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
 	for (auto iterator = _taskQueue.cbegin(); iterator != _taskQueue.cend();)
