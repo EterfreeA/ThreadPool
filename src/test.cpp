@@ -35,22 +35,18 @@ static void task()
 static void execute(eterfree::ThreadPool<>& _threadPool)
 {
 	auto proxy = _threadPool.getProxy();
-	if (not proxy)
-		return;
-
 	for (auto index = 0UL; index < 20000UL; ++index)
-		proxy->pushTask(task);
+		proxy.pushTask(task);
+
 	std::list<eterfree::ThreadPool<>::Functor> taskList;
 	for (auto index = 0UL; index < 30000UL; ++index)
 		taskList.push_back(task);
-	proxy->pushTask(taskList);
+	_threadPool.pushTask(taskList);
 }
 
 static void terminate(eterfree::ThreadPool<>&& _threadPool)
 {
-	//auto proxy = _threadPool.getProxy();
-	//if (proxy)
-	//	proxy->clearTask();
+	_threadPool.clearTask();
 	auto threadPool(std::move(_threadPool));
 }
 

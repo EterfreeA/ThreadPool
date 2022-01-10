@@ -99,7 +99,8 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 	if (_capacity > 0 and size() >= _capacity)
 		return std::nullopt;
 
-	_entryQueue.emplace_back(std::forward<std::remove_reference_t<decltype(_element)>>(_element));
+	using ElementType = std::remove_reference_t<decltype(_element)>;
+	_entryQueue.emplace_back(std::forward<ElementType>(_element));
 	return add(1);
 }
 
