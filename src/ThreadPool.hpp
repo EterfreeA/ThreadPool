@@ -38,7 +38,7 @@ v2.0.4
 #include <type_traits>
 #include <functional>
 #include <utility>
-//#include <tuple>
+#include <tuple>
 #include <memory>
 #include <list>
 #include <atomic>
