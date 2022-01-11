@@ -10,7 +10,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2022年01月10日
+更新日期：2022年01月12日
 
 变化：
 v1.5.1
@@ -152,16 +152,15 @@ bool Queue<_ElementType>::pop(ElementType& _element)
 template <typename _ElementType>
 bool Queue<_ElementType>::pop(QueueType& _queue)
 {
-	std::lock_guard lock(_exitMutex);
+	std::lock_guard exitLock(_exitMutex);
 	if (empty())
 		return false;
 
 	_queue.splice(_queue.cend(), _exitQueue);
 
-	_entryMutex.lock();
+	std::lock_guard entryLock(_entryMutex);
 	_queue.splice(_queue.cend(), _entryQueue);
 	set(0);
-	_entryMutex.unlock();
 	return true;
 }
 
@@ -169,9 +168,9 @@ template <typename _ElementType>
 void Queue<_ElementType>::clear()
 {
 	std::lock_guard exitLock(_exitMutex);
-	std::lock_guard entryLock(_entryMutex);
-
 	_exitQueue.clear();
+
+	std::lock_guard entryLock(_entryMutex);
 	_entryQueue.clear();
 	set(0);
 }
