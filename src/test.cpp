@@ -32,22 +32,36 @@ static void task()
 }
 
 #if defined ETERFREE
-static void process(eterfree::ThreadPool& threadPool)
+static void execute(eterfree::ThreadPool& _threadPool)
 {
+	auto proxy = _threadPool.getProxy();
 	for (auto index = 0UL; index < 20000UL; ++index)
-		threadPool.pushTask(task);
-	std::list<eterfree::ThreadPool::Functor> tasks;
+		proxy.pushTask(task);
+
+	std::list<eterfree::ThreadPool::Functor> taskList;
 	for (auto index = 0UL; index < 30000UL; ++index)
-		tasks.push_back(task);
-	threadPool.pushTask(tasks);
+		taskList.push_back(task);
+	_threadPool.pushTask(taskList);
 }
+
+static void terminate(eterfree::ThreadPool&& _threadPool)
+{
+	_threadPool.clearTask();
+	auto threadPool(std::move(_threadPool));
+}
+
 #elif defined BOOST
-static void process(boost::threadpool::thread_pool<>& threadPool)
+static void execute(boost::threadpool::thread_pool<>& _threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
-		threadPool.schedule(task);
+		_threadPool.schedule(task);
 	for (auto index = 0UL; index < 30000UL; ++index)
-		threadPool.schedule(task);
+		_threadPool.schedule(task);
+}
+
+static void terminate(boost::threadpool::thread_pool<>&& _threadPool)
+{
+	auto threadPool(std::move(_threadPool));
 }
 #endif
 
@@ -64,29 +78,28 @@ int main()
 #endif
 
 #if defined ETERFREE
-	eterfree::ThreadPool threadPool(16, 16);
+	eterfree::ThreadPool threadPool;
 #elif defined BOOST
 	boost::threadpool::thread_pool<> threadPool(16);
 #endif
 
 	using namespace std::chrono;
 	auto begin = system_clock::now();
-	process(threadPool);
-
+	execute(threadPool);
 	std::this_thread::sleep_for(milliseconds(10000));
+
 	using std::endl;
 	cout << "任务数量：" << counter << endl;
 	auto end = system_clock::now();
 	auto duration = duration_cast<milliseconds>(end - begin);
 	cout << "执行时间：" << duration.count() << endl;
-#ifdef ETERFREE
-	eterfree::ThreadPool(std::move(threadPool));
-#endif
 
 #ifdef FILE_STREAM
 	cout << endl;
 	std::cout.rdbuf(os);
 #endif
+
+	terminate(std::move(threadPool));
 	cout << "任务总数：" << counter << endl;
 	return 0;
 }
