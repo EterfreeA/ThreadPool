@@ -7,9 +7,9 @@
 4. 可选配置单任务或者任务队列，以及回调函数子。
 	任务队列用于自动获取任务，回调函数子用于通知线程池，线程执行完单个任务，以及当前闲置状态。
 5. 执行任务之时捕获异常，防止线程泄漏。
-6. 线程执行任务之后，倘若配有任务队列，主动获取任务，否则进入阻塞状态。
+6. 线程执行任务之后，倘若配置有任务队列，主动获取任务，否则进入阻塞状态。
 	倘若获取任务失败，等待分配任务；否则执行新任务，从而提高执行效率。
-7. 线程在退出之前，倘若配有任务队列，确保完成所有任务，否则仅执行配置任务。
+7. 线程在退出之前，倘若配置有任务队列，确保完成所有任务，否则仅执行配置任务。
 8. 以原子操作确保接口的线程安全性，以单状态枚举确保接口的执行顺序。
 9. 引入条件类模板Condition，当激活先于阻塞之时，确保线程正常退出。
 10.线程主函数声明为静态成员，除去与类成员指针this的关联性。
@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月11日
+更新日期：2022年01月17日
 
 变化：
 v2.0.1
@@ -82,20 +82,20 @@ private:
 	// 线程数据结构体
 	struct Structure
 	{
-		std::thread _thread;		// 线程实体
-		std::atomic<State> _state;	// 原子状态
-		std::mutex _threadMutex;	// 线程互斥元
-		Condition _condition;		// 强化条件变量
+		std::thread _thread;			// 线程实体
+		std::atomic<State> _state;		// 原子状态
+		std::mutex _threadMutex;		// 线程互斥元
+		Condition _condition;			// 强化条件变量
 
-		Queue _taskQueue;			// 任务队列
-		Functor _task;				// 任务函数子
-		std::mutex _taskMutex;		// 任务互斥元
-		Callback _callback;			// 回调函数子
+		Queue _taskQueue;				// 任务队列
+		Functor _task;					// 任务函数子
+		mutable std::mutex _taskMutex;	// 任务互斥元
+		Callback _callback;				// 回调函数子
 
 		Structure() : _state(State::EMPTY) {}
 
 		// 获取线程唯一标识
-		inline ThreadID getID() const noexcept { return _thread.get_id(); }
+		inline auto getID() const noexcept { return _thread.get_id(); }
 
 		// 设置状态
 		inline void setState(State _state) noexcept
@@ -104,7 +104,7 @@ private:
 		}
 
 		// 获取状态
-		inline State getState() const noexcept
+		inline auto getState() const noexcept
 		{
 			return _state.load(std::memory_order::relaxed);
 		}
@@ -122,7 +122,7 @@ private:
 		}
 
 		// 任务有效性
-		bool getValidity()
+		bool getValidity() const
 		{
 			std::lock_guard lock(_taskMutex);
 			return static_cast<bool>(_task);
@@ -140,7 +140,7 @@ private:
 	static void execute(DataType _data);
 
 	// 加载非原子数据
-	inline DataType load() const noexcept
+	inline auto load() const noexcept
 	{
 		return _data.load(std::memory_order::relaxed);
 	}
@@ -289,7 +289,7 @@ bool Thread<_Functor, _Queue>::create()
 	if (data->getState() != State::EMPTY)
 		return false;
 
-	// 创建std::thread对象，以_data为参数，执行函数execute
+	// 创建std::thread对象，以data为参数，执行函数execute
 	data->_thread = std::thread(Thread::execute, data);
 	data->setState(State::INITIAL);
 	return true;
@@ -299,7 +299,7 @@ bool Thread<_Functor, _Queue>::create()
 template <typename _Functor, typename _Queue>
 void Thread<_Functor, _Queue>::destroy()
 {
-	auto data = _data.load();
+	auto data = load();
 	if (not data)
 		return;
 

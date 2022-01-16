@@ -5,7 +5,7 @@
 2.当任务队列为空，阻塞守护线程，在新增任务之时，激活守护线程，通知线程获取任务。
 3.当无闲置线程，阻塞守护线程，当存在闲置线程，激活守护线程，通知闲置线程获取任务。
 4.当销毁线程池，等待守护线程退出，而守护线程在退出之前，等待所有线程退出。
-	线程在退出之前，默认完成任务队列的所有任务，可选弹出所有任务或者清空队列，使得线程立即退出。
+	线程在退出之前，默认完成任务队列的所有任务，可选弹出所有任务或者清空队列，用以支持线程立即退出。
 5.提供增删线程策略，由守护线程增删线程。
 	在任务队列非空之时，一次性增加线程，当存在闲置线程之时，逐个删减线程。
 6.以原子操作确保接口的线程安全性，并且新增成员类Proxy，用于减少原子操作，针对频繁操作提升性能。
@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月11日
+更新日期：2022年01月17日
 
 变化：
 v2.0.1
@@ -52,8 +52,8 @@ v2.0.4
 ETERFREE_SPACE_BEGIN
 
 // 生成原子的设置函数
-#define SET_ATOMIC(SizeType, Arithmetic, funtor, field) \
-SizeType funtor(SizeType _size, Arithmetic _arithmetic) noexcept \
+#define SET_ATOMIC(SizeType, Arithmetic, functor, field) \
+SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 { \
 	switch (_arithmetic) \
 	{ \
@@ -174,7 +174,7 @@ private:
 	static void execute(DataType _data);
 
 	// 加载非原子数据
-	inline DataType load() const noexcept
+	inline auto load() const noexcept
 	{
 		return _data.load(std::memory_order::relaxed);
 	}
@@ -188,8 +188,8 @@ public:
 	ThreadPool(const ThreadPool&) = delete;
 
 	// 默认移动构造函数
-	ThreadPool(ThreadPool&& _thread) noexcept
-		: _data(_thread._data.exchange(nullptr, std::memory_order::relaxed)) {}
+	ThreadPool(ThreadPool&& _threadPool) noexcept
+		: _data(_threadPool._data.exchange(nullptr, std::memory_order::relaxed)) {}
 
 	// 默认析构函数
 	~ThreadPool()
@@ -203,10 +203,10 @@ public:
 	ThreadPool& operator=(const ThreadPool&) = delete;
 
 	// 默认移动赋值运算符函数
-	ThreadPool& operator=(ThreadPool&& _thread) noexcept
+	ThreadPool& operator=(ThreadPool&& _threadPool) noexcept
 	{
 		constexpr auto memoryOrder = std::memory_order::relaxed;
-		auto data = _thread._data.exchange(nullptr, memoryOrder);
+		auto data = _threadPool._data.exchange(nullptr, memoryOrder);
 		_data.exchange(data, memoryOrder);
 		return *this;
 	}
@@ -219,10 +219,9 @@ public:
 	}
 
 	// 获取代理
-	Proxy getProxy() noexcept
+	inline Proxy getProxy() noexcept
 	{
-		auto data = load();
-		return data ? data : nullptr;
+		return load();
 	}
 
 	// 设置线程池容量
@@ -354,9 +353,9 @@ public:
 
 	// 适配不同任务接口，推进线程池模板化
 	template <typename _Functor>
-	bool pushTask(_Functor&& task)
+	bool pushTask(_Functor&& _task)
 	{
-		return _data and _data->pushTask(Functor(std::forward<_Functor>(task)));
+		return _data and _data->pushTask(Functor(std::forward<_Functor>(_task)));
 	}
 	template <typename _Functor, typename... _Args>
 	bool pushTask(_Functor&& _task, _Args&&... _args)
@@ -407,7 +406,7 @@ auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue&& _taskQueue
 	return size;
 }
 
-// 向任务队列放入单任务
+// 放入单任务
 template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::Structure::pushTask(const Functor& _task)
 {
@@ -418,7 +417,7 @@ bool ThreadPool<_Functor, _Queue>::Structure::pushTask(const Functor& _task)
 	return result.has_value();
 }
 
-// 向任务队列放入单任务
+// 放入单任务
 template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::Structure::pushTask(Functor&& _task)
 {
@@ -430,7 +429,7 @@ bool ThreadPool<_Functor, _Queue>::Structure::pushTask(Functor&& _task)
 	return result.has_value();
 }
 
-// 向任务队列批量放入任务
+// 批量放入任务
 template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue& _taskQueue)
 {
@@ -445,7 +444,7 @@ bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue& _taskQueue)
 	return result.has_value();
 }
 
-// 向任务队列批量放入任务
+// 批量放入任务
 template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue&& _taskQueue)
 {
@@ -468,10 +467,10 @@ void ThreadPool<_Functor, _Queue>::create(DataType&& _data, SizeType _capacity)
 	using Arithmetic = Structure::Arithmetic;
 
 	// 定义回调函数子
-	_data->_callback = [_data = std::weak_ptr(_data)](bool idle, Thread::ThreadID id)
+	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id)
 	{
 		// 线程并非闲置状态
-		if (not idle)
+		if (not _idle)
 			return;
 
 		// 若未增加之前，无闲置线程，则通知守护线程
@@ -604,7 +603,7 @@ void ThreadPool<_Functor, _Queue>::execute(DataType _data)
 	_data->_threadTable.clear();
 }
 
-// 向任务队列放入单任务
+// 放入单任务
 template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::pushTask(const Functor& _task)
 {
@@ -616,6 +615,7 @@ bool ThreadPool<_Functor, _Queue>::pushTask(const Functor& _task)
 	return data and data->pushTask(_task);
 }
 
+// 放入单任务
 template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::pushTask(Functor&& _task)
 {
