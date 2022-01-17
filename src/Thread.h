@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月17日
+更新日期：2022年01月18日
 
 变化：
 v2.0
@@ -36,7 +36,7 @@ v2.1
 #include <thread>
 #include <mutex>
 
-#include "core.h"
+#include "Core.hpp"
 
 ETERFREE_SPACE_BEGIN
 

@@ -6,8 +6,8 @@ ThreadPool is a lightweight and highly concurrent thread pool for Eterfree libra
 Copyright © 2017 CDU Innovation Studio. Some Rights Reserved.
 
 ## Source Code
-[core.h](./src/core.h)  
-[Queue.h](./src/Queue.h)  
+[Core.hpp](./src/Core.hpp)  
+[Queue.hpp](./src/Queue.hpp)  
 [Condition.hpp](./src/Condition.hpp)  
 [Thread.h](./src/Thread.h)  
 [Thread.cpp](./src/Thread.cpp)  

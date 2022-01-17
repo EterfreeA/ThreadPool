@@ -1,6 +1,6 @@
 ﻿#include "Thread.h"
 #include "Condition.hpp"
-#include "Queue.h"
+#include "Queue.hpp"
 
 #include <utility>
 #include <exception>

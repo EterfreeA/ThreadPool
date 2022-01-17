@@ -9,7 +9,7 @@
 * 作者：许聪
 * 邮箱：2592419242@qq.com
 * 创建日期：2021年03月13日
-* 更新日期：2022年01月11日
+* 更新日期：2022年01月18日
 * 
 * 变化：
 * v1.0.1
@@ -33,7 +33,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "core.h"
+#include "Core.hpp"
 
 ETERFREE_SPACE_BEGIN
 
