@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月17日
+更新日期：2022年01月22日
 
 变化：
 v2.0.1
@@ -108,7 +108,7 @@ private:
 
 		// 过滤任务
 		template <typename _TaskQueue>
-		static auto filterTask(_TaskQueue&& _taskQueue) noexcept -> decltype(_taskQueue.size());
+		static auto filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size());
 
 		// 放入任务
 		bool pushTask(const Functor& _task);
@@ -392,7 +392,7 @@ public:
 // 过滤无效任务
 template <typename _Functor, typename _Queue>
 template <typename _TaskQueue>
-auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue&& _taskQueue) noexcept -> decltype(_taskQueue.size())
+auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
 	for (auto iterator = _taskQueue.cbegin(); iterator != _taskQueue.cend();)
@@ -449,11 +449,11 @@ template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue&& _taskQueue)
 {
 	// 过滤无效任务
-	using TaskQueue = std::remove_reference_t<decltype(_taskQueue)>;
-	if (filterTask(std::forward<TaskQueue>(_taskQueue)) <= 0)
+	if (filterTask(_taskQueue) <= 0)
 		return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
+	using TaskQueue = std::remove_reference_t<decltype(_taskQueue)>;
 	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
 	if (result and result.value() == 0)
 		_condition.notify_one(Condition::Strategy::RELAXED);

@@ -38,10 +38,10 @@ static void execute(eterfree::ThreadPool<>& _threadPool)
 	for (auto index = 0UL; index < 20000UL; ++index)
 		proxy.pushTask(task);
 
-	std::list<eterfree::ThreadPool<>::Functor> taskList;
+	eterfree::ThreadPool<>::TaskQueue taskQueue;
 	for (auto index = 0UL; index < 30000UL; ++index)
-		taskList.push_back(task);
-	_threadPool.pushTask(taskList);
+		taskQueue.push_back(task);
+	_threadPool.pushTask(std::move(taskQueue));
 }
 
 static void terminate(eterfree::ThreadPool<>&& _threadPool)
