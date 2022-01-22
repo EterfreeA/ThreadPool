@@ -53,7 +53,7 @@ struct ThreadPool::Structure
 
 	// 过滤任务
 	template <typename _TaskQueue>
-	static auto filterTask(_TaskQueue&& _taskQueue) noexcept -> decltype(_taskQueue.size());
+	static auto filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size());
 
 	// 放入任务
 	bool pushTask(const Functor& _task);
@@ -106,7 +106,7 @@ struct ThreadPool::Structure
 
 // 过滤无效任务
 template <typename _TaskQueue>
-auto ThreadPool::Structure::filterTask(_TaskQueue&& _taskQueue) noexcept -> decltype(_taskQueue.size())
+auto ThreadPool::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
 	for (auto iterator = _taskQueue.cbegin(); iterator != _taskQueue.cend();)
@@ -158,7 +158,7 @@ bool ThreadPool::Structure::pushTask(TaskQueue& _taskQueue)
 bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 {
 	// 过滤无效任务
-	if (filterTask(std::forward<TaskQueue>(_taskQueue)) <= 0)
+	if (filterTask(_taskQueue) <= 0)
 		return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
