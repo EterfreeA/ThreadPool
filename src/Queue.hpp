@@ -10,7 +10,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2022年01月12日
+更新日期：2022年01月22日
 
 变化：
 v1.5.1
@@ -107,27 +107,29 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType& _queue)
 {
+	auto length = _queue.size();
+
 	std::lock_guard lock(_entryMutex);
 	if (auto size = this->size(); \
-		_capacity > 0 and (size >= _capacity or _queue.size() >= _capacity - size))
+		_capacity > 0 and (size >= _capacity or length >= _capacity - size))
 		return std::nullopt;
 
-	auto size = _queue.size();
 	_entryQueue.splice(_entryQueue.cend(), _queue);
-	return add(size);
+	return add(length);
 }
 
 template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType&& _queue)
 {
+	auto length = _queue.size();
+
 	std::lock_guard lock(_entryMutex);
 	if (auto size = this->size(); \
-		_capacity > 0 and (size >= _capacity or _queue.size() >= _capacity - size))
+		_capacity > 0 and (size >= _capacity or length >= _capacity - size))
 		return std::nullopt;
 
-	auto size = _queue.size();
 	_entryQueue.splice(_entryQueue.cend(), _queue);
-	return add(size);
+	return add(length);
 }
 
 template <typename _ElementType>
