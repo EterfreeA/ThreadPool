@@ -139,10 +139,10 @@ Thread::Thread()
 	create();
 }
 
+// 默认移动构造函数
 Thread::Thread(Thread&& _thread)
 {
-	std::lock_guard leftLock(_mutex);
-	std::lock_guard rightLock(_thread._mutex);
+	std::scoped_lock lock(_mutex, _thread._mutex);
 	_data = std::move(_thread._data);
 }
 
@@ -151,8 +151,7 @@ Thread& Thread::operator=(Thread&& _thread)
 {
 	if (&_thread != this)
 	{
-		std::lock_guard leftLock(_mutex);
-		std::lock_guard rightLock(_thread._mutex);
+		std::scoped_lock lock(_mutex, _thread._mutex);
 		_data = std::move(_thread._data);
 	}
 	return *this;
