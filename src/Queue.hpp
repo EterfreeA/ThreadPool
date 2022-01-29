@@ -143,8 +143,8 @@ bool Queue<_ElementType>::pop(ElementType& _element)
 		_exitQueue.swap(_entryQueue);
 	}
 
-	_element = _exitQueue.front();
 	subtract(1);
+	_element = _exitQueue.front();
 	_exitQueue.pop_front();
 	return true;
 }
