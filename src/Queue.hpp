@@ -10,7 +10,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2022年01月22日
+更新日期：2022年01月29日
 
 变化：
 v1.5
@@ -109,29 +109,27 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType& _queue)
 {
-	auto length = _queue.size();
-
 	std::lock_guard lock(_entryMutex);
 	if (auto size = this->size(); \
-		_capacity > 0 && (size >= _capacity || length >= _capacity - size))
+		_capacity > 0 && (size >= _capacity || _queue.size() >= _capacity - size))
 		return std::nullopt;
 
+	auto size = _queue.size();
 	_entryQueue.splice(_entryQueue.cend(), _queue);
-	return add(length);
+	return add(size);
 }
 
 template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType&& _queue)
 {
-	auto length = _queue.size();
-
 	std::lock_guard lock(_entryMutex);
 	if (auto size = this->size(); \
-		_capacity > 0 && (size >= _capacity || length >= _capacity - size))
+		_capacity > 0 && (size >= _capacity || _queue.size() >= _capacity - size))
 		return std::nullopt;
 
+	auto size = _queue.size();
 	_entryQueue.splice(_entryQueue.cend(), _queue);
-	return add(length);
+	return add(size);
 }
 
 template <typename _ElementType>
@@ -171,10 +169,8 @@ bool Queue<_ElementType>::pop(QueueType& _queue)
 template <typename _ElementType>
 void Queue<_ElementType>::clear()
 {
-	std::lock_guard exitLock(_exitMutex);
+	std::scoped_lock lock(_exitMutex, _entryMutex);
 	_exitQueue.clear();
-
-	std::lock_guard entryLock(_entryMutex);
 	_entryQueue.clear();
 	set(0);
 }
