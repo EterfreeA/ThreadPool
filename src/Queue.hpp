@@ -10,7 +10,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2022年01月29日
+更新日期：2022年01月31日
 
 变化：
 v1.5
@@ -18,6 +18,7 @@ v1.5
 2.删除非线程安全函数front和pop，引入线程安全函数pop。
 3.支持批量出队列。
 4.新增清空队列方法。
+5.支持动态调整容量。
 */
 
 #pragma once
@@ -42,7 +43,7 @@ public:
 	using MutexType = std::mutex;
 
 private:
-	SizeType _capacity;
+	std::atomic<SizeType> _capacity;
 	std::atomic<SizeType> _size;
 
 	MutexType _entryMutex;
@@ -59,6 +60,9 @@ private:
 public:
 	// 若_capacity小于等于零，则无限制，否则为上限值
 	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
+
+	auto capacity() const noexcept { return _capacity.load(std::memory_order_relaxed); }
+	void reserve(SizeType _capacity) noexcept { this->_capacity.store(_capacity, std::memory_order_relaxed); }
 
 	auto size() const noexcept { return _size.load(std::memory_order_relaxed); }
 	bool empty() const noexcept { return size() == 0; }
@@ -88,7 +92,8 @@ template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(const ElementType& _element)
 {
 	std::lock_guard lock(_entryMutex);
-	if (_capacity > 0 && size() >= _capacity)
+	if (auto capacity = this->capacity(); \
+		capacity > 0 && size() >= capacity)
 		return std::nullopt;
 
 	_entryQueue.emplace_back(_element);
@@ -99,7 +104,8 @@ template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(ElementType&& _element)
 {
 	std::lock_guard lock(_entryMutex);
-	if (_capacity > 0 && size() >= _capacity)
+	if (auto capacity = this->capacity(); \
+		capacity > 0 && size() >= capacity)
 		return std::nullopt;
 
 	_entryQueue.emplace_back(std::forward<ElementType>(_element));
@@ -110,8 +116,8 @@ template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType& _queue)
 {
 	std::lock_guard lock(_entryMutex);
-	if (auto size = this->size(); \
-		_capacity > 0 && (size >= _capacity || _queue.size() >= _capacity - size))
+	if (auto capacity = this->capacity(), size = this->size(); \
+		capacity > 0 && (size >= capacity || _queue.size() >= capacity - size))
 		return std::nullopt;
 
 	auto size = _queue.size();
@@ -123,8 +129,8 @@ template <typename _ElementType>
 std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType&& _queue)
 {
 	std::lock_guard lock(_entryMutex);
-	if (auto size = this->size(); \
-		_capacity > 0 && (size >= _capacity || _queue.size() >= _capacity - size))
+	if (auto capacity = this->capacity(), size = this->size(); \
+		capacity > 0 && (size >= capacity || _queue.size() >= capacity - size))
 		return std::nullopt;
 
 	auto size = _queue.size();
