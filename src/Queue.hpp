@@ -87,7 +87,8 @@ public:
 };
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(const ElementType& _element)
+//std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(const ElementType& _element)
+auto Queue<_ElementType>::push(const ElementType& _element) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(); \
@@ -99,7 +100,7 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 }
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(ElementType&& _element)
+auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(); \
@@ -112,7 +113,7 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 }
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType& _queue)
+auto Queue<_ElementType>::push(QueueType& _queue) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(), size = this->size(); \
@@ -125,7 +126,7 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 }
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType&& _queue)
+auto Queue<_ElementType>::push(QueueType&& _queue) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(), size = this->size(); \
