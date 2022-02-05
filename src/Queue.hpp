@@ -87,7 +87,6 @@ public:
 };
 
 template <typename _ElementType>
-//std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(const ElementType& _element)
 auto Queue<_ElementType>::push(const ElementType& _element) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
