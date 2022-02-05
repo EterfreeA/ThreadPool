@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月22日
+更新日期：2022年02月05日
 
 变化：
 v2.0.1
@@ -522,7 +522,8 @@ void ThreadPool<_Functor, _Queue>::destroy(DataType&& _data)
 
 // 调整线程数量
 template <typename _Functor, typename _Queue>
-typename ThreadPool<_Functor, _Queue>::SizeType ThreadPool<_Functor, _Queue>::adjust(DataType& _data)
+//typename ThreadPool<_Functor, _Queue>::SizeType ThreadPool<_Functor, _Queue>::adjust(DataType& _data)
+auto ThreadPool<_Functor, _Queue>::adjust(DataType& _data) -> SizeType
 {
 	auto capacity = _data->getCapacity();
 	auto size = _data->getSize();

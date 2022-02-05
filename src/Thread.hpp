@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月17日
+更新日期：2022年02月05日
 
 变化：
 v2.0.1
@@ -255,7 +255,8 @@ void Thread<_Functor, _Queue>::execute(DataType _data)
 
 // 获取线程ID
 template <typename _Functor, typename _Queue>
-Thread<_Functor, _Queue>::ThreadID Thread<_Functor, _Queue>::getID() const
+//Thread<_Functor, _Queue>::ThreadID Thread<_Functor, _Queue>::getID() const
+auto Thread<_Functor, _Queue>::getID() const -> ThreadID
 {
 	auto data = load();
 	if (not data)
