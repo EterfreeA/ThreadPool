@@ -10,7 +10,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2022年01月31日
+更新日期：2022年02月05日
 
 变化：
 v1.5
@@ -89,7 +89,7 @@ public:
 };
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(const ElementType& _element)
+auto Queue<_ElementType>::push(const ElementType& _element) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(); \
@@ -101,7 +101,7 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 }
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(ElementType&& _element)
+auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(); \
@@ -113,7 +113,7 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 }
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType& _queue)
+auto Queue<_ElementType>::push(QueueType& _queue) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(), size = this->size(); \
@@ -126,7 +126,7 @@ std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(
 }
 
 template <typename _ElementType>
-std::optional<typename Queue<_ElementType>::SizeType> Queue<_ElementType>::push(QueueType&& _queue)
+auto Queue<_ElementType>::push(QueueType&& _queue) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(), size = this->size(); \
