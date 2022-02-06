@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月05日
+更新日期：2022年02月06日
 
 变化：
 v2.0.1
@@ -35,7 +35,6 @@ v2.0.4
 
 #pragma once
 
-#include <type_traits>
 #include <functional>
 #include <utility>
 #include <tuple>
@@ -242,7 +241,8 @@ public:
 		using TaskSizeType = decltype(data->_taskQueue->size());
 
 		if (not data)
-			return std::make_tuple(static_cast<CapacityType>(0), static_cast<SizeType>(0), static_cast<IdleSizeType>(0), static_cast<TaskSizeType>(0));
+			return std::make_tuple(static_cast<CapacityType>(0), static_cast<SizeType>(0), \
+				static_cast<IdleSizeType>(0), static_cast<TaskSizeType>(0));
 		return std::make_tuple(data->getCapacity(), data->getSize(), data->getIdleSize(), data->_taskQueue->size());
 	}
 
@@ -274,7 +274,6 @@ public:
 	bool pushTask(TaskQueue&& _taskQueue)
 	{
 		auto data = load();
-		using TaskQueue = std::remove_reference_t<decltype(_taskQueue)>;
 		return data and data->pushTask(std::forward<TaskQueue>(_taskQueue));
 	}
 
@@ -347,7 +346,6 @@ public:
 	}
 	bool pushTask(Functor&& _task)
 	{
-		using Functor = std::remove_reference_t<decltype(_task)>;
 		return _task and _data and _data->pushTask(std::forward<Functor>(_task));
 	}
 
@@ -371,7 +369,6 @@ public:
 	}
 	bool pushTask(TaskQueue&& _taskQueue)
 	{
-		using TaskQueue = std::remove_reference_t<decltype(_taskQueue)>;
 		return _data and _data->pushTask(std::forward<TaskQueue>(_taskQueue));
 	}
 
@@ -422,7 +419,6 @@ template <typename _Functor, typename _Queue>
 bool ThreadPool<_Functor, _Queue>::Structure::pushTask(Functor&& _task)
 {
 	// 若放入任务之前，任务队列为空，则通知守护线程
-	using Functor = std::remove_reference_t<decltype(_task)>;
 	auto result = _taskQueue->push(std::forward<Functor>(_task));
 	if (result and result.value() == 0)
 		_condition.notify_one(Condition::Strategy::RELAXED);
@@ -453,7 +449,6 @@ bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue&& _taskQueue)
 		return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
-	using TaskQueue = std::remove_reference_t<decltype(_taskQueue)>;
 	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
 	if (result and result.value() == 0)
 		_condition.notify_one(Condition::Strategy::RELAXED);
@@ -625,7 +620,6 @@ bool ThreadPool<_Functor, _Queue>::pushTask(Functor&& _task)
 		return false;
 
 	auto data = load();
-	using Functor = std::remove_reference_t<decltype(_task)>;
 	return data and data->pushTask(std::forward<Functor>(_task));
 }
 

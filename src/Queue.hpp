@@ -23,7 +23,6 @@ v1.5.2
 
 #pragma once
 
-#include <type_traits>
 #include <utility>
 #include <optional>
 #include <list>
@@ -54,19 +53,19 @@ private:
 	QueueType _exitQueue;
 
 private:
-	inline auto add(SizeType _size) noexcept { return this->_size.fetch_add(_size, std::memory_order::relaxed); }
-	inline auto subtract(SizeType _size) noexcept { return this->_size.fetch_sub(_size, std::memory_order::relaxed); }
-	inline void set(SizeType _size) noexcept { this->_size.store(_size, std::memory_order::relaxed); }
+	auto add(SizeType _size) noexcept { return this->_size.fetch_add(_size, std::memory_order::relaxed); }
+	auto subtract(SizeType _size) noexcept { return this->_size.fetch_sub(_size, std::memory_order::relaxed); }
+	void set(SizeType _size) noexcept { this->_size.store(_size, std::memory_order::relaxed); }
 
 public:
-	// 若_capacity小于等于零，则无限制，否则为上限值
+	// 若_capacity小于等于零，则无限制，否则其为上限值
 	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
 
-	inline auto capacity() const noexcept { return _capacity.load(std::memory_order::relaxed); }
-	inline void reserve(SizeType _capacity) noexcept { this->_capacity.store(_capacity, std::memory_order::relaxed); }
+	auto capacity() const noexcept { return _capacity.load(std::memory_order::relaxed); }
+	void reserve(SizeType _capacity) noexcept { this->_capacity.store(_capacity, std::memory_order::relaxed); }
 
-	inline auto size() const noexcept { return _size.load(std::memory_order::relaxed); }
-	inline bool empty() const noexcept { return size() == 0; }
+	auto size() const noexcept { return _size.load(std::memory_order::relaxed); }
+	bool empty() const noexcept { return size() == 0; }
 
 	std::optional<SizeType> push(const ElementType& _element);
 	std::optional<SizeType> push(ElementType&& _element);
@@ -106,7 +105,6 @@ auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType
 		capacity > 0 and size() >= capacity)
 		return std::nullopt;
 
-	using ElementType = std::remove_reference_t<decltype(_element)>;
 	_entryQueue.emplace_back(std::forward<ElementType>(_element));
 	return add(1);
 }
