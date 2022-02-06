@@ -10,7 +10,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2019年03月08日
-更新日期：2022年02月05日
+更新日期：2022年02月06日
 
 变化：
 v1.5
@@ -58,7 +58,7 @@ private:
 	void set(SizeType _size) noexcept { this->_size.store(_size, std::memory_order_relaxed); }
 
 public:
-	// 若_capacity小于等于零，则无限制，否则为上限值
+	// 若_capacity小于等于零，则无限制，否则其为上限值
 	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
 
 	auto capacity() const noexcept { return _capacity.load(std::memory_order_relaxed); }
