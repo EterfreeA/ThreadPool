@@ -24,13 +24,13 @@
 ETERFREE_SPACE_BEGIN
 
 //template <typename _Type, const decltype(sizeof(0)) _SIZE>
-//inline constexpr auto size(_Type(&_array)[_SIZE])
+//constexpr auto size(_Type(&_array)[_SIZE])
 //{
 //	return sizeof _array / sizeof _array[0];
 //}
 
 template <typename _Type, const decltype(sizeof(0)) _SIZE>
-inline constexpr auto size(_Type(&_array)[_SIZE])
+constexpr auto size(_Type(&_array)[_SIZE])
 {
 	return _SIZE;
 }

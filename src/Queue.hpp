@@ -5,13 +5,13 @@
 * 2.支持自定义队列容量，包含入口队列和出口队列，并以交换策略降低二者的相互影响。
 * 3.在放入元素之时，只锁定入口互斥元。在取出元素之时，先锁定出口互斥元，若出口队列为空，再锁定入口互斥元，并且交换两个队列。
 *   以此降低两个队列的相互影响，从而提高出入队列的效率。
-*
+* 
 * 版本：v1.5
 * 作者：许聪
 * 邮箱：2592419242@qq.com
 * 创建日期：2019年03月08日
-* 更新日期：2022年02月06日
-*
+* 更新日期：2022年02月11日
+* 
 * 变化：
 * v1.5
 * 1.入队列可选复制语义或者移动语义。
@@ -43,8 +43,11 @@ public:
 	using MutexType = std::mutex;
 
 private:
-	std::atomic<SizeType> _capacity;
-	std::atomic<SizeType> _size;
+	using AtomicType = std::atomic<SizeType>;
+
+private:
+	AtomicType _capacity;
+	AtomicType _size;
 
 	MutexType _entryMutex;
 	QueueType _entryQueue;
@@ -53,18 +56,34 @@ private:
 	QueueType _exitQueue;
 
 private:
-	auto add(SizeType _size) noexcept { return this->_size.fetch_add(_size, std::memory_order_relaxed); }
-	auto subtract(SizeType _size) noexcept { return this->_size.fetch_sub(_size, std::memory_order_relaxed); }
-	void set(SizeType _size) noexcept { this->_size.store(_size, std::memory_order_relaxed); }
+	static void set(AtomicType& _atomic, SizeType _size) noexcept
+	{
+		_atomic.store(_size, std::memory_order_relaxed);
+	}
+
+	static auto get(const AtomicType& _atomic) noexcept
+	{
+		return _atomic.load(std::memory_order_relaxed);
+	}
+
+	auto add(SizeType _size) noexcept
+	{
+		return this->_size.fetch_add(_size, std::memory_order_relaxed);
+	}
+
+	auto subtract(SizeType _size) noexcept
+	{
+		return this->_size.fetch_sub(_size, std::memory_order_relaxed);
+	}
 
 public:
 	// 若_capacity小于等于零，则无限制，否则其为上限值
 	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
 
-	auto capacity() const noexcept { return _capacity.load(std::memory_order_relaxed); }
-	void reserve(SizeType _capacity) noexcept { this->_capacity.store(_capacity, std::memory_order_relaxed); }
+	auto capacity() const noexcept { return get(_capacity); }
+	void reserve(SizeType _capacity) noexcept { set(this->_capacity, _capacity); }
 
-	auto size() const noexcept { return _size.load(std::memory_order_relaxed); }
+	auto size() const noexcept { return get(_size); }
 	bool empty() const noexcept { return size() == 0; }
 	
 	DEPRECATED
@@ -77,11 +96,7 @@ public:
 	std::optional<SizeType> push(QueueType&& _queue);
 
 	bool pop(ElementType& _element);
-	std::optional<ElementType> pop()
-	{
-		ElementType element;
-		return pop(element) ? element : std::optional<ElementType>();
-	}
+	std::optional<ElementType> pop();
 
 	bool pop(QueueType& _queue);
 
@@ -96,7 +111,7 @@ auto Queue<_ElementType>::push(const ElementType& _element) -> std::optional<Siz
 		capacity > 0 && size() >= capacity)
 		return std::nullopt;
 
-	_entryQueue.emplace_back(_element);
+	_entryQueue.push_back(_element);
 	return add(1);
 }
 
@@ -108,7 +123,7 @@ auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType
 		capacity > 0 && size() >= capacity)
 		return std::nullopt;
 
-	_entryQueue.emplace_back(std::forward<ElementType>(_element));
+	_entryQueue.push_back(std::forward<ElementType>(_element));
 	return add(1);
 }
 
@@ -158,6 +173,25 @@ bool Queue<_ElementType>::pop(ElementType& _element)
 }
 
 template <typename _ElementType>
+auto Queue<_ElementType>::pop() -> std::optional<ElementType>
+{
+	std::lock_guard lock(_exitMutex);
+	if (empty())
+		return std::nullopt;
+
+	if (_exitQueue.empty())
+	{
+		std::lock_guard lock(_entryMutex);
+		_exitQueue.swap(_entryQueue);
+	}
+
+	subtract(1);
+	std::optional result = _exitQueue.front();
+	_exitQueue.pop_front();
+	return result;
+}
+
+template <typename _ElementType>
 bool Queue<_ElementType>::pop(QueueType& _queue)
 {
 	std::lock_guard exitLock(_exitMutex);
@@ -168,7 +202,7 @@ bool Queue<_ElementType>::pop(QueueType& _queue)
 
 	std::lock_guard entryLock(_entryMutex);
 	_queue.splice(_queue.cend(), _entryQueue);
-	set(0);
+	set(_size, 0);
 	return true;
 }
 
@@ -178,7 +212,7 @@ void Queue<_ElementType>::clear()
 	std::scoped_lock lock(_exitMutex, _entryMutex);
 	_exitQueue.clear();
 	_entryQueue.clear();
-	set(0);
+	set(_size, 0);
 }
 
 ETERFREE_SPACE_END

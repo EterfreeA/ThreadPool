@@ -9,7 +9,7 @@
 * 作者：许聪
 * 邮箱：2592419242@qq.com
 * 创建日期：2021年03月13日
-* 更新日期：2022年01月18日
+* 更新日期：2022年02月11日
 * 
 * 变化：
 * v1.0.1
@@ -197,7 +197,8 @@ template <typename _Rep, typename _Period>
 bool Condition<_Size>::wait_for(const std::chrono::duration<_Rep, _Period>& _relative)
 {
 	std::unique_lock lock(_mutex);
-	return valid() && _condition.wait_for(lock, _relative) == std::cv_status::no_timeout;
+	return valid() \
+		&& _condition.wait_for(lock, _relative) == std::cv_status::no_timeout;
 }
 
 template <typename _Size>
@@ -205,7 +206,8 @@ template <typename _Rep, typename _Period, typename _Predicate>
 bool Condition<_Size>::wait_for(const std::chrono::duration<_Rep, _Period>& _relative, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	return _condition.wait_for(lock, _relative, [this, &_predicate] { return !valid() || _predicate(); });
+	return _condition.wait_for(lock, _relative, \
+		[this, &_predicate] { return !valid() || _predicate(); });
 }
 
 template <typename _Size>
@@ -213,7 +215,8 @@ template <typename _Clock, typename _Duration>
 bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute)
 {
 	std::unique_lock lock(_mutex);
-	return valid() && _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
+	return valid() \
+		&& _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
 }
 
 template <typename _Size>
