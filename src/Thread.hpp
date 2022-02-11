@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月05日
+更新日期：2022年02月11日
 
 变化：
 v2.0.1
@@ -110,12 +110,12 @@ private:
 		}
 
 		// 设置任务
-		void setTask(const Functor& _task)
+		void setTask(const decltype(_task)& _task)
 		{
 			std::lock_guard lock(_taskMutex);
 			this->_task = _task;
 		}
-		void setTask(Functor&& _task)
+		void setTask(decltype(_task)&& _task)
 		{
 			std::lock_guard lock(_taskMutex);
 			this->_task = std::move(_task);
@@ -129,15 +129,23 @@ private:
 		}
 	};
 	using DataType = std::shared_ptr<Structure>;
+	using AtomicData = std::atomic<DataType>;
 
 private:
-	std::atomic<DataType> _data;
+	AtomicData _data;
 
 private:
 	// 获取任务
 	static bool setTask(DataType& _data);
+
 	// 线程主函数
 	static void execute(DataType _data);
+
+	// 替换数据
+	static inline auto exchange(decltype(_data)& _atomic, const DataType& _data) noexcept
+	{
+		return _atomic.exchange(_data, std::memory_order::relaxed);
+	}
 
 	// 加载非原子数据
 	inline auto load() const noexcept
@@ -154,7 +162,7 @@ public:
 
 	// 默认移动构造函数
 	Thread(Thread&& _thread) noexcept
-		: _data(_thread._data.exchange(nullptr, std::memory_order::relaxed)) {}
+		: _data(exchange(_thread._data, nullptr)) {}
 
 	// 默认析构函数
 	~Thread() { destroy(); }
@@ -165,9 +173,7 @@ public:
 	// 默认移动赋值运算符函数
 	Thread& operator=(Thread&& _thread) noexcept
 	{
-		constexpr auto memoryOrder = std::memory_order::relaxed;
-		auto data = _thread._data.exchange(nullptr, memoryOrder);
-		_data.exchange(data, memoryOrder);
+		exchange(_data, exchange(_thread._data, nullptr));
 		return *this;
 	}
 
@@ -179,11 +185,13 @@ public:
 
 	// 创建线程
 	bool create();
+
 	// 销毁线程
 	void destroy();
 
 	// 配置任务队列与回调函数子
 	bool configure(const Queue& _taskQueue, const Callback& _callback);
+
 	// 配置单任务与回调函数子
 	bool configure(const Functor& _task, const Callback& _callback);
 
