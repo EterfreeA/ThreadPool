@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月11日
+更新日期：2022年02月12日
 
 变化：
 v2.0.1
@@ -60,15 +60,6 @@ template <typename _Functor = std::function<void()>, typename _Queue = Queue<_Fu
 class Thread
 	//: public std::enable_shared_from_this<Thread>
 {
-public:
-	using Functor = _Functor;
-	using Queue = std::shared_ptr<_Queue>;
-	using ThreadID = std::thread::id;
-	using Callback = std::function<void(bool, ThreadID)>;
-
-private:
-	using Condition = Condition<>;
-
 	// 状态枚举
 	enum class State
 	{
@@ -79,6 +70,15 @@ private:
 		BLOCKED,	// 阻塞态
 	};
 
+	using Condition = Condition<>;
+
+public:
+	using Functor = _Functor;
+	using Queue = std::shared_ptr<_Queue>;
+	using ThreadID = std::thread::id;
+	using Callback = std::function<void(bool, ThreadID)>;
+
+private:
 	// 线程数据结构体
 	struct Structure
 	{
