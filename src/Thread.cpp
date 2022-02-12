@@ -2,7 +2,6 @@
 #include "Condition.hpp"
 #include "Queue.hpp"
 
-#include <utility>
 #include <exception>
 #include <iostream>
 #include <atomic>
@@ -52,12 +51,12 @@ struct Thread::Structure
 	}
 
 	// 设置任务
-	void setTask(const Functor& _task)
+	void setTask(const decltype(_task)& _task)
 	{
 		std::lock_guard lock(_taskMutex);
 		this->_task = _task;
 	}
-	void setTask(Functor&& _task)
+	void setTask(decltype(_task)&& _task)
 	{
 		std::lock_guard lock(_taskMutex);
 		this->_task = std::move(_task);
@@ -137,13 +136,6 @@ Thread::Thread()
 	: _data(std::make_shared<Structure>())
 {
 	create();
-}
-
-// 默认移动构造函数
-Thread::Thread(Thread&& _thread)
-{
-	std::scoped_lock lock(_mutex, _thread._mutex);
-	_data = std::move(_thread._data);
 }
 
 // 默认移动赋值运算符函数

@@ -14,17 +14,18 @@
 9. 引入条件类模板Condition，当激活先于阻塞之时，确保线程正常退出。
 10.线程主函数声明为静态成员，除去与类成员指针this的关联性。
 
-版本：v2.1
+版本：v2.0.3
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月18日
+更新日期：2022年02月12日
 
 变化：
-v2.0
+v2.0.1
 1.运用Condition的宽松策略，提升激活线程的效率。
-2.消除谓词对条件实例有效性的重复判断。
-v2.1
+v2.0.2
+1.消除谓词对条件实例有效性的重复判断。
+v2.0.3
 1.以原子操作确保移动语义的线程安全性。
 2.解决配置先于回调隐患。
 */
@@ -32,6 +33,7 @@ v2.1
 #pragma once
 
 #include <functional>
+#include <utility>
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -68,6 +70,7 @@ private:
 private:
 	// 获取任务
 	static bool setTask(DataType& _data);
+
 	// 线程主函数
 	static void execute(DataType _data);
 
@@ -86,7 +89,11 @@ public:
 	Thread(const Thread&) = delete;
 
 	// 默认移动构造函数
-	Thread(Thread&& _thread);
+	Thread(Thread&& _thread)
+	{
+		std::lock_guard lock(_thread._mutex);
+		_data = std::move(_thread._data);
+	}
 
 	// 默认析构函数
 	~Thread() { destroy(); }
@@ -111,11 +118,13 @@ public:
 
 	// 创建线程
 	bool create();
+
 	// 销毁线程
 	void destroy();
 
 	// 配置任务队列与回调函数子
 	bool configure(const Queue& _taskQueue, const Callback& _callback);
+
 	// 配置单任务与回调函数子
 	bool configure(const Functor& _task, const Callback& _callback);
 
