@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月06日
+更新日期：2022年02月17日
 
 变化：
 v2.0.1
@@ -54,17 +54,18 @@ ETERFREE_SPACE_BEGIN
 #define SET_ATOMIC(SizeType, Arithmetic, functor, field) \
 SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 { \
+	constexpr auto memoryOrder = std::memory_order::relaxed; \
 	switch (_arithmetic) \
 	{ \
 	case Arithmetic::REPLACE: \
-		field.store(_size, std::memory_order::relaxed); \
+		field.store(_size, memoryOrder); \
 		return _size; \
 	case Arithmetic::INCREASE: \
-		return field.fetch_add(_size, std::memory_order::relaxed); \
+		return field.fetch_add(_size, memoryOrder); \
 	case Arithmetic::DECREASE: \
-		return field.fetch_sub(_size, std::memory_order::relaxed); \
+		return field.fetch_sub(_size, memoryOrder); \
 	default: \
-		return field.load(std::memory_order::relaxed); \
+		return field.load(memoryOrder); \
 	} \
 }
 
@@ -86,6 +87,9 @@ private:
 	// 线程池数据结构体
 	struct Structure
 	{
+		// 算术枚举
+		enum class Arithmetic { REPLACE, INCREASE, DECREASE };
+
 		std::list<Thread> _threadTable;							// 线程表
 		std::shared_ptr<Queue> _taskQueue;						// 任务队列
 		std::function<void(bool, Thread::ThreadID)> _callback;	// 回调函数子
@@ -118,7 +122,7 @@ private:
 		bool pushTask(TaskQueue&& _taskQueue);
 
 		// 设置线程池容量
-		inline void setCapacity(SizeType _capacity) noexcept
+		void setCapacity(SizeType _capacity) noexcept
 		{
 			this->_capacity.store(_capacity, std::memory_order::relaxed);
 		}
@@ -131,19 +135,16 @@ private:
 		}
 
 		// 获取线程池容量
-		inline auto getCapacity() const noexcept
+		auto getCapacity() const noexcept
 		{
 			return _capacity.load(std::memory_order::relaxed);
 		}
-
-		// 算术枚举
-		enum class Arithmetic { REPLACE, INCREASE, DECREASE };
 
 		// 设置线程数量
 		SET_ATOMIC(SizeType, Arithmetic, setSize, this->_size);
 
 		// 获取线程数量
-		inline auto getSize() const noexcept
+		auto getSize() const noexcept
 		{
 			return _size.load(std::memory_order::relaxed);
 		}
@@ -152,49 +153,59 @@ private:
 		SET_ATOMIC(SizeType, Arithmetic, setIdleSize, _idleSize);
 
 		// 获取闲置线程数量
-		inline auto getIdleSize() const noexcept
+		auto getIdleSize() const noexcept
 		{
 			return _idleSize.load(std::memory_order::relaxed);
 		}
 	};
 	using DataType = std::shared_ptr<Structure>;
+	using AtomicType = std::atomic<DataType>;
 
 private:
-	std::atomic<DataType> _data;
+	AtomicType _atomic;
 
 private:
 	// 创建线程池
 	static void create(DataType&& _data, SizeType _capacity);
+
 	// 销毁线程池
 	static void destroy(DataType&& _data);
+
 	// 调整线程数量
 	static SizeType adjust(DataType& _data);
+
 	// 守护线程主函数
 	static void execute(DataType _data);
 
-	// 加载非原子数据
-	inline auto load() const noexcept
+	// 交换数据
+	static auto exchange(AtomicType& _atomic, const DataType& _data) noexcept
 	{
-		return _data.load(std::memory_order::relaxed);
+		return _atomic.exchange(_data, std::memory_order::relaxed);
+	}
+
+	// 加载非原子数据
+	auto load() const noexcept
+	{
+		return _atomic.load(std::memory_order::relaxed);
 	}
 
 public:
 	// 默认构造函数
 	ThreadPool(SizeType _capacity = getConcurrency())
-		: _data(std::make_shared<Structure>()) { create(load(), _capacity); }
+		: _atomic(std::make_shared<Structure>()) { create(load(), _capacity); }
 
 	// 删除默认复制构造函数
 	ThreadPool(const ThreadPool&) = delete;
 
 	// 默认移动构造函数
 	ThreadPool(ThreadPool&& _threadPool) noexcept
-		: _data(_threadPool._data.exchange(nullptr, std::memory_order::relaxed)) {}
+		: _atomic(exchange(_threadPool._atomic, nullptr)) {}
 
 	// 默认析构函数
 	~ThreadPool()
 	{
 		// 数据非空才进行销毁，以支持移动语义
-		if (auto data = _data.exchange(nullptr, std::memory_order::relaxed))
+		if (auto data = exchange(_atomic, nullptr))
 			destroy(std::move(data));
 	}
 
@@ -204,24 +215,19 @@ public:
 	// 默认移动赋值运算符函数
 	ThreadPool& operator=(ThreadPool&& _threadPool) noexcept
 	{
-		constexpr auto memoryOrder = std::memory_order::relaxed;
-		auto data = _threadPool._data.exchange(nullptr, memoryOrder);
-		_data.exchange(data, memoryOrder);
+		exchange(_atomic, exchange(_threadPool._atomic, nullptr));
 		return *this;
 	}
 
 	// 获取支持的并发线程数量
-	static SizeType getConcurrency() noexcept
+	static auto getConcurrency() noexcept
 	{
 		auto concurrency = std::thread::hardware_concurrency();
-		return concurrency > 0 ? concurrency : 1;
+		return concurrency > 0 ? concurrency : static_cast<decltype(concurrency)>(1);
 	}
 
 	// 获取代理
-	inline Proxy getProxy() noexcept
-	{
-		return load();
-	}
+	Proxy getProxy() noexcept { return load(); }
 
 	// 设置线程池容量
 	void setCapacity(SizeType _capacity)
@@ -300,9 +306,9 @@ class ThreadPool<_Functor, _Queue>::Proxy
 	DataType _data;
 
 public:
-	Proxy(DataType _data) noexcept : _data(_data) {}
+	Proxy(const decltype(_data)& _data) noexcept : _data(_data) {}
 
-	inline explicit operator bool() const noexcept { return static_cast<bool>(_data); }
+	explicit operator bool() const noexcept { return static_cast<bool>(_data); }
 
 	// 设置线程池容量
 	void setCapacity(SizeType _capacity)
@@ -392,14 +398,15 @@ template <typename _TaskQueue>
 auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
-	for (auto iterator = _taskQueue.cbegin(); iterator != _taskQueue.cend();)
-		if (not *iterator)
-			iterator = _taskQueue.erase(iterator);
-		else
+	std::erase_if(_taskQueue, [&size](const _TaskQueue::value_type& _task) noexcept \
+	{
+		if (_task)
 		{
-			++iterator;
 			++size;
+			return false;
 		}
+		return true;
+	});
 	return size;
 }
 
@@ -520,8 +527,8 @@ template <typename _Functor, typename _Queue>
 //typename ThreadPool<_Functor, _Queue>::SizeType ThreadPool<_Functor, _Queue>::adjust(DataType& _data)
 auto ThreadPool<_Functor, _Queue>::adjust(DataType& _data) -> SizeType
 {
-	auto capacity = _data->getCapacity();
 	auto size = _data->getSize();
+	auto capacity = _data->getCapacity();
 
 	// 1.删减线程
 	if (size >= capacity)

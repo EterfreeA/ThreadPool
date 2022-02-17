@@ -18,7 +18,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月12日
+更新日期：2022年02月17日
 
 变化：
 v2.0.1
@@ -95,16 +95,16 @@ private:
 		Structure() : _state(State::EMPTY) {}
 
 		// 获取线程唯一标识
-		inline auto getID() const noexcept { return _thread.get_id(); }
+		auto getID() const noexcept { return _thread.get_id(); }
 
 		// 设置状态
-		inline void setState(State _state) noexcept
+		void setState(State _state) noexcept
 		{
 			this->_state.store(_state, std::memory_order::relaxed);
 		}
 
 		// 获取状态
-		inline auto getState() const noexcept
+		auto getState() const noexcept
 		{
 			return _state.load(std::memory_order::relaxed);
 		}
@@ -129,10 +129,10 @@ private:
 		}
 	};
 	using DataType = std::shared_ptr<Structure>;
-	using AtomicData = std::atomic<DataType>;
+	using AtomicType = std::atomic<DataType>;
 
 private:
-	AtomicData _data;
+	AtomicType _atomic;
 
 private:
 	// 获取任务
@@ -141,28 +141,28 @@ private:
 	// 线程主函数
 	static void execute(DataType _data);
 
-	// 替换数据
-	static inline auto exchange(decltype(_data)& _atomic, const DataType& _data) noexcept
+	// 交换数据
+	static auto exchange(AtomicType& _atomic, const DataType& _data) noexcept
 	{
 		return _atomic.exchange(_data, std::memory_order::relaxed);
 	}
 
 	// 加载非原子数据
-	inline auto load() const noexcept
+	auto load() const noexcept
 	{
-		return _data.load(std::memory_order::relaxed);
+		return _atomic.load(std::memory_order::relaxed);
 	}
 
 public:
 	// 默认构造函数
-	Thread() : _data(std::make_shared<Structure>()) { create(); }
+	Thread() : _atomic(std::make_shared<Structure>()) { create(); }
 
 	// 删除默认复制构造函数
 	Thread(const Thread&) = delete;
 
 	// 默认移动构造函数
 	Thread(Thread&& _thread) noexcept
-		: _data(exchange(_thread._data, nullptr)) {}
+		: _atomic(exchange(_thread._atomic, nullptr)) {}
 
 	// 默认析构函数
 	~Thread() { destroy(); }
@@ -173,7 +173,7 @@ public:
 	// 默认移动赋值运算符函数
 	Thread& operator=(Thread&& _thread) noexcept
 	{
-		exchange(_data, exchange(_thread._data, nullptr));
+		exchange(_atomic, exchange(_thread._atomic, nullptr));
 		return *this;
 	}
 
