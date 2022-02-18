@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月17日
+更新日期：2022年02月18日
 
 变化：
 v2.0.1
@@ -469,7 +469,7 @@ void ThreadPool<_Functor, _Queue>::create(DataType&& _data, SizeType _capacity)
 	using Arithmetic = Structure::Arithmetic;
 
 	// 定义回调函数子
-	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id)
+	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id) \
 	{
 		// 线程并非闲置状态
 		if (not _idle)
@@ -558,13 +558,15 @@ void ThreadPool<_Functor, _Queue>::execute(DataType _data)
 	 * 3.任务队列非空并且需要增加线程。
 	 * 4.条件无效。
 	 */
-	auto predicate = [&_data] {
+	auto predicate = [&_data] \
+	{
 		bool idle = _data->getIdleSize() > 0;
 		bool empty = _data->_taskQueue->empty();
 		auto size = _data->getSize();
 		auto capacity = _data->getCapacity();
 		return idle and (not empty or size > capacity) \
-			or not empty and (size < capacity); };
+			or not empty and (size < capacity);
+	};
 
 	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
