@@ -82,7 +82,8 @@ int main()
 	using std::cout;
 	using std::endl;
 
-	constexpr auto load = []() noexcept { return counter.load(std::memory_order::relaxed); };
+	constexpr auto load = []() noexcept \
+	{ return counter.load(std::memory_order::relaxed); };
 
 #ifdef FILE_STREAM
 	constexpr auto file = "ThreadPool.log";
