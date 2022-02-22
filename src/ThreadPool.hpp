@@ -17,7 +17,7 @@
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年02月18日
+更新日期：2022年02月22日
 
 变化：
 v2.0.1
@@ -258,10 +258,10 @@ public:
 
 	// 适配不同任务接口，推进线程池模板化
 	template <typename _Functor>
-	bool pushTask(_Functor&& task)
+	bool pushTask(_Functor&& _task)
 	{
 		auto data = load();
-		return data and data->pushTask(Functor(std::forward<_Functor>(task)));
+		return data and data->pushTask(Functor(std::forward<_Functor>(_task)));
 	}
 	template <typename _Functor, typename... _Args>
 	bool pushTask(_Functor&& _task, _Args&&... _args)
