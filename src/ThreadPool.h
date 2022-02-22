@@ -13,19 +13,21 @@
 8.引入条件类模板Condition，当激活先于阻塞之时，确保守护线程正常退出。
 9.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
 
-版本：v2.1
+版本：v2.0.4
 作者：许聪
 邮箱：2592419242@qq.com
 创建日期：2017年09月22日
-更新日期：2022年01月22日
+更新日期：2022年02月22日
 
 变化：
-v2.0
+v2.0.1
 1.运用Condition的宽松策略，提升激活守护线程的效率。
-2.消除谓词对条件实例有效性的重复判断。
-3.修复条件谓词异常。
+v2.0.2
+1.消除谓词对条件实例有效性的重复判断。
+v2.0.3
+1.修复条件谓词异常。
 	在延迟减少线程之时，未减少闲置线程数量，导致守护线程不必等待通知的条件谓词异常。
-v2.1
+v2.0.4
 1.以原子操作确保移动语义的线程安全性。
 2.新增成员类Proxy，提供轻量接口，减少原子操作。
 3.新增任务可选复制语义或者移动语义。
@@ -63,10 +65,13 @@ private:
 private:
 	// 创建线程池
 	static void create(DataType&& _data, SizeType _capacity);
+
 	// 销毁线程池
 	static void destroy(DataType&& _data);
+
 	// 调整线程数量
 	static SizeType adjust(DataType& _data);
+
 	// 守护线程主函数
 	static void execute(DataType _data);
 
@@ -86,10 +91,19 @@ public:
 	ThreadPool(const ThreadPool&) = delete;
 
 	// 默认移动构造函数
-	ThreadPool(ThreadPool&& _threadPool);
+	ThreadPool(ThreadPool&& _threadPool)
+	{
+		std::lock_guard lock(_threadPool._mutex);
+		_data = std::move(_threadPool._data);
+	}
 
 	// 默认析构函数
-	~ThreadPool();
+	~ThreadPool()
+	{
+		// 数据非空才进行销毁，以支持移动语义
+		if (auto data = load())
+			destroy(std::move(data));
+	}
 
 	// 删除默认复制赋值运算符函数
 	ThreadPool& operator=(const ThreadPool&) = delete;
@@ -192,7 +206,7 @@ class ThreadPool::Proxy
 	DataType _data;
 
 public:
-	Proxy(DataType _data) noexcept : _data(_data) {}
+	Proxy(const decltype(_data)& _data) noexcept : _data(_data) {}
 
 	explicit operator bool() const noexcept { return static_cast<bool>(_data); }
 

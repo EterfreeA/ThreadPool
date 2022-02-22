@@ -12,23 +12,27 @@ ETERFREE_SPACE_BEGIN
 #define SET_ATOMIC(SizeType, Arithmetic, functor, field) \
 SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 { \
+	constexpr auto memoryOrder = std::memory_order_relaxed; \
 	switch (_arithmetic) \
 	{ \
 	case Arithmetic::REPLACE: \
-		field.store(_size, std::memory_order_relaxed); \
+		field.store(_size, memoryOrder); \
 		return _size; \
 	case Arithmetic::INCREASE: \
-		return field.fetch_add(_size, std::memory_order_relaxed); \
+		return field.fetch_add(_size, memoryOrder); \
 	case Arithmetic::DECREASE: \
-		return field.fetch_sub(_size, std::memory_order_relaxed); \
+		return field.fetch_sub(_size, memoryOrder); \
 	default: \
-		return field.load(std::memory_order_relaxed); \
+		return field.load(memoryOrder); \
 	} \
 }
 
 // 线程池数据结构体
 struct ThreadPool::Structure
 {
+	// 算术枚举
+	enum class Arithmetic { REPLACE, INCREASE, DECREASE };
+
 	using QueueType = Queue<Functor>;
 	using Condition = Condition<>;
 
@@ -82,9 +86,6 @@ struct ThreadPool::Structure
 		return _capacity.load(std::memory_order_relaxed);
 	}
 
-	// 算术枚举
-	enum class Arithmetic { REPLACE, INCREASE, DECREASE };
-
 	// 设置线程数量
 	SET_ATOMIC(SizeType, Arithmetic, setSize, this->_size);
 
@@ -103,6 +104,8 @@ struct ThreadPool::Structure
 		return _idleSize.load(std::memory_order_relaxed);
 	}
 };
+
+#undef SET_ATOMIC
 
 // 过滤无效任务
 template <typename _TaskQueue>
@@ -134,7 +137,7 @@ bool ThreadPool::Structure::pushTask(const Functor& _task)
 bool ThreadPool::Structure::pushTask(Functor&& _task)
 {
 	// 若放入任务之前，任务队列为空，则通知守护线程
-	auto result = _taskQueue->push(std::move(_task));
+	auto result = _taskQueue->push(std::forward<Functor>(_task));
 	if (result && result.value() == 0)
 		_condition.notify_one(Condition::Strategy::RELAXED);
 	return result.has_value();
@@ -208,7 +211,7 @@ bool ThreadPool::Proxy::pushTask(const Functor& _task)
 // 放入单任务
 bool ThreadPool::Proxy::pushTask(Functor&& _task)
 {
-	return _task && _data && _data->pushTask(std::move(_task));
+	return _task && _data && _data->pushTask(std::forward<Functor>(_task));
 }
 
 // 批量放入任务
@@ -220,7 +223,7 @@ bool ThreadPool::Proxy::pushTask(TaskQueue& _taskQueue)
 // 批量放入任务
 bool ThreadPool::Proxy::pushTask(TaskQueue&& _taskQueue)
 {
-	return _data && _data->pushTask(std::move(_taskQueue));
+	return _data && _data->pushTask(std::forward<TaskQueue>(_taskQueue));
 }
 
 // 批量弹出任务
@@ -242,7 +245,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 	using Arithmetic = Structure::Arithmetic;
 
 	// 定义回调函数子
-	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id)
+	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id) \
 	{
 		// 线程并非闲置状态
 		if (!_idle)
@@ -297,8 +300,8 @@ void ThreadPool::destroy(DataType&& _data)
 // 调整线程数量
 ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
 {
-	auto capacity = _data->getCapacity();
 	auto size = _data->getSize();
+	auto capacity = _data->getCapacity();
 
 	// 1.删减线程
 	if (size >= capacity)
@@ -327,13 +330,15 @@ void ThreadPool::execute(DataType _data)
 	 * 3.任务队列非空并且需要增加线程。
 	 * 4.条件无效。
 	 */
-	auto predicate = [&_data] {
+	auto predicate = [&_data] \
+	{
 		bool idle = _data->getIdleSize() > 0;
 		bool empty = _data->_taskQueue->empty();
 		auto size = _data->getSize();
 		auto capacity = _data->getCapacity();
 		return idle && (!empty || size > capacity) \
-			|| !empty && (size < capacity); };
+			|| !empty && (size < capacity);
+	};
 
 	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
@@ -382,31 +387,12 @@ ThreadPool::ThreadPool(SizeType _size, SizeType _capacity)
 	create(load(), _capacity);
 }
 
-// 默认移动构造函数
-ThreadPool::ThreadPool(ThreadPool&& _threadPool)
-{
-	std::lock_guard leftLock(_mutex);
-	std::lock_guard rightLock(_threadPool._mutex);
-	_data = std::move(_threadPool._data);
-}
-
-// 默认析构函数
-ThreadPool::~ThreadPool()
-{
-	std::lock_guard lock(_mutex);
-
-	// 数据非空才进行销毁，以支持移动语义
-	if (_data)
-		destroy(std::move(_data));
-}
-
 // 默认移动赋值运算符函数
 ThreadPool& ThreadPool::operator=(ThreadPool&& _threadPool)
 {
 	if (&_threadPool != this)
 	{
-		std::lock_guard leftLock(_mutex);
-		std::lock_guard rightLock(_threadPool._mutex);
+		std::scoped_lock lock(_mutex, _threadPool._mutex);
 		_data = std::move(_threadPool._data);
 	}
 	return *this;
@@ -436,33 +422,29 @@ void ThreadPool::setCapacity(SizeType _capacity)
 // 获取线程池容量
 ThreadPool::SizeType ThreadPool::getCapacity() const
 {
-	if (auto data = load())
-		data->getCapacity();
-	return 0;
+	auto data = load();
+	return data ? data->getCapacity() : 0;
 }
 
 // 获取线程数量
 ThreadPool::SizeType ThreadPool::getSize() const
 {
-	if (auto data = load())
-		return data->getSize();
-	return 0;
+	auto data = load();
+	return data ? data->getSize() : 0;
 }
 
 // 获取闲置线程数量
 ThreadPool::SizeType ThreadPool::getIdleSize() const
 {
-	if (auto data = load())
-		return data->getIdleSize();
-	return 0;
+	auto data = load();
+	return data ? data->getIdleSize() : 0;
 }
 
 // 获取任务数量
 ThreadPool::SizeType ThreadPool::getTaskSize() const
 {
-	if (auto data = load())
-		return data->_taskQueue->size();
-	return 0;
+	auto data = load();
+	return data ? data->_taskQueue->size() : 0;
 }
 
 // 放入单任务
@@ -484,7 +466,7 @@ bool ThreadPool::pushTask(Functor&& _task)
 		return false;
 
 	auto data = load();
-	return data && data->pushTask(std::move(_task));
+	return data && data->pushTask(std::forward<Functor>(_task));
 }
 
 // 批量放入任务
@@ -498,7 +480,7 @@ bool ThreadPool::pushTask(TaskQueue& _taskQueue)
 bool ThreadPool::pushTask(TaskQueue&& _taskQueue)
 {
 	auto data = load();
-	return data && data->pushTask(std::move(_taskQueue));
+	return data && data->pushTask(std::forward<TaskQueue>(_taskQueue));
 }
 
 // 批量弹出任务
