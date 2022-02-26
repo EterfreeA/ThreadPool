@@ -15,7 +15,7 @@ Copyright © 2017 CDU Innovation Studio. Some Rights Reserved.
 
 ## Author
 name: 许聪  
-mailbox: 2592419242@qq.com  
+mailbox: solifree@qq.com  
 CSDN：https://blog.csdn.net/xucongyoushan  
 gitee: https://gitee.com/solifree  
 github: https://github.com/xucongandxuchong
