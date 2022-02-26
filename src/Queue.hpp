@@ -1,18 +1,21 @@
 ﻿/*
 * 文件名称：Queue.hpp
-* 摘要：
+* 语言标准：C++17
+* 
+* 创建日期：2019年03月08日
+* 更新日期：2022年02月26日
+* 
+* 摘要
 * 1.定义双缓冲队列类模板Queue。
 * 2.支持自定义队列容量，包含入口队列和出口队列，并以交换策略降低二者的相互影响。
 * 3.在放入元素之时，只锁定入口互斥元。在取出元素之时，先锁定出口互斥元，若出口队列为空，再锁定入口互斥元，并且交换两个队列。
 *   以此降低两个队列的相互影响，从而提高出入队列的效率。
 * 
-* 版本：v1.5.2
 * 作者：许聪
-* 邮箱：2592419242@qq.com
-* 创建日期：2019年03月08日
-* 更新日期：2022年02月12日
+* 邮箱：solifree@qq.com
 * 
-* 变化：
+* 版本：v1.5.2
+* 变化
 * v1.5.1
 * 1.入队列可选复制语义或者移动语义。
 * 2.支持批量出队列。
@@ -82,7 +85,10 @@ public:
 	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
 
 	auto capacity() const noexcept { return get(_capacity); }
-	void reserve(SizeType _capacity) noexcept { set(this->_capacity, _capacity); }
+	void reserve(SizeType _capacity) noexcept
+	{
+		set(this->_capacity, _capacity);
+	}
 
 	auto size() const noexcept { return get(_size); }
 	bool empty() const noexcept { return size() == 0; }

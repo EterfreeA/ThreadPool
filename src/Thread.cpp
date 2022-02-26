@@ -167,8 +167,8 @@ bool Thread::idle() const
 	if (!data)
 		return false;
 
-	using State = Structure::State;
 	auto state = data->getState();
+	using State = Structure::State;
 	return state == State::INITIAL || state == State::BLOCKED;
 }
 
@@ -265,8 +265,9 @@ bool Thread::notify()
 		return false;
 
 	std::lock_guard lock(data->_threadMutex);
-	using State = Structure::State;
 	auto state = data->getState();
+
+	using State = Structure::State;
 
 	// 若处于阻塞状态则获取任务
 	if (state == State::BLOCKED && setTask(data))

@@ -112,7 +112,8 @@ template <typename _TaskQueue>
 auto ThreadPool::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
-	for (auto iterator = _taskQueue.cbegin(); iterator != _taskQueue.cend();)
+	for (auto iterator = _taskQueue.cbegin(); \
+		iterator != _taskQueue.cend();)
 		if (!*iterator)
 			iterator = _taskQueue.erase(iterator);
 		else
@@ -205,13 +206,15 @@ ThreadPool::SizeType ThreadPool::Proxy::getTaskSize() const noexcept
 // 放入单任务
 bool ThreadPool::Proxy::pushTask(const Functor& _task)
 {
-	return _task && _data && _data->pushTask(_task);
+	return _task && _data \
+		&& _data->pushTask(_task);
 }
 
 // 放入单任务
 bool ThreadPool::Proxy::pushTask(Functor&& _task)
 {
-	return _task && _data && _data->pushTask(std::forward<Functor>(_task));
+	return _task && _data \
+		&& _data->pushTask(std::forward<Functor>(_task));
 }
 
 // 批量放入任务
@@ -357,6 +360,7 @@ void ThreadPool::execute(DataType _data)
 			if (auto& thread = *iterator; thread.idle())
 			{
 				using Arithmetic = Structure::Arithmetic;
+
 				// 若通知线程执行任务成功，则减少闲置线程数量
 				if (thread.notify())
 					_data->setIdleSize(1, Arithmetic::DECREASE);
