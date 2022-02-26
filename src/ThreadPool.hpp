@@ -1,36 +1,39 @@
 ﻿/*
-文件名称：ThreadPool.hpp
-摘要：
-1.定义线程池类模板ThreadPool。
-2.当任务队列为空，阻塞守护线程，在新增任务之时，激活守护线程，通知线程获取任务。
-3.当无闲置线程，阻塞守护线程，当存在闲置线程，激活守护线程，通知闲置线程获取任务。
-4.当销毁线程池，等待守护线程退出，而守护线程在退出之前，等待所有线程退出。
-	线程在退出之前，默认完成任务队列的所有任务，可选弹出所有任务或者清空队列，用以支持线程立即退出。
-5.提供增删线程策略，由守护线程增删线程。
-	在任务队列非空之时，一次性增加线程，当存在闲置线程之时，逐个删减线程。
-6.以原子操作确保接口的线程安全性，并且新增成员类Proxy，用于减少原子操作，针对频繁操作提升性能。
-7.引入双缓冲队列类模板Queue，降低读写任务的相互影响，提高放入和取出任务的效率。
-8.引入条件类模板Condition，当激活先于阻塞之时，确保守护线程正常退出。
-9.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
-
-版本：v2.0.4
-作者：许聪
-邮箱：2592419242@qq.com
-创建日期：2017年09月22日
-更新日期：2022年02月22日
-
-变化：
-v2.0.1
-1.运用Condition的宽松策略，提升激活守护线程的效率。
-v2.0.2
-1.消除谓词对条件实例有效性的重复判断。
-v2.0.3
-1.修复条件谓词异常。
-	在延迟减少线程之时，未减少闲置线程数量，导致守护线程不必等待通知的条件谓词异常。
-v2.0.4
-1.以原子操作确保移动语义的线程安全性。
-2.新增成员类Proxy，提供轻量接口，减少原子操作。
-3.新增任务可选复制语义或者移动语义。
+* 文件名称：ThreadPool.hpp
+* 语言标准：C++20
+* 
+* 创建日期：2017年09月22日
+* 更新日期：2022年02月26日
+* 
+* 摘要
+* 1.定义线程池类模板ThreadPool。
+* 2.当任务队列为空，阻塞守护线程，在新增任务之时，激活守护线程，通知线程获取任务。
+* 3.当无闲置线程，阻塞守护线程，当存在闲置线程，激活守护线程，通知闲置线程获取任务。
+* 4.当销毁线程池，等待守护线程退出，而守护线程在退出之前，等待所有线程退出。
+*   线程在退出之前，默认完成任务队列的所有任务，可选弹出所有任务或者清空队列，用以支持线程立即退出。
+* 5.提供增删线程策略，由守护线程增删线程。
+*   在任务队列非空之时，一次性增加线程，当存在闲置线程之时，逐个删减线程。
+* 6.以原子操作确保接口的线程安全性，并且新增成员类Proxy，用于减少原子操作，针对频繁操作提升性能。
+* 7.引入双缓冲队列类模板Queue，降低读写任务的相互影响，提高放入和取出任务的效率。
+* 8.引入条件类模板Condition，当激活先于阻塞之时，确保守护线程正常退出。
+* 9.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
+* 
+* 作者：许聪
+* 邮箱：solifree@qq.com
+* 
+* 版本：v2.0.4
+* 变化
+* v2.0.1
+* 1.运用Condition的宽松策略，提升激活守护线程的效率。
+* v2.0.2
+* 1.消除谓词对条件实例有效性的重复判断。
+* v2.0.3
+* 1.修复条件谓词异常。
+*   在延迟减少线程之时，未减少闲置线程数量，导致守护线程不必等待通知的条件谓词异常。
+* v2.0.4
+* 1.以原子操作确保移动语义的线程安全性。
+* 2.新增成员类Proxy，提供轻量接口，减少原子操作。
+* 3.新增任务可选复制语义或者移动语义。
 */
 
 #pragma once
@@ -72,6 +75,9 @@ SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 template <typename _Functor = std::function<void()>, typename _Queue = Queue<_Functor>>
 class ThreadPool
 {
+	using Thread = Thread<>;
+	using Condition = Condition<>;
+
 public:
 	class Proxy;
 
@@ -81,9 +87,6 @@ public:
 	using SizeType = Queue::SizeType;
 
 private:
-	using Thread = Thread<>;
-	using Condition = Condition<>;
-
 	// 线程池数据结构体
 	struct Structure
 	{
@@ -249,7 +252,9 @@ public:
 		if (not data)
 			return std::make_tuple(static_cast<CapacityType>(0), static_cast<SizeType>(0), \
 				static_cast<IdleSizeType>(0), static_cast<TaskSizeType>(0));
-		return std::make_tuple(data->getCapacity(), data->getSize(), data->getIdleSize(), data->_taskQueue->size());
+
+		return std::make_tuple(data->getCapacity(), data->getSize(), \
+			data->getIdleSize(), data->_taskQueue->size());
 	}
 
 	// 放入任务
@@ -308,7 +313,10 @@ class ThreadPool<_Functor, _Queue>::Proxy
 public:
 	Proxy(const decltype(_data)& _data) noexcept : _data(_data) {}
 
-	explicit operator bool() const noexcept { return static_cast<bool>(_data); }
+	explicit operator bool() const noexcept
+	{
+		return static_cast<bool>(_data);
+	}
 
 	// 设置线程池容量
 	void setCapacity(SizeType _capacity)
@@ -348,11 +356,13 @@ public:
 	// 放入任务
 	bool pushTask(const Functor& _task)
 	{
-		return _task and _data and _data->pushTask(_task);
+		return _task and _data \
+			and _data->pushTask(_task);
 	}
 	bool pushTask(Functor&& _task)
 	{
-		return _task and _data and _data->pushTask(std::forward<Functor>(_task));
+		return _task and _data \
+			and _data->pushTask(std::forward<Functor>(_task));
 	}
 
 	// 适配不同任务接口，推进线程池模板化
@@ -398,7 +408,8 @@ template <typename _TaskQueue>
 auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
-	std::erase_if(_taskQueue, [&size](const _TaskQueue::value_type& _task) noexcept \
+	std::erase_if(_taskQueue, \
+		[&size](const _TaskQueue::value_type& _task) noexcept \
 	{
 		if (_task)
 		{
@@ -524,7 +535,7 @@ void ThreadPool<_Functor, _Queue>::destroy(DataType&& _data)
 
 // 调整线程数量
 template <typename _Functor, typename _Queue>
-//typename ThreadPool<_Functor, _Queue>::SizeType ThreadPool<_Functor, _Queue>::adjust(DataType& _data)
+//ThreadPool<_Functor, _Queue>::SizeType ThreadPool<_Functor, _Queue>::adjust(DataType& _data)
 auto ThreadPool<_Functor, _Queue>::adjust(DataType& _data) -> SizeType
 {
 	auto size = _data->getSize();
@@ -585,6 +596,7 @@ void ThreadPool<_Functor, _Queue>::execute(DataType _data)
 			if (auto& thread = *iterator; thread.idle())
 			{
 				using Arithmetic = Structure::Arithmetic;
+
 				// 若通知线程执行任务成功，则减少闲置线程数量
 				if (thread.notify())
 					_data->setIdleSize(1, Arithmetic::DECREASE);

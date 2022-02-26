@@ -1,17 +1,20 @@
 ﻿/*
 * 文件名称：Condition.hpp
-* 摘要：
+* 语言标准：C++20
+* 
+* 创建日期：2021年03月13日
+* 更新日期：2022年02月26日
+* 
+* 摘要
 * 1.参照C++17标准的条件变量类std::condition_variable封装条件类模板Condition。
 * 2.结合临界区与条件变量，并且采用谓词作为条件变量之函数wait的参数，确保激活已经阻塞的线程，或者线程在等待之前，谓词为真而无需阻塞。
 *	条件变量之函数notify并不会延迟通知，特别在精确调度事件之时，无法确保激活在调用notify之后，通过调用wait而阻塞的线程。
 * 
-* 版本：v1.1.1
 * 作者：许聪
-* 邮箱：2592419242@qq.com
-* 创建日期：2021年03月13日
-* 更新日期：2022年02月11日
+* 邮箱：solifree@qq.com
 * 
-* 变化：
+* 版本：v1.1.1
+* 变化
 * v1.0.1
 * 1.新增互斥策略枚举，优化无谓词notify，默认采用严格互斥策略。
 *	严格互斥策略适用于无谓词wait，锁定互斥元之后激活线程，确保操作的原子性。
@@ -60,7 +63,10 @@ public:
 
 	explicit operator bool() const noexcept { return valid(); }
 
-	bool valid() const noexcept { return _validity.load(std::memory_order::relaxed); }
+	bool valid() const noexcept
+	{
+		return _validity.load(std::memory_order::relaxed);
+	}
 
 	void exit();
 
@@ -101,12 +107,13 @@ template <typename _Size>
 void Condition<_Size>::exit()
 {
 	std::unique_lock lock(_mutex);
-	if (not valid())
-		return;
+	if (valid())
+	{
+		_validity.store(false, std::memory_order::relaxed);
+		lock.unlock();
 
-	_validity.store(false, std::memory_order::relaxed);
-	lock.unlock();
-	_condition.notify_all();
+		_condition.notify_all();
+	}
 }
 
 template <typename _Size>
@@ -115,6 +122,7 @@ void Condition<_Size>::notify_one(Strategy _strategy)
 	std::unique_lock lock(_mutex);
 	if (_strategy == Strategy::RELAXED)
 		lock.unlock();
+
 	_condition.notify_one();
 }
 
@@ -124,6 +132,7 @@ void Condition<_Size>::notify_all(Strategy _strategy)
 	std::unique_lock lock(_mutex);
 	if (_strategy == Strategy::RELAXED)
 		lock.unlock();
+
 	_condition.notify_all();
 }
 
@@ -146,6 +155,7 @@ void Condition<_Size>::notify_one(_Predicate _predicate)
 	if (_predicate())
 	{
 		lock.unlock();
+
 		_condition.notify_one();
 	}
 }
@@ -158,6 +168,7 @@ void Condition<_Size>::notify_all(_Predicate _predicate)
 	if (_predicate())
 	{
 		lock.unlock();
+
 		_condition.notify_all();
 	}
 }
@@ -170,6 +181,7 @@ void Condition<_Size>::notify(Size _size, _Predicate _predicate)
 	if (_predicate())
 	{
 		lock.unlock();
+
 		for (decltype(_size) index = 0; index < _size; ++index)
 			_condition.notify_one();
 	}
