@@ -57,7 +57,7 @@ struct ThreadPool::Structure
 
 	// 过滤任务
 	template <typename _TaskQueue>
-	static auto filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size());
+	static auto filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size());
 
 	// 放入任务
 	bool pushTask(const Functor& _task);
@@ -109,7 +109,7 @@ struct ThreadPool::Structure
 
 // 过滤无效任务
 template <typename _TaskQueue>
-auto ThreadPool::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
+auto ThreadPool::Structure::filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
 	for (auto iterator = _taskQueue.cbegin(); \
