@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年02月26日
+* 更新日期：2022年02月27日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -114,7 +114,7 @@ private:
 
 		// 过滤任务
 		template <typename _TaskQueue>
-		static auto filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size());
+		static auto filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size());
 
 		// 放入任务
 		bool pushTask(const Functor& _task);
@@ -405,7 +405,7 @@ public:
 // 过滤无效任务
 template <typename _Functor, typename _Queue>
 template <typename _TaskQueue>
-auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue) noexcept -> decltype(_taskQueue.size())
+auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size())
 {
 	decltype(_taskQueue.size()) size = 0;
 	std::erase_if(_taskQueue, \
