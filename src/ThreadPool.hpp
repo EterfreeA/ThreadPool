@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年02月27日
+* 更新日期：2022年03月11日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -21,7 +21,7 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v2.0.4
+* 版本：v2.1.0
 * 变化
 * v2.0.1
 * 1.运用Condition的宽松策略，提升激活守护线程的效率。
@@ -29,11 +29,16 @@
 * 1.消除谓词对条件实例有效性的重复判断。
 * v2.0.3
 * 1.修复条件谓词异常。
-*   在延迟减少线程之时，未减少闲置线程数量，导致守护线程不必等待通知的条件谓词异常。
+*   在延迟删减线程之时，未减少闲置线程数量，导致守护线程不必等待通知的条件谓词异常。
 * v2.0.4
 * 1.以原子操作确保移动语义的线程安全性。
 * 2.新增成员类Proxy，提供轻量接口，减少原子操作。
 * 3.新增任务可选复制语义或者移动语义。
+* v2.1.0
+* 1.修复线程池扩容问题。
+*   由于未增加线程数量，因此无限创建线程；同时未增加闲置线程数量，守护线程无法调度新线程执行任务，即线程泄漏。
+* 2.修复线程池缩容问题。
+*   在延迟删减线程之时，未减少线程数量，导致线程池反复删减线程，直至线程池为空。
 */
 
 #pragma once
@@ -555,6 +560,12 @@ auto ThreadPool<_Functor, _Queue>::adjust(DataType& _data) -> SizeType
 		thread.configure(_data->_taskQueue, _data->_callback);
 		_data->_threadTable.push_back(std::move(thread));
 	}
+
+	// 增加线程数量
+	_data->setSize(size, Structure::Arithmetic::INCREASE);
+
+	// 增加闲置线程数量
+	_data->setIdleSize(size, Structure::Arithmetic::INCREASE);
 	return 0;
 }
 
@@ -576,7 +587,7 @@ void ThreadPool<_Functor, _Queue>::execute(DataType _data)
 		auto size = _data->getSize();
 		auto capacity = _data->getCapacity();
 		return idle and (not empty or size > capacity) \
-			or not empty and (size < capacity);
+			or not empty and size < capacity;
 	};
 
 	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
@@ -605,6 +616,7 @@ void ThreadPool<_Functor, _Queue>::execute(DataType _data)
 				{
 					iterator = _data->_threadTable.erase(iterator);
 					_data->setIdleSize(1, Arithmetic::DECREASE);
+					_data->setSize(1, Arithmetic::DECREASE);
 					--size;
 					continue;
 				}
