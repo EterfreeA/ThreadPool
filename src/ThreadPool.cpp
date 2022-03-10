@@ -320,6 +320,14 @@ ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
 		thread.configure(_data->_taskQueue, _data->_callback);
 		_data->_threadTable.push_back(std::move(thread));
 	}
+
+	using Arithmetic = Structure::Arithmetic;
+
+	// 增加线程数量
+	_data->setSize(size, Arithmetic::INCREASE);
+
+	// 增加闲置线程数量
+	_data->setIdleSize(size, Arithmetic::INCREASE);
 	return 0;
 }
 
@@ -340,7 +348,7 @@ void ThreadPool::execute(DataType _data)
 		auto size = _data->getSize();
 		auto capacity = _data->getCapacity();
 		return idle && (!empty || size > capacity) \
-			|| !empty && (size < capacity);
+			|| !empty && size < capacity;
 	};
 
 	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
@@ -369,6 +377,7 @@ void ThreadPool::execute(DataType _data)
 				{
 					iterator = _data->_threadTable.erase(iterator);
 					_data->setIdleSize(1, Arithmetic::DECREASE);
+					_data->setSize(1, Arithmetic::DECREASE);
 					--size;
 					continue;
 				}
