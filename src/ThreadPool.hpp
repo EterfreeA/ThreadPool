@@ -561,11 +561,13 @@ auto ThreadPool<_Functor, _Queue>::adjust(DataType& _data) -> SizeType
 		_data->_threadTable.push_back(std::move(thread));
 	}
 
+	using Arithmetic = Structure::Arithmetic;
+
 	// 增加线程数量
-	_data->setSize(size, Structure::Arithmetic::INCREASE);
+	_data->setSize(size, Arithmetic::INCREASE);
 
 	// 增加闲置线程数量
-	_data->setIdleSize(size, Structure::Arithmetic::INCREASE);
+	_data->setIdleSize(size, Arithmetic::INCREASE);
 	return 0;
 }
 
