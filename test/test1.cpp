@@ -106,7 +106,7 @@ int main()
 	auto begin = system_clock::now();
 
 	execute(threadPool);
-	std::this_thread::sleep_for(milliseconds(10000));
+	std::this_thread::sleep_for(seconds(10));
 
 	auto count = load();
 	auto end = system_clock::now();

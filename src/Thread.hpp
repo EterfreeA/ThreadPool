@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年02月26日
+* 更新日期：2022年03月12日
 * 
 * 摘要
 * 1. 定义线程类模板Thread。
@@ -302,7 +302,7 @@ bool Thread<_Functor, _Queue>::create()
 		return false;
 
 	// 创建std::thread对象，以data为参数，执行函数execute
-	data->_thread = std::thread(Thread::execute, data);
+	data->_thread = std::thread(execute, data);
 	data->setState(State::INITIAL);
 	return true;
 }

@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月11日
+* 更新日期：2022年03月12日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -119,7 +119,7 @@ private:
 
 		// 过滤任务
 		template <typename _TaskQueue>
-		static auto filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size());
+		static auto filterTask(_TaskQueue& _taskQueue);
 
 		// 放入任务
 		bool pushTask(const Functor& _task);
@@ -130,17 +130,7 @@ private:
 		bool pushTask(TaskQueue&& _taskQueue);
 
 		// 设置线程池容量
-		void setCapacity(SizeType _capacity) noexcept
-		{
-			this->_capacity.store(_capacity, std::memory_order::relaxed);
-		}
-
-		// 更新线程池容量
-		void updateCapacity(SizeType _capacity)
-		{
-			setCapacity(_capacity);
-			_condition.notify_one(Condition::Strategy::RELAXED);
-		}
+		void setCapacity(SizeType _capacity, bool notified = false);
 
 		// 获取线程池容量
 		auto getCapacity() const noexcept
@@ -238,29 +228,10 @@ public:
 	Proxy getProxy() noexcept { return load(); }
 
 	// 设置线程池容量
-	void setCapacity(SizeType _capacity)
-	{
-		if (_capacity > 0)
-			if (auto data = load())
-				data->updateCapacity(_capacity);
-	}
+	void setCapacity(SizeType _capacity);
 
 	// 获取快照（包括线程池容量、线程数量、闲置线程数量、任务数量）
-	auto getSnapshot() const
-	{
-		auto data = load();
-		using CapacityType = decltype(data->getCapacity());
-		using SizeType = decltype(data->getSize());
-		using IdleSizeType = decltype(data->getIdleSize());
-		using TaskSizeType = decltype(data->_taskQueue->size());
-
-		if (not data)
-			return std::make_tuple(static_cast<CapacityType>(0), static_cast<SizeType>(0), \
-				static_cast<IdleSizeType>(0), static_cast<TaskSizeType>(0));
-
-		return std::make_tuple(data->getCapacity(), data->getSize(), \
-			data->getIdleSize(), data->_taskQueue->size());
-	}
+	auto getSnapshot() const;
 
 	// 放入任务
 	bool pushTask(const Functor& _task);
@@ -327,7 +298,7 @@ public:
 	void setCapacity(SizeType _capacity)
 	{
 		if (_capacity > 0 and _data)
-			_data->updateCapacity(_capacity);
+			_data->setCapacity(_capacity, true);
 	}
 
 	// 获取线程池容量
@@ -410,7 +381,7 @@ public:
 // 过滤无效任务
 template <typename _Functor, typename _Queue>
 template <typename _TaskQueue>
-auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size())
+auto ThreadPool<_Functor, _Queue>::Structure::filterTask(_TaskQueue& _taskQueue)
 {
 	decltype(_taskQueue.size()) size = 0;
 	std::erase_if(_taskQueue, \
@@ -478,6 +449,15 @@ bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue&& _taskQueue)
 	return result.has_value();
 }
 
+// 设置线程池容量
+template <typename _Functor, typename _Queue>
+void ThreadPool<_Functor, _Queue>::Structure::setCapacity(SizeType _capacity, bool notified)
+{
+	auto capacity = this->_capacity.exchange(_capacity, std::memory_order::relaxed);
+	if (notified and _capacity != capacity)
+		_condition.notify_one(Condition::Strategy::RELAXED);
+}
+
 // 创建线程池
 template <typename _Functor, typename _Queue>
 void ThreadPool<_Functor, _Queue>::create(DataType&& _data, SizeType _capacity)
@@ -511,7 +491,7 @@ void ThreadPool<_Functor, _Queue>::create(DataType&& _data, SizeType _capacity)
 	_data->setIdleSize(_capacity, Arithmetic::REPLACE); // 设置闲置线程数量
 
 	// 创建std::thread对象，即守护线程，以_data为参数，执行函数execute
-	_data->_thread = std::thread(ThreadPool::execute, _data);
+	_data->_thread = std::thread(execute, _data);
 }
 
 // 销毁线程池
@@ -632,6 +612,33 @@ void ThreadPool<_Functor, _Queue>::execute(DataType _data)
 
 	// 清空线程
 	_data->_threadTable.clear();
+}
+
+// 设置线程池容量
+template <typename _Functor, typename _Queue>
+void ThreadPool<_Functor, _Queue>::setCapacity(SizeType _capacity)
+{
+	if (_capacity > 0)
+		if (auto data = load())
+			data->setCapacity(_capacity, true);
+}
+
+// 获取快照（包括线程池容量、线程数量、闲置线程数量、任务数量）
+template <typename _Functor, typename _Queue>
+auto ThreadPool<_Functor, _Queue>::getSnapshot() const
+{
+	auto data = load();
+	using CapacityType = decltype(data->getCapacity());
+	using SizeType = decltype(data->getSize());
+	using IdleSizeType = decltype(data->getIdleSize());
+	using TaskSizeType = decltype(data->_taskQueue->size());
+
+	if (not data)
+		return std::make_tuple(static_cast<CapacityType>(0), static_cast<SizeType>(0), \
+			static_cast<IdleSizeType>(0), static_cast<TaskSizeType>(0));
+
+	return std::make_tuple(data->getCapacity(), data->getSize(), \
+		data->getIdleSize(), data->_taskQueue->size());
 }
 
 // 放入单任务
