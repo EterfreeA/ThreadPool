@@ -57,7 +57,7 @@ struct ThreadPool::Structure
 
 	// 过滤任务
 	template <typename _TaskQueue>
-	static auto filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size());
+	static auto filterTask(_TaskQueue& _taskQueue);
 
 	// 放入任务
 	bool pushTask(const Functor& _task);
@@ -68,17 +68,7 @@ struct ThreadPool::Structure
 	bool pushTask(TaskQueue&& _taskQueue);
 
 	// 设置线程池容量
-	void setCapacity(SizeType _capacity) noexcept
-	{
-		this->_capacity.store(_capacity, std::memory_order_relaxed);
-	}
-
-	// 更新线程池容量
-	void updateCapacity(SizeType _capacity)
-	{
-		setCapacity(_capacity);
-		_condition.notify_one(Condition::Strategy::RELAXED);
-	}
+	void setCapacity(SizeType _capacity, bool _notified = false);
 
 	// 获取线程池容量
 	auto getCapacity() const noexcept
@@ -109,7 +99,7 @@ struct ThreadPool::Structure
 
 // 过滤无效任务
 template <typename _TaskQueue>
-auto ThreadPool::Structure::filterTask(_TaskQueue& _taskQueue) -> decltype(_taskQueue.size())
+auto ThreadPool::Structure::filterTask(_TaskQueue& _taskQueue)
 {
 	decltype(_taskQueue.size()) size = 0;
 	for (auto iterator = _taskQueue.cbegin(); \
@@ -173,10 +163,18 @@ bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 }
 
 // 设置线程池容量
+void ThreadPool::Structure::setCapacity(SizeType _capacity, bool _notified)
+{
+	auto capacity = this->_capacity.exchange(_capacity, std::memory_order_relaxed);
+	if (_notified && _capacity != capacity)
+		_condition.notify_one(Condition::Strategy::RELAXED);
+}
+
+// 设置线程池容量
 void ThreadPool::Proxy::setCapacity(SizeType _capacity)
 {
 	if (_capacity > 0 && _data)
-		_data->updateCapacity(_capacity);
+		_data->setCapacity(_capacity, true);
 }
 
 // 获取线程池容量
@@ -274,7 +272,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 	_data->setIdleSize(_capacity, Arithmetic::REPLACE); // 设置闲置线程数量
 
 	// 创建std::thread对象，即守护线程，以_data为参数，执行函数execute
-	_data->_thread = std::thread(ThreadPool::execute, _data);
+	_data->_thread = std::thread(execute, _data);
 }
 
 // 销毁线程池
@@ -393,6 +391,13 @@ void ThreadPool::execute(DataType _data)
 	_data->_threadTable.clear();
 }
 
+// 获取支持的并发线程数量
+ThreadPool::SizeType ThreadPool::getConcurrency() noexcept
+{
+	auto concurrency = std::thread::hardware_concurrency();
+	return concurrency > 0 ? concurrency : 1;
+}
+
 // 默认构造函数
 ThreadPool::ThreadPool(SizeType _size, SizeType _capacity)
 	: _data(std::make_shared<Structure>())
@@ -411,13 +416,6 @@ ThreadPool& ThreadPool::operator=(ThreadPool&& _threadPool)
 	return *this;
 }
 
-// 获取支持的并发线程数量
-ThreadPool::SizeType ThreadPool::getConcurrency() noexcept
-{
-	auto concurrency = std::thread::hardware_concurrency();
-	return concurrency > 0 ? concurrency : 1;
-}
-
 // 获取代理
 ThreadPool::Proxy ThreadPool::getProxy()
 {
@@ -429,7 +427,7 @@ void ThreadPool::setCapacity(SizeType _capacity)
 {
 	if (_capacity > 0)
 		if (auto data = load())
-			data->updateCapacity(_capacity);
+			data->setCapacity(_capacity, true);
 }
 
 // 获取线程池容量

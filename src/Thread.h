@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年02月26日
+* 更新日期：2022年03月13日
 * 
 * 摘要
 * 1. 线程类Thread定义于此文件，实现于Thread.cpp。
@@ -77,6 +77,7 @@ private:
 	// 线程主函数
 	static void execute(DataType _data);
 
+private:
 	// 加载非原子数据
 	auto load() const
 	{

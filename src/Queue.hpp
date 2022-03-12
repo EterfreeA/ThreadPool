@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2019年03月08日
-* 更新日期：2022年03月03日
+* 更新日期：2022年03月13日
 * 
 * 摘要
 * 1.定义双缓冲队列类模板Queue。
@@ -70,6 +70,7 @@ private:
 		return _atomic.load(std::memory_order_relaxed);
 	}
 
+private:
 	auto add(SizeType _size) noexcept
 	{
 		return this->_size.fetch_add(_size, std::memory_order_relaxed);

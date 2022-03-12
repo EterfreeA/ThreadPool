@@ -12,8 +12,7 @@ Copyright © 2017 CDU Innovation Studio. Some Rights Reserved.
 [Thread.h](./src/Thread.h)  
 [Thread.cpp](./src/Thread.cpp)  
 [ThreadPool.h](./src/ThreadPool.h)  
-[ThreadPool.cpp](./src/ThreadPool.cpp)  
-[test.cpp](./src/test.cpp)
+[ThreadPool.cpp](./src/ThreadPool.cpp)
 
 ## Author
 name: 许聪  

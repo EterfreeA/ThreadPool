@@ -185,7 +185,7 @@ bool Thread::create()
 		return false;
 
 	// 创建std::thread对象，以data为参数，执行函数execute
-	data->_thread = std::thread(Thread::execute, data);
+	data->_thread = std::thread(execute, data);
 	data->setState(State::INITIAL);
 	return true;
 }

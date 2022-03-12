@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月11日
+* 更新日期：2022年03月13日
 * 
 * 摘要
 * 1.线程池类ThreadPool定义于此文件，实现于ThreadPool.cpp。
@@ -83,6 +83,11 @@ private:
 	// 守护线程主函数
 	static void execute(DataType _data);
 
+public:
+	// 获取支持的并发线程数量
+	static SizeType getConcurrency() noexcept;
+
+private:
 	// 加载非原子数据
 	auto load() const
 	{
@@ -118,9 +123,6 @@ public:
 
 	// 默认移动赋值运算符函数
 	ThreadPool& operator=(ThreadPool&& _threadPool);
-
-	// 获取支持的并发线程数量
-	static SizeType getConcurrency() noexcept;
 
 	// 获取代理
 	Proxy getProxy();
