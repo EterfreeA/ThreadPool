@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月12日
+* 更新日期：2022年03月13日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -130,7 +130,7 @@ private:
 		bool pushTask(TaskQueue&& _taskQueue);
 
 		// 设置线程池容量
-		void setCapacity(SizeType _capacity, bool notified = false);
+		void setCapacity(SizeType _capacity, bool _notified = false);
 
 		// 获取线程池容量
 		auto getCapacity() const noexcept
@@ -181,6 +181,15 @@ private:
 		return _atomic.exchange(_data, std::memory_order::relaxed);
 	}
 
+public:
+	// 获取支持的并发线程数量
+	static auto getConcurrency() noexcept
+	{
+		auto concurrency = std::thread::hardware_concurrency();
+		return concurrency > 0 ? concurrency : static_cast<decltype(concurrency)>(1);
+	}
+
+private:
 	// 加载非原子数据
 	auto load() const noexcept
 	{
@@ -215,13 +224,6 @@ public:
 	{
 		exchange(_atomic, exchange(_threadPool._atomic, nullptr));
 		return *this;
-	}
-
-	// 获取支持的并发线程数量
-	static auto getConcurrency() noexcept
-	{
-		auto concurrency = std::thread::hardware_concurrency();
-		return concurrency > 0 ? concurrency : static_cast<decltype(concurrency)>(1);
 	}
 
 	// 获取代理
@@ -451,10 +453,10 @@ bool ThreadPool<_Functor, _Queue>::Structure::pushTask(TaskQueue&& _taskQueue)
 
 // 设置线程池容量
 template <typename _Functor, typename _Queue>
-void ThreadPool<_Functor, _Queue>::Structure::setCapacity(SizeType _capacity, bool notified)
+void ThreadPool<_Functor, _Queue>::Structure::setCapacity(SizeType _capacity, bool _notified)
 {
 	auto capacity = this->_capacity.exchange(_capacity, std::memory_order::relaxed);
-	if (notified and _capacity != capacity)
+	if (_notified and _capacity != capacity)
 		_condition.notify_one(Condition::Strategy::RELAXED);
 }
 

@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月12日
+* 更新日期：2022年03月13日
 * 
 * 摘要
 * 1. 定义线程类模板Thread。
@@ -150,6 +150,7 @@ private:
 		return _atomic.exchange(_data, std::memory_order::relaxed);
 	}
 
+private:
 	// 加载非原子数据
 	auto load() const noexcept
 	{
