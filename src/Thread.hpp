@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月13日
+* 更新日期：2022年03月17日
 * 
 * 摘要
 * 1. 定义线程类模板Thread。
@@ -59,10 +59,21 @@ class Queue;
 不可直接传递裸指针this，否则无法确保shared_ptr的语义，也许会导致已被释放的错误。
 不可单独创建另一shared_ptr，否则多个shared_ptr的控制块不同，导致释放多次同一对象。
 */
-template <typename _Functor = std::function<void()>, typename _Queue = Queue<_Functor>>
+template <typename _TaskType = std::function<void()>, typename _QueueType = Queue<_TaskType>>
 class Thread
 	//: public std::enable_shared_from_this<Thread>
 {
+public:
+	using TaskType = _TaskType;
+	using QueueType = std::shared_ptr<_QueueType>;
+
+	using Condition = Condition<>;
+	using SizeType = Condition::Size;
+
+	using ThreadID = std::thread::id;
+	using Callback = std::function<void(bool, ThreadID)>;
+
+private:
 	// 状态枚举
 	enum class State
 	{
@@ -73,15 +84,6 @@ class Thread
 		BLOCKED,	// 阻塞态
 	};
 
-	using Condition = Condition<>;
-
-public:
-	using Functor = _Functor;
-	using Queue = std::shared_ptr<_Queue>;
-	using ThreadID = std::thread::id;
-	using Callback = std::function<void(bool, ThreadID)>;
-
-private:
 	// 线程数据结构体
 	struct Structure
 	{
@@ -90,8 +92,8 @@ private:
 		std::mutex _threadMutex;		// 线程互斥元
 		Condition _condition;			// 强化条件变量
 
-		Queue _taskQueue;				// 任务队列
-		Functor _task;					// 任务函数子
+		QueueType _taskQueue;			// 任务队列
+		TaskType _task;					// 任务函数子
 		mutable std::mutex _taskMutex;	// 任务互斥元
 		Callback _callback;				// 回调函数子
 
@@ -131,6 +133,7 @@ private:
 			return static_cast<bool>(_task);
 		}
 	};
+
 	using DataType = std::shared_ptr<Structure>;
 	using AtomicType = std::atomic<DataType>;
 
@@ -194,18 +197,18 @@ public:
 	void destroy();
 
 	// 配置任务队列与回调函数子
-	bool configure(const Queue& _taskQueue, const Callback& _callback);
+	bool configure(const QueueType& _taskQueue, const Callback& _callback);
 
 	// 配置单任务与回调函数子
-	bool configure(const Functor& _task, const Callback& _callback);
+	bool configure(const TaskType& _task, const Callback& _callback);
 
 	// 激活线程
 	bool notify();
 };
 
 // 获取任务
-template <typename _Functor, typename _Queue>
-bool Thread<_Functor, _Queue>::setTask(DataType& _data)
+template <typename _TaskType, typename _QueueType>
+bool Thread<_TaskType, _QueueType>::setTask(DataType& _data)
 {
 	// 无任务队列
 	if (not _data->_taskQueue)
@@ -221,8 +224,8 @@ bool Thread<_Functor, _Queue>::setTask(DataType& _data)
 }
 
 // 线程主函数
-template <typename _Functor, typename _Queue>
-void Thread<_Functor, _Queue>::execute(DataType _data)
+template <typename _TaskType, typename _QueueType>
+void Thread<_TaskType, _QueueType>::execute(DataType _data)
 {
 	// 条件变量的谓词，若任务有效，则无需等待通知
 	auto predicate = [&_data] { return _data->getValidity(); };
@@ -266,9 +269,9 @@ void Thread<_Functor, _Queue>::execute(DataType _data)
 }
 
 // 获取线程ID
-template <typename _Functor, typename _Queue>
-//Thread<_Functor, _Queue>::ThreadID Thread<_Functor, _Queue>::getID() const
-auto Thread<_Functor, _Queue>::getID() const -> ThreadID
+template <typename _TaskType, typename _QueueType>
+//Thread<_TaskType, _QueueType>::ThreadID Thread<_TaskType, _QueueType>::getID() const
+auto Thread<_TaskType, _QueueType>::getID() const -> ThreadID
 {
 	auto data = load();
 	if (not data)
@@ -279,8 +282,8 @@ auto Thread<_Functor, _Queue>::getID() const -> ThreadID
 }
 
 // 是否闲置
-template <typename _Functor, typename _Queue>
-bool Thread<_Functor, _Queue>::idle() const noexcept
+template <typename _TaskType, typename _QueueType>
+bool Thread<_TaskType, _QueueType>::idle() const noexcept
 {
 	auto data = load();
 	if (not data)
@@ -291,8 +294,8 @@ bool Thread<_Functor, _Queue>::idle() const noexcept
 }
 
 // 创建线程
-template <typename _Functor, typename _Queue>
-bool Thread<_Functor, _Queue>::create()
+template <typename _TaskType, typename _QueueType>
+bool Thread<_TaskType, _QueueType>::create()
 {
 	auto data = load();
 	if (not data)
@@ -309,8 +312,8 @@ bool Thread<_Functor, _Queue>::create()
 }
 
 // 销毁线程
-template <typename _Functor, typename _Queue>
-void Thread<_Functor, _Queue>::destroy()
+template <typename _TaskType, typename _QueueType>
+void Thread<_TaskType, _QueueType>::destroy()
 {
 	auto data = load();
 	if (not data)
@@ -334,8 +337,8 @@ void Thread<_Functor, _Queue>::destroy()
 }
 
 // 配置任务队列与回调函数子
-template <typename _Functor, typename _Queue>
-bool Thread<_Functor, _Queue>::configure(const Queue& _taskQueue, const Callback& _callback)
+template <typename _TaskType, typename _QueueType>
+bool Thread<_TaskType, _QueueType>::configure(const QueueType& _taskQueue, const Callback& _callback)
 {
 	// 无任务队列
 	if (not _taskQueue)
@@ -356,8 +359,8 @@ bool Thread<_Functor, _Queue>::configure(const Queue& _taskQueue, const Callback
 }
 
 // 配置单任务与回调函数子
-template <typename _Functor, typename _Queue>
-bool Thread<_Functor, _Queue>::configure(const Functor& _task, const Callback& _callback)
+template <typename _TaskType, typename _QueueType>
+bool Thread<_TaskType, _QueueType>::configure(const TaskType& _task, const Callback& _callback)
 {
 	// 任务无效
 	if (not _task)
@@ -378,8 +381,8 @@ bool Thread<_Functor, _Queue>::configure(const Functor& _task, const Callback& _
 }
 
 // 激活线程
-template <typename _Functor, typename _Queue>
-bool Thread<_Functor, _Queue>::notify()
+template <typename _TaskType, typename _QueueType>
+bool Thread<_TaskType, _QueueType>::notify()
 {
 	auto data = load();
 	if (not data)
