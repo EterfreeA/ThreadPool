@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月13日
+* 更新日期：2022年03月17日
 * 
 * 摘要
 * 1.线程池类ThreadPool定义于此文件，实现于ThreadPool.cpp。
@@ -45,7 +45,6 @@
 
 #include <functional>
 #include <utility>
-#include <cstddef>
 #include <memory>
 #include <list>
 #include <mutex>
@@ -62,9 +61,9 @@ class ThreadPool
 public:
 	class Proxy;
 
-	using Functor = std::function<void()>;
-	using TaskQueue = std::list<Functor>;
-	using SizeType = std::size_t;
+	using TaskType = std::function<void()>;
+	using TaskQueue = std::list<TaskType>;
+	using SizeType = TaskQueue::size_type;
 
 private:
 	mutable std::mutex _mutex;
@@ -185,19 +184,25 @@ public:
 	SizeType getTaskSize() const;
 
 	// 放入任务
-	bool pushTask(const Functor& _task);
-	bool pushTask(Functor&& _task);
+	bool pushTask(const TaskType& _task);
+	bool pushTask(TaskType&& _task);
 
 	// 适配不同任务接口，推进线程池模板化
 	template <typename _Functor>
-	bool pushTask(_Functor&& _task)
+	bool pushTask(const _Functor& _functor)
 	{
-		return pushTask(Functor(std::forward<_Functor>(_task)));
+		return pushTask(TaskType(_functor));
+	}
+	template <typename _Functor>
+	bool pushTask(_Functor&& _functor)
+	{
+		return pushTask(TaskType(std::forward<_Functor>(_functor)));
 	}
 	template <typename _Functor, typename... _Args>
-	bool pushTask(_Functor&& _task, _Args&&... _args)
+	bool pushTask(_Functor&& _functor, _Args&&... _args)
 	{
-		return pushTask(Functor([_task, _args...]{ _task(_args...); }));
+		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
+		return pushTask(TaskType(functor));
 	}
 
 	// 批量放入任务
@@ -239,19 +244,25 @@ public:
 	SizeType getTaskSize() const noexcept;
 
 	// 放入任务
-	bool pushTask(const Functor& _task);
-	bool pushTask(Functor&& _task);
+	bool pushTask(const TaskType& _task);
+	bool pushTask(TaskType&& _task);
 
 	// 适配不同任务接口，推进线程池模板化
 	template <typename _Functor>
-	bool pushTask(_Functor&& _task)
+	bool pushTask(const _Functor& _functor)
 	{
-		return pushTask(Functor(std::forward<_Functor>(_task)));
+		return pushTask(TaskType(_functor));
+	}
+	template <typename _Functor>
+	bool pushTask(_Functor&& _functor)
+	{
+		return pushTask(TaskType(std::forward<_Functor>(_functor)));
 	}
 	template <typename _Functor, typename... _Args>
-	bool pushTask(_Functor&& _task, _Args&&... _args)
+	bool pushTask(_Functor&& _functor, _Args&&... _args)
 	{
-		return pushTask(Functor([_task, _args...]{ _task(_args...); }));
+		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
+		return pushTask(TaskType(functor));
 	}
 
 	// 批量放入任务

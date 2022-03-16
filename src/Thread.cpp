@@ -28,8 +28,8 @@ struct Thread::Structure
 	std::mutex _threadMutex;		// 线程互斥元
 	Condition _condition;			// 强化条件变量
 
-	Queue _taskQueue;				// 任务队列
-	Functor _task;					// 任务函数子
+	QueueType _taskQueue;			// 任务队列
+	TaskType _task;					// 任务函数子
 	mutable std::mutex _taskMutex;	// 任务互斥元
 	Callback _callback;				// 回调函数子
 
@@ -216,7 +216,7 @@ void Thread::destroy()
 }
 
 // 配置任务队列与回调函数子
-bool Thread::configure(const Queue& _taskQueue, const Callback& _callback)
+bool Thread::configure(const QueueType& _taskQueue, const Callback& _callback)
 {
 	// 无任务队列
 	if (!_taskQueue)
@@ -237,7 +237,7 @@ bool Thread::configure(const Queue& _taskQueue, const Callback& _callback)
 }
 
 // 配置单任务与回调函数子
-bool Thread::configure(const Functor& _task, const Callback& _callback)
+bool Thread::configure(const TaskType& _task, const Callback& _callback)
 {
 	// 任务无效
 	if (!_task)

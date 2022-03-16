@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月13日
+* 更新日期：2022年03月17日
 * 
 * 摘要
 * 1. 线程类Thread定义于此文件，实现于Thread.cpp。
@@ -61,8 +61,8 @@ class Thread
 	using DataType = std::shared_ptr<Structure>;
 
 public:
-	using Functor = std::function<void()>;
-	using Queue = std::shared_ptr<Queue<Functor>>;
+	using TaskType = std::function<void()>;
+	using QueueType = std::shared_ptr<Queue<TaskType>>;
 	using ThreadID = std::thread::id;
 	using Callback = std::function<void(bool, ThreadID)>;
 
@@ -127,10 +127,10 @@ public:
 	void destroy();
 
 	// 配置任务队列与回调函数子
-	bool configure(const Queue& _taskQueue, const Callback& _callback);
+	bool configure(const QueueType& _taskQueue, const Callback& _callback);
 
 	// 配置单任务与回调函数子
-	bool configure(const Functor& _task, const Callback& _callback);
+	bool configure(const TaskType& _task, const Callback& _callback);
 
 	// 启动线程
 	REPLACEMENT(notify)
