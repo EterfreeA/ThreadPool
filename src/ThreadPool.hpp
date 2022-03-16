@@ -261,8 +261,8 @@ public:
 		//return data and data->pushTask([_functor, _args = std::make_tuple(std::forward<_Args>(_args)...)]{ std::apply(_functor, _args); });
 		//return data and data->pushTask([_functor, _args...]{ _functor(_args...); });
 
-		auto task = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
-		return data and data->pushTask(task);
+		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
+		return data and data->pushTask(functor);
 	}
 
 	// 批量放入任务
@@ -371,8 +371,8 @@ public:
 		//return _data and _data->pushTask([_functor, _args = std::make_tuple(std::forward<_Args>(_args)...)]{ std::apply(_functor, _args); });
 		//return _data and _data->pushTask([_functor, _args...]{ _functor(_args...); });
 
-		auto task = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
-		return _data and _data->pushTask(task);
+		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
+		return _data and _data->pushTask(functor);
 	}
 
 	// 批量放入任务
@@ -475,7 +475,7 @@ template <typename _TaskType, typename _QueueType>
 void ThreadPool<_TaskType, _QueueType>::Structure::setCapacity(SizeType _capacity, bool _notified)
 {
 	auto capacity = this->_capacity.exchange(_capacity, std::memory_order::relaxed);
-	if (_notified and _capacity != capacity)
+	if (_notified and capacity != _capacity)
 		_condition.notify_one(Condition::Strategy::RELAXED);
 }
 
