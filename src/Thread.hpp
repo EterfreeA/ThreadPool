@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月17日
+* 更新日期：2022年03月19日
 * 
 * 摘要
 * 1. 定义线程类模板Thread。
@@ -22,7 +22,7 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v2.0.3
+* 版本：v2.1.0
 * 变化
 * v2.0.1
 * 1.运用Condition的宽松策略，提升激活线程的效率。
@@ -30,7 +30,9 @@
 * 1.消除谓词对条件实例有效性的重复判断。
 * v2.0.3
 * 1.以原子操作确保移动语义的线程安全性。
-* 2.解决配置先于回调隐患。
+* 2.消除配置先于回调的隐患。
+* v2.1.0
+* 1.解决线程在销毁又创建之时的直接退出问题。
 */
 
 #pragma once
@@ -304,6 +306,8 @@ bool Thread<_TaskType, _QueueType>::create()
 	std::lock_guard lock(data->_threadMutex);
 	if (data->getState() != State::EMPTY)
 		return false;
+
+	data->_condition.enter();
 
 	// 创建std::thread对象，以data为参数，执行函数execute
 	data->_thread = std::thread(execute, data);
