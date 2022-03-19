@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2019年03月08日
-* 更新日期：2022年03月13日
+* 更新日期：2022年03月20日
 * 
 * 摘要
 * 1.定义双缓冲队列类模板Queue。
@@ -96,7 +96,6 @@ public:
 	std::optional<SizeType> push(const ElementType& _element);
 	std::optional<SizeType> push(ElementType&& _element);
 
-	std::optional<SizeType> push(QueueType& _queue);
 	std::optional<SizeType> push(QueueType&& _queue);
 
 	bool pop(ElementType& _element);
@@ -132,19 +131,6 @@ auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType
 }
 
 template <typename _ElementType>
-auto Queue<_ElementType>::push(QueueType& _queue) -> std::optional<SizeType>
-{
-	std::lock_guard lock(_entryMutex);
-	if (auto capacity = this->capacity(), size = this->size(); \
-		capacity > 0 and (size >= capacity or _queue.size() >= capacity - size))
-		return std::nullopt;
-
-	auto size = _queue.size();
-	_entryQueue.splice(_entryQueue.cend(), _queue);
-	return add(size);
-}
-
-template <typename _ElementType>
 auto Queue<_ElementType>::push(QueueType&& _queue) -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
@@ -153,7 +139,7 @@ auto Queue<_ElementType>::push(QueueType&& _queue) -> std::optional<SizeType>
 		return std::nullopt;
 
 	auto size = _queue.size();
-	_entryQueue.splice(_entryQueue.cend(), _queue);
+	_entryQueue.splice(_entryQueue.cend(), std::forward<QueueType>(_queue));
 	return add(size);
 }
 
