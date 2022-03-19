@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2021年03月13日
-* 更新日期：2022年02月26日
+* 更新日期：2022年03月19日
 * 
 * 摘要
 * 1.参照C++17标准的条件变量类std::condition_variable封装条件类模板Condition。
@@ -13,7 +13,7 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v1.1.1
+* 版本：v1.2.0
 * 变化
 * v1.0.1
 * 1.新增互斥策略枚举，优化无谓词notify，默认采用严格互斥策略。
@@ -26,6 +26,8 @@
 * v1.1.1
 * 1.修复部分谓词的判断逻辑错误。
 * 2.删除基于xtime的wait_until。
+* v1.2.0
+* 1.新增函数enter，与函数exit相对，支持进入再退出，一次创建反复使用。
 */
 
 #pragma once
@@ -66,6 +68,11 @@ public:
 	bool valid() const noexcept
 	{
 		return _validity.load(std::memory_order_relaxed);
+	}
+
+	void enter() noexcept
+	{
+		_validity.store(true, std::memory_order_relaxed);
 	}
 
 	void exit();

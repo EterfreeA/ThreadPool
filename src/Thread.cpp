@@ -184,6 +184,8 @@ bool Thread::create()
 	if (data->getState() != State::EMPTY)
 		return false;
 
+	data->_condition.enter();
+
 	// 创建std::thread对象，以data为参数，执行函数execute
 	data->_thread = std::thread(execute, data);
 	data->setState(State::INITIAL);

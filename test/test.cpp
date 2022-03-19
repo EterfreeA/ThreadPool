@@ -5,4 +5,7 @@
 
 #elif TEST == 2
 #include "test2.cpp"
+
+#elif TEST == 3
+#include "test3.cpp"
 #endif
