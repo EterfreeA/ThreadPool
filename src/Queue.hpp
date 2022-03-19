@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2019年03月08日
-* 更新日期：2022年03月13日
+* 更新日期：2022年03月20日
 * 
 * 摘要
 * 1.定义双缓冲队列类模板Queue。
@@ -157,7 +157,7 @@ auto Queue<_ElementType>::push(QueueType&& _queue) -> std::optional<SizeType>
 		return std::nullopt;
 
 	auto size = _queue.size();
-	_entryQueue.splice(_entryQueue.cend(), _queue);
+	_entryQueue.splice(_entryQueue.cend(), std::forward<QueueType>(_queue));
 	return add(size);
 }
 
