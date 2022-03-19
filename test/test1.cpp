@@ -79,8 +79,7 @@ static void terminate(ThreadPool&& _threadPool)
 
 int main()
 {
-	using std::cout;
-	using std::endl;
+	using std::cout, std::endl;
 
 	constexpr auto load = []() noexcept \
 	{ return counter.load(std::memory_order::relaxed); };
