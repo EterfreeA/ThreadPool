@@ -96,6 +96,7 @@ public:
 	std::optional<SizeType> push(const ElementType& _element);
 	std::optional<SizeType> push(ElementType&& _element);
 
+	std::optional<SizeType> push(QueueType& _queue);
 	std::optional<SizeType> push(QueueType&& _queue);
 
 	bool pop(ElementType& _element);
@@ -128,6 +129,19 @@ auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType
 
 	_entryQueue.push_back(std::forward<ElementType>(_element));
 	return add(1);
+}
+
+template <typename _ElementType>
+auto Queue<_ElementType>::push(QueueType& _queue) -> std::optional<SizeType>
+{
+	std::lock_guard lock(_entryMutex);
+	if (auto capacity = this->capacity(), size = this->size(); \
+		capacity > 0 and (size >= capacity or _queue.size() >= capacity - size))
+		return std::nullopt;
+
+	auto size = _queue.size();
+	_entryQueue.splice(_entryQueue.cend(), _queue);
+	return add(size);
 }
 
 template <typename _ElementType>
