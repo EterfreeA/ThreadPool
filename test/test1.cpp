@@ -9,6 +9,7 @@
 #include <threadpool/threadpool.hpp>
 #endif
 
+#include <cstdlib>
 #include <utility>
 #include <chrono>
 #include <iostream>
@@ -121,5 +122,5 @@ int main()
 
 	terminate(std::move(threadPool));
 	cout << "任务总数：" << load() << endl;
-	return 0;
+	return EXIT_SUCCESS;
 }

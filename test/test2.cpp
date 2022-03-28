@@ -1,6 +1,7 @@
 ﻿#include "ThreadPool.hpp"
 #include "Condition.hpp"
 
+#include <cstdlib>
 #include <chrono>
 #include <iostream>
 #include <atomic>
@@ -49,5 +50,5 @@ int main()
 
 	flag.test_and_set();
 	condition.exit();
-	return 0;
+	return EXIT_SUCCESS;
 }
