@@ -1,6 +1,7 @@
 ﻿#include "ThreadPool.h"
 #include "Condition.hpp"
 
+#include <cstdlib>
 #include <chrono>
 #include <iostream>
 #include <atomic>
@@ -47,5 +48,5 @@ int main()
 
 	valid.store(false, std::memory_order_relaxed);
 	condition.exit();
-	return 0;
+	return EXIT_SUCCESS;
 }

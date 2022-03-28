@@ -1,5 +1,6 @@
 ﻿#include "Thread.h"
 
+#include <cstdlib>
 #include <iostream>
 
 ETERFREE_SPACE
@@ -20,5 +21,5 @@ int main()
 
 	thread.configure([] { cout << "solifree" << endl; }, nullptr);
 	cout << boolalpha << thread.notify() << endl;
-	return 0;
+	return EXIT_SUCCESS;
 }
