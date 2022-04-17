@@ -17,4 +17,4 @@ name: 许聪
 mailbox: solifree@qq.com  
 CSDN：https://blog.csdn.net/xucongyoushan  
 gitee: https://gitee.com/solifree  
-github: https://github.com/xucongandxuchong
+github: https://github.com/SolifreeXu
