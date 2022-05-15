@@ -19,7 +19,7 @@
 // 自定义名称空间
 #define ETERFREE_SPACE_BEGIN namespace eterfree {
 #define ETERFREE_SPACE_END }
-#define ETERFREE_SPACE using namespace eterfree;
+#define USING_ETERFREE_SPACE using namespace eterfree;
 
 ETERFREE_SPACE_BEGIN
 
