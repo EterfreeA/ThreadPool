@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 
-ETERFREE_SPACE
+USING_ETERFREE_SPACE
 
 int main()
 {

@@ -22,7 +22,7 @@
 // 自定义名称空间
 #define ETERFREE_SPACE_BEGIN namespace eterfree {
 #define ETERFREE_SPACE_END }
-#define ETERFREE_SPACE using namespace eterfree;
+#define USING_ETERFREE_SPACE using namespace eterfree;
 
 inline std::ostream& operator<<(std::ostream& _stream, const std::source_location& location)
 {

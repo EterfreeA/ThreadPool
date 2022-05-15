@@ -7,7 +7,7 @@
 #include <atomic>
 #include <thread>
 
-ETERFREE_SPACE
+USING_ETERFREE_SPACE
 
 static std::atomic_flag flag;
 static Condition condition;
