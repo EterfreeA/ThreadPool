@@ -114,13 +114,12 @@ template <typename _Size>
 void Condition<_Size>::exit()
 {
 	std::unique_lock lock(_mutex);
-	if (valid())
-	{
-		_validity.store(false, std::memory_order::relaxed);
-		lock.unlock();
+	if (not valid()) return;
 
-		_condition.notify_all();
-	}
+	_validity.store(false, std::memory_order::relaxed);
+	lock.unlock();
+
+	_condition.notify_all();
 }
 
 template <typename _Size>
@@ -159,12 +158,10 @@ template <typename _Predicate>
 void Condition<_Size>::notify_one(_Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	if (_predicate())
-	{
-		lock.unlock();
+	if (not _predicate()) return;
+	lock.unlock();
 
-		_condition.notify_one();
-	}
+	_condition.notify_one();
 }
 
 template <typename _Size>
@@ -172,12 +169,10 @@ template <typename _Predicate>
 void Condition<_Size>::notify_all(_Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	if (_predicate())
-	{
-		lock.unlock();
+	if (not _predicate()) return;
+	lock.unlock();
 
-		_condition.notify_all();
-	}
+	_condition.notify_all();
 }
 
 template <typename _Size>
@@ -185,13 +180,11 @@ template <typename _Predicate>
 void Condition<_Size>::notify(Size _size, _Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
-	if (_predicate())
-	{
-		lock.unlock();
+	if (not _predicate()) return;
+	lock.unlock();
 
-		for (decltype(_size) index = 0; index < _size; ++index)
-			_condition.notify_one();
-	}
+	for (decltype(_size) index = 0; index < _size; ++index)
+		_condition.notify_one();
 }
 
 template <typename _Size>

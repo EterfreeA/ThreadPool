@@ -408,12 +408,11 @@ auto ThreadPool<_TaskType, _QueueType>::Structure::filterTask(_TaskQueue& _taskQ
 	std::erase_if(_taskQueue, \
 		[&size](const _TaskQueue::value_type& _task) noexcept \
 	{
-		if (_task)
-		{
-			++size;
-			return false;
-		}
-		return true;
+		if (not _task)
+			return true;
+
+		++size;
+		return false;
 	});
 	return size;
 }
@@ -445,8 +444,7 @@ template <typename _TaskType, typename _QueueType>
 bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(TaskQueue& _taskQueue)
 {
 	// 过滤无效任务
-	if (filterTask(_taskQueue) <= 0)
-		return false;
+	if (filterTask(_taskQueue) <= 0) return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(_taskQueue);
@@ -460,8 +458,7 @@ template <typename _TaskType, typename _QueueType>
 bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(TaskQueue&& _taskQueue)
 {
 	// 过滤无效任务
-	if (filterTask(_taskQueue) <= 0)
-		return false;
+	if (filterTask(_taskQueue) <= 0) return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
@@ -489,8 +486,7 @@ void ThreadPool<_TaskType, _QueueType>::create(DataType&& _data, SizeType _capac
 	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id) \
 	{
 		// 线程并非闲置状态
-		if (not _idle)
-			return;
+		if (not _idle) return;
 
 		// 若未增加之前，无闲置线程，则通知守护线程
 		if (auto data = _data.lock(); \
@@ -520,8 +516,7 @@ template <typename _TaskType, typename _QueueType>
 void ThreadPool<_TaskType, _QueueType>::destroy(DataType&& _data)
 {
 	// 避免重复销毁
-	if (not _data->_condition)
-		return;
+	if (not _data->_condition) return;
 
 	// 分离守护线程
 	//_data->_thread.detach();
@@ -667,8 +662,7 @@ template <typename _TaskType, typename _QueueType>
 bool ThreadPool<_TaskType, _QueueType>::pushTask(const TaskType& _task)
 {
 	// 过滤无效任务
-	if (not _task)
-		return false;
+	if (not _task) return false;
 
 	auto data = load();
 	return data and data->pushTask(_task);
@@ -679,8 +673,7 @@ template <typename _TaskType, typename _QueueType>
 bool ThreadPool<_TaskType, _QueueType>::pushTask(TaskType&& _task)
 {
 	// 过滤无效任务
-	if (not _task)
-		return false;
+	if (not _task) return false;
 
 	auto data = load();
 	return data and data->pushTask(std::forward<TaskType>(_task));

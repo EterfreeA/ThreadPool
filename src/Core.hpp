@@ -26,7 +26,8 @@
 
 inline std::ostream& operator<<(std::ostream& _stream, const std::source_location& location)
 {
-	return _stream << '[' << location.file_name() << ':' << location.function_name() << ':' << location.line() << ']';
+	return _stream << '[' << location.file_name() << ':' \
+		<< location.function_name() << ':' << location.line() << ']';
 }
 
 ETERFREE_SPACE_BEGIN

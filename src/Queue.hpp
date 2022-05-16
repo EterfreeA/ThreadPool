@@ -82,7 +82,8 @@ private:
 
 public:
 	// 若_capacity小于等于零，则无限制，否则其为上限值
-	Queue(SizeType _capacity = 0) : _capacity(_capacity), _size(0) {}
+	Queue(SizeType _capacity = 0)
+		: _capacity(_capacity), _size(0) {}
 
 	auto capacity() const noexcept { return get(_capacity); }
 	void reserve(SizeType _capacity) noexcept
@@ -161,8 +162,7 @@ template <typename _ElementType>
 bool Queue<_ElementType>::pop(ElementType& _element)
 {
 	std::lock_guard lock(_exitMutex);
-	if (empty())
-		return false;
+	if (empty()) return false;
 
 	if (_exitQueue.empty())
 	{
@@ -180,8 +180,7 @@ template <typename _ElementType>
 auto Queue<_ElementType>::pop() -> std::optional<ElementType>
 {
 	std::lock_guard lock(_exitMutex);
-	if (empty())
-		return std::nullopt;
+	if (empty()) return std::nullopt;
 
 	if (_exitQueue.empty())
 	{
@@ -199,8 +198,7 @@ template <typename _ElementType>
 bool Queue<_ElementType>::pop(QueueType& _queue)
 {
 	std::lock_guard exitLock(_exitMutex);
-	if (empty())
-		return false;
+	if (empty()) return false;
 
 	_queue.splice(_queue.cend(), _exitQueue);
 

@@ -212,8 +212,7 @@ template <typename _TaskType, typename _QueueType>
 bool Thread<_TaskType, _QueueType>::setTask(DataType& _data)
 {
 	// 无任务队列
-	if (not _data->_taskQueue)
-		return false;
+	if (not _data->_taskQueue) return false;
 
 	auto result = _data->_taskQueue->pop();
 	if (result)
@@ -248,7 +247,8 @@ void Thread<_TaskType, _QueueType>::execute(DataType _data)
 		}
 		catch (std::exception& exception)
 		{
-			std::cerr << exception.what() << std::source_location::current() << std::endl;
+			std::cerr << exception.what() \
+				<< std::source_location::current() << std::endl;
 		}
 
 		// 执行完毕清除任务
@@ -257,8 +257,7 @@ void Thread<_TaskType, _QueueType>::execute(DataType _data)
 		// 配置新任务
 		bool idle = not setTask(_data);
 		auto callback = _data->_callback;
-		if (idle)
-			_data->setState(State::BLOCKED);
+		if (idle) _data->setState(State::BLOCKED);
 
 		// 若回调函数子有效，以闲置状态和线程标识为参数，执行回调函数子
 		if (callback)
@@ -275,8 +274,7 @@ template <typename _TaskType, typename _QueueType>
 auto Thread<_TaskType, _QueueType>::getID() const -> ThreadID
 {
 	auto data = load();
-	if (not data)
-		return ThreadID();
+	if (not data) return ThreadID();
 
 	std::lock_guard lock(data->_threadMutex);
 	return data->getID();
@@ -287,11 +285,11 @@ template <typename _TaskType, typename _QueueType>
 bool Thread<_TaskType, _QueueType>::idle() const noexcept
 {
 	auto data = load();
-	if (not data)
-		return false;
+	if (not data) return false;
 
 	auto state = data->getState();
-	return state == State::INITIAL or state == State::BLOCKED;
+	return state == State::INITIAL \
+		or state == State::BLOCKED;
 }
 
 // 创建线程
@@ -299,8 +297,7 @@ template <typename _TaskType, typename _QueueType>
 bool Thread<_TaskType, _QueueType>::create()
 {
 	auto data = load();
-	if (not data)
-		return false;
+	if (not data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
 	if (data->getState() != State::EMPTY)
@@ -319,8 +316,7 @@ template <typename _TaskType, typename _QueueType>
 void Thread<_TaskType, _QueueType>::destroy()
 {
 	auto data = load();
-	if (not data)
-		return;
+	if (not data) return;
 
 	std::lock_guard lock(data->_threadMutex);
 	if (data->getState() == State::EMPTY)
@@ -344,16 +340,13 @@ template <typename _TaskType, typename _QueueType>
 bool Thread<_TaskType, _QueueType>::configure(const QueueType& _taskQueue, const Callback& _callback)
 {
 	// 无任务队列
-	if (not _taskQueue)
-		return false;
+	if (not _taskQueue) return false;
 
 	auto data = load();
-	if (not data)
-		return false;
+	if (not data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
-	if (not idle())
-		return false;
+	if (not idle()) return false;
 
 	data->_taskQueue = _taskQueue; // 配置任务队列，用于自动获取任务
 	data->_callback = _callback; // 配置回调函数子，执行一次任务，通知守护线程，传递线程闲置状态
@@ -366,16 +359,13 @@ template <typename _TaskType, typename _QueueType>
 bool Thread<_TaskType, _QueueType>::configure(const TaskType& _task, const Callback& _callback)
 {
 	// 任务无效
-	if (not _task)
-		return false;
+	if (not _task) return false;
 
 	auto data = load();
-	if (not data)
-		return false;
+	if (not data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
-	if (not idle())
-		return false;
+	if (not idle()) return false;
 
 	data->setState(State::RUNNABLE);
 	data->_callback = _callback; // 配置回调函数子
@@ -388,8 +378,7 @@ template <typename _TaskType, typename _QueueType>
 bool Thread<_TaskType, _QueueType>::notify()
 {
 	auto data = load();
-	if (not data)
-		return false;
+	if (not data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
 	auto state = data->getState();
@@ -399,8 +388,7 @@ bool Thread<_TaskType, _QueueType>::notify()
 		state = State::RUNNABLE;
 
 	// 非就绪状态不必通知
-	if (state != State::RUNNABLE)
-		return false;
+	if (state != State::RUNNABLE) return false;
 
 	data->_condition.notify_one(Condition::Strategy::RELAXED);
 	return true;
