@@ -36,12 +36,14 @@ struct Thread::Structure
 	Structure() : _state(State::EMPTY) {}
 
 	// 获取线程唯一标识
-	auto getID() const noexcept { return _thread.get_id(); }
+	auto getID() const noexcept
+	{ return _thread.get_id(); }
 
 	// 设置状态
 	void setState(State _state) noexcept
 	{
-		this->_state.store(_state, std::memory_order_relaxed);
+		this->_state.store(_state, \
+			std::memory_order_relaxed);
 	}
 
 	// 获取状态
@@ -74,8 +76,7 @@ struct Thread::Structure
 bool Thread::setTask(DataType& _data)
 {
 	// 无任务队列
-	if (!_data->_taskQueue)
-		return false;
+	if (!_data->_taskQueue) return false;
 
 	auto result = _data->_taskQueue->pop();
 	if (result)
@@ -90,7 +91,8 @@ bool Thread::setTask(DataType& _data)
 void Thread::execute(DataType _data)
 {
 	// 条件变量的谓词，若任务有效，则无需等待通知
-	auto predicate = [&_data] { return _data->getValidity(); };
+	auto predicate = [&_data] \
+	{ return _data->getValidity(); };
 
 	// 若谓词为真，自动解锁互斥元，阻塞线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
@@ -119,8 +121,7 @@ void Thread::execute(DataType _data)
 		// 配置新任务
 		bool idle = !setTask(_data);
 		auto callback = _data->_callback;
-		if (idle)
-			_data->setState(State::BLOCKED);
+		if (idle) _data->setState(State::BLOCKED);
 
 		// 若回调函数子有效，以闲置状态和线程标识为参数，执行回调函数子
 		if (callback)
@@ -153,8 +154,7 @@ Thread& Thread::operator=(Thread&& _thread)
 Thread::ThreadID Thread::getID() const
 {
 	auto data = load();
-	if (!data)
-		return ThreadID();
+	if (!data) return ThreadID();
 
 	std::lock_guard lock(data->_threadMutex);
 	return data->getID();
@@ -164,20 +164,19 @@ Thread::ThreadID Thread::getID() const
 bool Thread::idle() const
 {
 	auto data = load();
-	if (!data)
-		return false;
+	if (!data) return false;
 
 	auto state = data->getState();
 	using State = Structure::State;
-	return state == State::INITIAL || state == State::BLOCKED;
+	return state == State::INITIAL \
+		|| state == State::BLOCKED;
 }
 
 // 创建线程
 bool Thread::create()
 {
 	auto data = load();
-	if (!data)
-		return false;
+	if (!data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
 	using State = Structure::State;
@@ -196,8 +195,7 @@ bool Thread::create()
 void Thread::destroy()
 {
 	auto data = load();
-	if (!data)
-		return;
+	if (!data) return;
 
 	std::lock_guard lock(data->_threadMutex);
 	using State = Structure::State;
@@ -221,16 +219,13 @@ void Thread::destroy()
 bool Thread::configure(const QueueType& _taskQueue, const Callback& _callback)
 {
 	// 无任务队列
-	if (!_taskQueue)
-		return false;
+	if (!_taskQueue) return false;
 
 	auto data = load();
-	if (!data)
-		return false;
+	if (!data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
-	if (!idle())
-		return false;
+	if (!idle()) return false;
 
 	data->_taskQueue = _taskQueue; // 配置任务队列，用于自动获取任务
 	data->_callback = _callback; // 配置回调函数子，执行一次任务，通知守护线程，传递线程闲置状态
@@ -242,16 +237,13 @@ bool Thread::configure(const QueueType& _taskQueue, const Callback& _callback)
 bool Thread::configure(const TaskType& _task, const Callback& _callback)
 {
 	// 任务无效
-	if (!_task)
-		return false;
+	if (!_task) return false;
 
 	auto data = load();
-	if (!data)
-		return false;
+	if (!data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
-	if (!idle())
-		return false;
+	if (!idle()) return false;
 
 	data->setState(Structure::State::RUNNABLE);
 	data->_callback = _callback; // 配置回调函数子
@@ -263,15 +255,13 @@ bool Thread::configure(const TaskType& _task, const Callback& _callback)
 bool Thread::notify()
 {
 	auto data = load();
-	if (!data)
-		return false;
+	if (!data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
 	auto state = data->getState();
 
-	using State = Structure::State;
-
 	// 若处于阻塞状态则获取任务
+	using State = Structure::State;
 	if (state == State::BLOCKED && setTask(data))
 		state = State::RUNNABLE;
 

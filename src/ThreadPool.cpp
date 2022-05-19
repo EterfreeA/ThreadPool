@@ -12,18 +12,18 @@ ETERFREE_SPACE_BEGIN
 #define SET_ATOMIC(SizeType, Arithmetic, functor, field) \
 SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 { \
-	constexpr auto memoryOrder = std::memory_order_relaxed; \
+	constexpr auto MEMORY_ORDER = std::memory_order_relaxed; \
 	switch (_arithmetic) \
 	{ \
 	case Arithmetic::REPLACE: \
-		field.store(_size, memoryOrder); \
+		field.store(_size, MEMORY_ORDER); \
 		return _size; \
 	case Arithmetic::INCREASE: \
-		return field.fetch_add(_size, memoryOrder); \
+		return field.fetch_add(_size, MEMORY_ORDER); \
 	case Arithmetic::DECREASE: \
-		return field.fetch_sub(_size, memoryOrder); \
+		return field.fetch_sub(_size, MEMORY_ORDER); \
 	default: \
-		return field.load(memoryOrder); \
+		return field.load(MEMORY_ORDER); \
 	} \
 }
 
@@ -54,7 +54,8 @@ struct ThreadPool::Structure
 	 * 则至少二次分配内存，先为实例分配内存，再为共享指针的控制块分配内存。
 	 * 而std::make_shared典型地仅分配一次内存，实例内存和控制块内存连续。
 	 */
-	Structure() : _taskQueue(std::make_shared<QueueType>()) {}
+	Structure()
+		: _taskQueue(std::make_shared<QueueType>()) {}
 
 	// 过滤任务
 	template <typename _TaskQueue>
@@ -139,8 +140,7 @@ bool ThreadPool::Structure::pushTask(TaskType&& _task)
 bool ThreadPool::Structure::pushTask(TaskQueue& _taskQueue)
 {
 	// 过滤无效任务
-	if (filterTask(_taskQueue) <= 0)
-		return false;
+	if (filterTask(_taskQueue) <= 0) return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(_taskQueue);
@@ -153,8 +153,7 @@ bool ThreadPool::Structure::pushTask(TaskQueue& _taskQueue)
 bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 {
 	// 过滤无效任务
-	if (filterTask(_taskQueue) <= 0)
-		return false;
+	if (filterTask(_taskQueue) <= 0) return false;
 
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
@@ -166,7 +165,8 @@ bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 // 设置线程池容量
 void ThreadPool::Structure::setCapacity(SizeType _capacity, bool _notified)
 {
-	auto capacity = this->_capacity.exchange(_capacity, std::memory_order_relaxed);
+	auto capacity = this->_capacity.exchange(_capacity, \
+		std::memory_order_relaxed);
 	if (_notified && capacity != _capacity)
 		_condition.notify_one(Condition::Strategy::RELAXED);
 }
@@ -205,8 +205,7 @@ ThreadPool::SizeType ThreadPool::Proxy::getTaskSize() const noexcept
 // 放入单任务
 bool ThreadPool::Proxy::pushTask(const TaskType& _task)
 {
-	return _task && _data \
-		&& _data->pushTask(_task);
+	return _task && _data && _data->pushTask(_task);
 }
 
 // 放入单任务
@@ -225,7 +224,8 @@ bool ThreadPool::Proxy::pushTask(TaskQueue& _taskQueue)
 // 批量放入任务
 bool ThreadPool::Proxy::pushTask(TaskQueue&& _taskQueue)
 {
-	return _data && _data->pushTask(std::forward<TaskQueue>(_taskQueue));
+	return _data \
+		&& _data->pushTask(std::forward<TaskQueue>(_taskQueue));
 }
 
 // 批量弹出任务
@@ -247,11 +247,11 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 	using Arithmetic = Structure::Arithmetic;
 
 	// 定义回调函数子
-	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id) \
+	_data->_callback = \
+		[_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id) \
 	{
 		// 线程并非闲置状态
-		if (!_idle)
-			return;
+		if (!_idle) return;
 
 		// 若未增加之前，无闲置线程，则通知守护线程
 		if (auto data = _data.lock(); \
@@ -280,8 +280,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 void ThreadPool::destroy(DataType&& _data)
 {
 	// 避免重复销毁
-	if (!_data->_condition)
-		return;
+	if (!_data->_condition) return;
 
 	// 分离守护线程
 	//_data->_thread.detach();
@@ -361,7 +360,8 @@ void ThreadPool::execute(DataType _data)
 
 		// 遍历线程表，访问闲置线程
 		for (auto iterator = _data->_threadTable.begin(); \
-			iterator != _data->_threadTable.end() && _data->getIdleSize() > 0;)
+			iterator != _data->_threadTable.end() \
+			&& _data->getIdleSize() > 0;)
 		{
 			// 若线程处于闲置状态
 			if (auto& thread = *iterator; thread.idle())
@@ -463,8 +463,7 @@ ThreadPool::SizeType ThreadPool::getTaskSize() const
 bool ThreadPool::pushTask(const TaskType& _task)
 {
 	// 过滤无效任务
-	if (!_task)
-		return false;
+	if (!_task) return false;
 
 	auto data = load();
 	return data && data->pushTask(_task);
@@ -474,11 +473,11 @@ bool ThreadPool::pushTask(const TaskType& _task)
 bool ThreadPool::pushTask(TaskType&& _task)
 {
 	// 过滤无效任务
-	if (!_task)
-		return false;
+	if (!_task) return false;
 
 	auto data = load();
-	return data && data->pushTask(std::forward<TaskType>(_task));
+	return data \
+		&& data->pushTask(std::forward<TaskType>(_task));
 }
 
 // 批量放入任务
@@ -492,7 +491,8 @@ bool ThreadPool::pushTask(TaskQueue& _taskQueue)
 bool ThreadPool::pushTask(TaskQueue&& _taskQueue)
 {
 	auto data = load();
-	return data && data->pushTask(std::forward<TaskQueue>(_taskQueue));
+	return data \
+		&& data->pushTask(std::forward<TaskQueue>(_taskQueue));
 }
 
 // 批量弹出任务

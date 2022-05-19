@@ -14,13 +14,16 @@ static Condition condition;
 
 static void task()
 {
-	condition.wait([] { return !valid.load(std::memory_order_relaxed); });
+	condition.wait([] \
+	{ return !valid.load(std::memory_order_relaxed); });
 }
 
 static void print(const ThreadPool& _threadPool)
 {
-	std::cout << _threadPool.getCapacity() << ' ' << _threadPool.getSize() << ' ' \
-		<< _threadPool.getIdleSize() << ' ' << _threadPool.getTaskSize() << std::endl;
+	std::cout << _threadPool.getCapacity() << ' ' \
+		<< _threadPool.getSize() << ' ' \
+		<< _threadPool.getIdleSize() << ' ' \
+		<< _threadPool.getTaskSize() << std::endl;
 }
 
 int main()
@@ -28,7 +31,8 @@ int main()
 	ThreadPool threadPool;
 	auto proxy = threadPool.getProxy();
 	auto capacity = proxy.getCapacity();
-	for (decltype(capacity) index = 0; index < capacity; ++index)
+	for (decltype(capacity) index = 0; \
+		index < capacity; ++index)
 		threadPool.pushTask(task);
 
 	using namespace std::this_thread;
@@ -36,7 +40,8 @@ int main()
 	sleep_for(seconds(2));
 	print(threadPool);
 
-	threadPool.pushTask([] { std::cout << "eterfree::ThreadPool" << std::endl; });
+	threadPool.pushTask([] \
+	{ std::cout << "eterfree::ThreadPool" << std::endl; });
 
 	sleep_for(seconds(1));
 	print(threadPool);

@@ -201,7 +201,8 @@ public:
 	template <typename _Functor, typename... _Args>
 	bool pushTask(_Functor&& _functor, _Args&&... _args)
 	{
-		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
+		auto functor = std::bind(std::forward<_Functor>(_functor), \
+			std::forward<_Args>(_args)...);
 		return pushTask(TaskType(functor));
 	}
 
@@ -221,7 +222,8 @@ class ThreadPool::Proxy
 	DataType _data;
 
 public:
-	Proxy(const decltype(_data)& _data) noexcept : _data(_data) {}
+	Proxy(const decltype(_data)& _data) noexcept
+		: _data(_data) {}
 
 	explicit operator bool() const noexcept
 	{
@@ -261,7 +263,8 @@ public:
 	template <typename _Functor, typename... _Args>
 	bool pushTask(_Functor&& _functor, _Args&&... _args)
 	{
-		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
+		auto functor = std::bind(std::forward<_Functor>(_functor), \
+			std::forward<_Args>(_args)...);
 		return pushTask(TaskType(functor));
 	}
 
