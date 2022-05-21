@@ -72,12 +72,14 @@ private:
 private:
 	auto add(SizeType _size) noexcept
 	{
-		return this->_size.fetch_add(_size, std::memory_order::relaxed);
+		return this->_size.fetch_add(_size, \
+			std::memory_order::relaxed);
 	}
 
 	auto subtract(SizeType _size) noexcept
 	{
-		return this->_size.fetch_sub(_size, std::memory_order::relaxed);
+		return this->_size.fetch_sub(_size, \
+			std::memory_order::relaxed);
 	}
 
 public:
@@ -85,7 +87,11 @@ public:
 	Queue(SizeType _capacity = 0)
 		: _capacity(_capacity), _size(0) {}
 
-	auto capacity() const noexcept { return get(_capacity); }
+	auto capacity() const noexcept
+	{
+		return get(_capacity);
+	}
+
 	void reserve(SizeType _capacity) noexcept
 	{
 		set(this->_capacity, _capacity);
@@ -109,7 +115,8 @@ public:
 };
 
 template <typename _ElementType>
-auto Queue<_ElementType>::push(const ElementType& _element) -> std::optional<SizeType>
+auto Queue<_ElementType>::push(const ElementType& _element) \
+-> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(); \
@@ -121,7 +128,8 @@ auto Queue<_ElementType>::push(const ElementType& _element) -> std::optional<Siz
 }
 
 template <typename _ElementType>
-auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType>
+auto Queue<_ElementType>::push(ElementType&& _element) \
+-> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
 	if (auto capacity = this->capacity(); \
@@ -133,11 +141,14 @@ auto Queue<_ElementType>::push(ElementType&& _element) -> std::optional<SizeType
 }
 
 template <typename _ElementType>
-auto Queue<_ElementType>::push(QueueType& _queue) -> std::optional<SizeType>
+auto Queue<_ElementType>::push(QueueType& _queue) \
+-> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
-	if (auto capacity = this->capacity(), size = this->size(); \
-		capacity > 0 and (size >= capacity or _queue.size() >= capacity - size))
+	if (auto capacity = this->capacity(), \
+		size = this->size(); \
+		capacity > 0 and (size >= capacity \
+			or _queue.size() >= capacity - size))
 		return std::nullopt;
 
 	auto size = _queue.size();
@@ -146,15 +157,19 @@ auto Queue<_ElementType>::push(QueueType& _queue) -> std::optional<SizeType>
 }
 
 template <typename _ElementType>
-auto Queue<_ElementType>::push(QueueType&& _queue) -> std::optional<SizeType>
+auto Queue<_ElementType>::push(QueueType&& _queue) \
+-> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
-	if (auto capacity = this->capacity(), size = this->size(); \
-		capacity > 0 and (size >= capacity or _queue.size() >= capacity - size))
+	if (auto capacity = this->capacity(), \
+		size = this->size(); \
+		capacity > 0 and (size >= capacity \
+			or _queue.size() >= capacity - size))
 		return std::nullopt;
 
 	auto size = _queue.size();
-	_entryQueue.splice(_entryQueue.cend(), std::forward<QueueType>(_queue));
+	_entryQueue.splice(_entryQueue.cend(), \
+		std::forward<QueueType>(_queue));
 	return add(size);
 }
 
@@ -177,7 +192,8 @@ bool Queue<_ElementType>::pop(ElementType& _element)
 }
 
 template <typename _ElementType>
-auto Queue<_ElementType>::pop() -> std::optional<ElementType>
+auto Queue<_ElementType>::pop() \
+-> std::optional<ElementType>
 {
 	std::lock_guard lock(_exitMutex);
 	if (empty()) return std::nullopt;

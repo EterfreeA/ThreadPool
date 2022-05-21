@@ -58,7 +58,8 @@ static void terminate(ThreadPool&& _threadPool)
 static auto getConcurrency() noexcept
 {
 	auto concurrency = std::thread::hardware_concurrency();
-	return concurrency > 0 ? concurrency : static_cast<decltype(concurrency)>(1);
+	return concurrency > 0 ? concurrency \
+		: static_cast<decltype(concurrency)>(1);
 }
 
 using ThreadPool = boost::threadpool::thread_pool<>;

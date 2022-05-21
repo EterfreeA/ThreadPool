@@ -101,13 +101,15 @@ public:
 	bool wait_for(const std::chrono::duration<_Rep, _Period>& _relative);
 
 	template <typename _Rep, typename _Period, typename _Predicate>
-	bool wait_for(const std::chrono::duration<_Rep, _Period>& _relative, _Predicate _predicate);
+	bool wait_for(const std::chrono::duration<_Rep, _Period>& _relative, \
+		_Predicate _predicate);
 
 	template <typename _Clock, typename _Duration>
 	bool wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute);
 
 	template <typename _Clock, typename _Duration, typename _Predicate>
-	bool wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute, _Predicate _predicate);
+	bool wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute, \
+		_Predicate _predicate);
 };
 
 template <typename _Size>
@@ -116,7 +118,8 @@ void Condition<_Size>::exit()
 	std::unique_lock lock(_mutex);
 	if (not valid()) return;
 
-	_validity.store(false, std::memory_order::relaxed);
+	_validity.store(false, \
+		std::memory_order::relaxed);
 	lock.unlock();
 
 	_condition.notify_all();
@@ -143,13 +146,15 @@ void Condition<_Size>::notify_all(Strategy _strategy)
 }
 
 template <typename _Size>
-void Condition<_Size>::notify(Size _size, Strategy _strategy)
+void Condition<_Size>::notify(Size _size, \
+	Strategy _strategy)
 {
 	std::unique_lock lock(_mutex);
 	if (_strategy == Strategy::RELAXED)
 		lock.unlock();
 
-	for (decltype(_size) index = 0; index < _size; ++index)
+	for (decltype(_size) index = 0; \
+		index < _size; ++index)
 		_condition.notify_one();
 }
 
@@ -177,13 +182,15 @@ void Condition<_Size>::notify_all(_Predicate _predicate)
 
 template <typename _Size>
 template <typename _Predicate>
-void Condition<_Size>::notify(Size _size, _Predicate _predicate)
+void Condition<_Size>::notify(Size _size, \
+	_Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
 	if (not _predicate()) return;
 	lock.unlock();
 
-	for (decltype(_size) index = 0; index < _size; ++index)
+	for (decltype(_size) index = 0; \
+		index < _size; ++index)
 		_condition.notify_one();
 }
 
@@ -215,7 +222,8 @@ bool Condition<_Size>::wait_for(const std::chrono::duration<_Rep, _Period>& _rel
 
 template <typename _Size>
 template <typename _Rep, typename _Period, typename _Predicate>
-bool Condition<_Size>::wait_for(const std::chrono::duration<_Rep, _Period>& _relative, _Predicate _predicate)
+bool Condition<_Size>::wait_for(const std::chrono::duration<_Rep, _Period>& _relative, \
+	_Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
 	return _condition.wait_for(lock, _relative, \
@@ -233,7 +241,8 @@ bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duratio
 
 template <typename _Size>
 template <typename _Clock, typename _Duration, typename _Predicate>
-bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute, _Predicate _predicate)
+bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute, \
+	_Predicate _predicate)
 {
 	std::unique_lock lock(_mutex);
 	while (valid() and not _predicate() \

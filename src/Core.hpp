@@ -17,14 +17,16 @@
 [[deprecated("The name for this item is deprecated.")]]
 
 #define REPLACEMENT(signature) \
-[[deprecated("The name for this item is deprecated. Instead, use the name: " STRING(signature) ".")]]
+[[deprecated("The name for this item is deprecated. " \
+"Instead, use the name: " STRING(signature) ".")]]
 
 // 自定义名称空间
 #define ETERFREE_SPACE_BEGIN namespace eterfree {
 #define ETERFREE_SPACE_END }
 #define USING_ETERFREE_SPACE using namespace eterfree;
 
-inline std::ostream& operator<<(std::ostream& _stream, const std::source_location& location)
+inline std::ostream& operator<<(std::ostream& _stream, \
+	const std::source_location& location)
 {
 	return _stream << '[' << location.file_name() << ':' \
 		<< location.function_name() << ':' << location.line() << ']';

@@ -60,7 +60,8 @@ class Queue;
 不可直接传递裸指针this，否则无法确保shared_ptr的语义，也许会导致已被释放的错误。
 不可单独创建另一shared_ptr，否则多个shared_ptr的控制块不同，导致释放多次同一对象。
 */
-template <typename _TaskType = std::function<void()>, typename _QueueType = Queue<_TaskType>>
+template <typename _TaskType = std::function<void()>, \
+	typename _QueueType = Queue<_TaskType>>
 class Thread
 	//: public std::enable_shared_from_this<Thread>
 {
@@ -101,12 +102,16 @@ private:
 		Structure() : _state(State::EMPTY) {}
 
 		// 获取线程唯一标识
-		auto getID() const noexcept { return _thread.get_id(); }
+		auto getID() const noexcept
+		{
+			return _thread.get_id();
+		}
 
 		// 设置状态
 		void setState(State _state) noexcept
 		{
-			this->_state.store(_state, std::memory_order::relaxed);
+			this->_state.store(_state, \
+				std::memory_order::relaxed);
 		}
 
 		// 获取状态
@@ -149,9 +154,11 @@ private:
 	static void execute(DataType _data);
 
 	// 交换数据
-	static auto exchange(AtomicType& _atomic, const DataType& _data) noexcept
+	static auto exchange(AtomicType& _atomic, \
+		const DataType& _data) noexcept
 	{
-		return _atomic.exchange(_data, std::memory_order::relaxed);
+		return _atomic.exchange(_data, \
+			std::memory_order::relaxed);
 	}
 
 private:
@@ -163,7 +170,8 @@ private:
 
 public:
 	// 默认构造函数
-	Thread() : _atomic(std::make_shared<Structure>()) { create(); }
+	Thread()
+		: _atomic(std::make_shared<Structure>()) { create(); }
 
 	// 删除默认复制构造函数
 	Thread(const Thread&) = delete;
@@ -181,7 +189,8 @@ public:
 	// 默认移动赋值运算符函数
 	Thread& operator=(Thread&& _thread) noexcept
 	{
-		exchange(_atomic, exchange(_thread._atomic, nullptr));
+		exchange(_atomic, \
+			exchange(_thread._atomic, nullptr));
 		return *this;
 	}
 
@@ -198,10 +207,12 @@ public:
 	void destroy();
 
 	// 配置任务队列与回调函数子
-	bool configure(const QueueType& _taskQueue, const Callback& _callback);
+	bool configure(const QueueType& _taskQueue, \
+		const Callback& _callback);
 
 	// 配置单任务与回调函数子
-	bool configure(const TaskType& _task, const Callback& _callback);
+	bool configure(const TaskType& _task, \
+		const Callback& _callback);
 
 	// 激活线程
 	bool notify();
@@ -242,8 +253,7 @@ void Thread<_TaskType, _QueueType>::execute(DataType _data)
 		try
 		{
 			// 若任务函数子有效，执行任务
-			if (_data->_task)
-				_data->_task();
+			if (_data->_task) _data->_task();
 		}
 		catch (std::exception& exception)
 		{
@@ -260,8 +270,7 @@ void Thread<_TaskType, _QueueType>::execute(DataType _data)
 		if (idle) _data->setState(State::BLOCKED);
 
 		// 若回调函数子有效，以闲置状态和线程标识为参数，执行回调函数子
-		if (callback)
-			callback(idle, _data->getID());
+		if (callback) callback(idle, _data->getID());
 
 		// 根据谓词真假，决定是否阻塞线程
 		_data->_condition.wait(predicate);
@@ -337,7 +346,8 @@ void Thread<_TaskType, _QueueType>::destroy()
 
 // 配置任务队列与回调函数子
 template <typename _TaskType, typename _QueueType>
-bool Thread<_TaskType, _QueueType>::configure(const QueueType& _taskQueue, const Callback& _callback)
+bool Thread<_TaskType, _QueueType>::configure(const QueueType& _taskQueue, \
+	const Callback& _callback)
 {
 	// 无任务队列
 	if (not _taskQueue) return false;
@@ -356,7 +366,8 @@ bool Thread<_TaskType, _QueueType>::configure(const QueueType& _taskQueue, const
 
 // 配置单任务与回调函数子
 template <typename _TaskType, typename _QueueType>
-bool Thread<_TaskType, _QueueType>::configure(const TaskType& _task, const Callback& _callback)
+bool Thread<_TaskType, _QueueType>::configure(const TaskType& _task, \
+	const Callback& _callback)
 {
 	// 任务无效
 	if (not _task) return false;

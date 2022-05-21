@@ -61,22 +61,23 @@ ETERFREE_SPACE_BEGIN
 #define SET_ATOMIC(SizeType, Arithmetic, functor, field) \
 SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 { \
-	constexpr auto memoryOrder = std::memory_order::relaxed; \
+	constexpr auto MEMORY_ORDER = std::memory_order::relaxed; \
 	switch (_arithmetic) \
 	{ \
 	case Arithmetic::REPLACE: \
-		field.store(_size, memoryOrder); \
+		field.store(_size, MEMORY_ORDER); \
 		return _size; \
 	case Arithmetic::INCREASE: \
-		return field.fetch_add(_size, memoryOrder); \
+		return field.fetch_add(_size, MEMORY_ORDER); \
 	case Arithmetic::DECREASE: \
-		return field.fetch_sub(_size, memoryOrder); \
+		return field.fetch_sub(_size, MEMORY_ORDER); \
 	default: \
-		return field.load(memoryOrder); \
+		return field.load(MEMORY_ORDER); \
 	} \
 }
 
-template <typename _TaskType = std::function<void()>, typename _QueueType = Queue<_TaskType>>
+template <typename _TaskType = std::function<void()>, \
+	typename _QueueType = Queue<_TaskType>>
 class ThreadPool
 {
 	using Thread = Thread<_TaskType, _QueueType>;
@@ -116,7 +117,8 @@ private:
 		 * 则至少二次分配内存，先为实例分配内存，再为共享指针的控制块分配内存。
 		 * 而std::make_shared典型地仅分配一次内存，实例内存和控制块内存连续。
 		 */
-		Structure() : _taskQueue(std::make_shared<QueueType>()) {}
+		Structure()
+			: _taskQueue(std::make_shared<QueueType>()) {}
 
 		// 过滤任务
 		template <typename _TaskQueue>
@@ -131,7 +133,8 @@ private:
 		bool pushTask(TaskQueue&& _taskQueue);
 
 		// 设置线程池容量
-		void setCapacity(SizeType _capacity, bool _notified = false);
+		void setCapacity(SizeType _capacity, \
+			bool _notified = false);
 
 		// 获取线程池容量
 		auto getCapacity() const noexcept
@@ -166,7 +169,8 @@ private:
 
 private:
 	// 创建线程池
-	static void create(DataType&& _data, SizeType _capacity);
+	static void create(DataType&& _data, \
+		SizeType _capacity);
 
 	// 销毁线程池
 	static void destroy(DataType&& _data);
@@ -178,9 +182,11 @@ private:
 	static void execute(DataType _data);
 
 	// 交换数据
-	static auto exchange(AtomicType& _atomic, const DataType& _data) noexcept
+	static auto exchange(AtomicType& _atomic, \
+		const DataType& _data) noexcept
 	{
-		return _atomic.exchange(_data, std::memory_order::relaxed);
+		return _atomic.exchange(_data, \
+			std::memory_order::relaxed);
 	}
 
 public:
@@ -188,7 +194,8 @@ public:
 	static auto getConcurrency() noexcept
 	{
 		auto concurrency = std::thread::hardware_concurrency();
-		return concurrency > 0 ? concurrency : static_cast<decltype(concurrency)>(1);
+		return concurrency > 0 ? concurrency \
+			: static_cast<decltype(concurrency)>(1);
 	}
 
 private:
@@ -201,7 +208,10 @@ private:
 public:
 	// 默认构造函数
 	ThreadPool(SizeType _capacity = getConcurrency())
-		: _atomic(std::make_shared<Structure>()) { create(load(), _capacity); }
+		: _atomic(std::make_shared<Structure>())
+	{
+		create(load(), _capacity);
+	}
 
 	// 删除默认复制构造函数
 	ThreadPool(const ThreadPool&) = delete;
@@ -224,7 +234,8 @@ public:
 	// 默认移动赋值运算符函数
 	ThreadPool& operator=(ThreadPool&& _threadPool) noexcept
 	{
-		exchange(_atomic, exchange(_threadPool._atomic, nullptr));
+		exchange(_atomic, \
+			exchange(_threadPool._atomic, nullptr));
 		return *this;
 	}
 
@@ -252,18 +263,11 @@ public:
 	bool pushTask(_Functor&& _functor)
 	{
 		auto data = load();
-		return data and data->pushTask(std::forward<_Functor>(_functor));
+		return data \
+			and data->pushTask(std::forward<_Functor>(_functor));
 	}
 	template <typename _Functor, typename... _Args>
-	bool pushTask(_Functor&& _functor, _Args&&... _args)
-	{
-		auto data = load();
-		//return data and data->pushTask([_functor, _args = std::make_tuple(std::forward<_Args>(_args)...)]{ std::apply(_functor, _args); });
-		//return data and data->pushTask([_functor, _args...]{ _functor(_args...); });
-
-		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
-		return data and data->pushTask(functor);
-	}
+	bool pushTask(_Functor&& _functor, _Args&&... _args);
 
 	// 批量放入任务
 	bool pushTask(TaskQueue& _taskQueue)
@@ -274,14 +278,16 @@ public:
 	bool pushTask(TaskQueue&& _taskQueue)
 	{
 		auto data = load();
-		return data and data->pushTask(std::forward<TaskQueue>(_taskQueue));
+		return data \
+			and data->pushTask(std::forward<TaskQueue>(_taskQueue));
 	}
 
 	// 批量弹出任务
 	bool popTask(TaskQueue& _taskQueue)
 	{
 		auto data = load();
-		return data and data->_taskQueue->pop(_taskQueue);
+		return data \
+			and data->_taskQueue->pop(_taskQueue);
 	}
 
 	// 清空任务
@@ -300,7 +306,8 @@ class ThreadPool<_TaskType, _QueueType>::Proxy
 	DataType _data;
 
 public:
-	Proxy(const decltype(_data)& _data) noexcept : _data(_data) {}
+	Proxy(const decltype(_data)& _data) noexcept
+		: _data(_data) {}
 
 	explicit operator bool() const noexcept
 	{
@@ -318,28 +325,32 @@ public:
 	auto getCapacity() const noexcept
 	{
 		using SizeType = decltype(_data->getCapacity());
-		return _data ? _data->getCapacity() : static_cast<SizeType>(0);
+		return _data ? _data->getCapacity() \
+			: static_cast<SizeType>(0);
 	}
 
 	// 获取线程数量
 	auto getSize() const noexcept
 	{
 		using SizeType = decltype(_data->getSize());
-		return _data ? _data->getSize() : static_cast<SizeType>(0);
+		return _data ? _data->getSize() \
+			: static_cast<SizeType>(0);
 	}
 
 	// 获取闲置线程数量
 	auto getIdleSize() const noexcept
 	{
 		using SizeType = decltype(_data->getIdleSize());
-		return _data ? _data->getIdleSize() : static_cast<SizeType>(0);
+		return _data ? _data->getIdleSize() \
+			: static_cast<SizeType>(0);
 	}
 
 	// 获取任务数量
 	auto getTaskSize() const noexcept
 	{
 		using SizeType = decltype(_data->_taskQueue->size());
-		return _data ? _data->_taskQueue->size() : static_cast<SizeType>(0);
+		return _data ? _data->_taskQueue->size() \
+			: static_cast<SizeType>(0);
 	}
 
 	// 放入任务
@@ -363,17 +374,11 @@ public:
 	template <typename _Functor>
 	bool pushTask(_Functor&& _functor)
 	{
-		return _data and _data->pushTask(std::forward<_Functor>(_functor));
+		return _data \
+			and _data->pushTask(std::forward<_Functor>(_functor));
 	}
 	template <typename _Functor, typename... _Args>
-	bool pushTask(_Functor&& _functor, _Args&&... _args)
-	{
-		//return _data and _data->pushTask([_functor, _args = std::make_tuple(std::forward<_Args>(_args)...)]{ std::apply(_functor, _args); });
-		//return _data and _data->pushTask([_functor, _args...]{ _functor(_args...); });
-
-		auto functor = std::bind(std::forward<_Functor>(_functor), std::forward<_Args>(_args)...);
-		return _data and _data->pushTask(functor);
-	}
+	bool pushTask(_Functor&& _functor, _Args&&... _args);
 
 	// 批量放入任务
 	bool pushTask(TaskQueue& _taskQueue)
@@ -382,13 +387,15 @@ public:
 	}
 	bool pushTask(TaskQueue&& _taskQueue)
 	{
-		return _data and _data->pushTask(std::forward<TaskQueue>(_taskQueue));
+		return _data \
+			and _data->pushTask(std::forward<TaskQueue>(_taskQueue));
 	}
 
 	// 批量弹出任务
 	bool popTask(TaskQueue& _taskQueue)
 	{
-		return _data and _data->_taskQueue->pop(_taskQueue);
+		return _data \
+			and _data->_taskQueue->pop(_taskQueue);
 	}
 
 	// 清空任务
@@ -398,6 +405,21 @@ public:
 			_data->_taskQueue->clear();
 	}
 };
+
+template <typename _TaskType, typename _QueueType>
+template <typename _Functor, typename... _Args>
+bool ThreadPool<_TaskType, _QueueType>::Proxy::pushTask(_Functor&& _functor, \
+	_Args&&... _args)
+{
+	//return _data and _data->pushTask([_functor, \
+	//	_args = std::make_tuple(std::forward<_Args>(_args)...)]\
+	//{ std::apply(_functor, _args); });
+	//return _data and _data->pushTask([_functor, _args...]{ _functor(_args...); });
+
+	auto functor = std::bind(std::forward<_Functor>(_functor), \
+		std::forward<_Args>(_args)...);
+	return _data and _data->pushTask(functor);
+}
 
 // 过滤无效任务
 template <typename _TaskType, typename _QueueType>
@@ -469,7 +491,8 @@ bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(TaskQueue&& _taskQue
 
 // 设置线程池容量
 template <typename _TaskType, typename _QueueType>
-void ThreadPool<_TaskType, _QueueType>::Structure::setCapacity(SizeType _capacity, bool _notified)
+void ThreadPool<_TaskType, _QueueType>::Structure::setCapacity(SizeType _capacity, \
+	bool _notified)
 {
 	auto capacity = this->_capacity.exchange(_capacity, std::memory_order::relaxed);
 	if (_notified and capacity != _capacity)
@@ -543,8 +566,7 @@ auto ThreadPool<_TaskType, _QueueType>::adjust(DataType& _data) -> SizeType
 	auto capacity = _data->getCapacity();
 
 	// 1.删减线程
-	if (size >= capacity)
-		return size - capacity;
+	if (size >= capacity) return size - capacity;
 
 	// 2.增加线程
 	size = capacity - size;
@@ -599,7 +621,8 @@ void ThreadPool<_TaskType, _QueueType>::execute(DataType _data)
 
 		// 遍历线程表，访问闲置线程
 		for (auto iterator = _data->_threadTable.begin(); \
-			iterator != _data->_threadTable.end() and _data->getIdleSize() > 0;)
+			iterator != _data->_threadTable.end() \
+			and _data->getIdleSize() > 0;)
 		{
 			// 若线程处于闲置状态
 			if (auto& thread = *iterator; thread.idle())
@@ -650,8 +673,9 @@ auto ThreadPool<_TaskType, _QueueType>::getSnapshot() const
 	using TaskSizeType = decltype(data->_taskQueue->size());
 
 	if (not data)
-		return std::make_tuple(static_cast<CapacityType>(0), static_cast<SizeType>(0), \
-			static_cast<IdleSizeType>(0), static_cast<TaskSizeType>(0));
+		return std::make_tuple(static_cast<CapacityType>(0), \
+			static_cast<SizeType>(0), static_cast<IdleSizeType>(0), \
+			static_cast<TaskSizeType>(0));
 
 	return std::make_tuple(data->getCapacity(), data->getSize(), \
 		data->getIdleSize(), data->_taskQueue->size());
@@ -677,6 +701,22 @@ bool ThreadPool<_TaskType, _QueueType>::pushTask(TaskType&& _task)
 
 	auto data = load();
 	return data and data->pushTask(std::forward<TaskType>(_task));
+}
+
+template <typename _TaskType, typename _QueueType>
+template <typename _Functor, typename... _Args>
+bool ThreadPool<_TaskType, _QueueType>::pushTask(_Functor&& _functor, \
+	_Args&&... _args)
+{
+	auto data = load();
+	//return data and data->pushTask([_functor, \
+	//	_args = std::make_tuple(std::forward<_Args>(_args)...)]\
+	//{ std::apply(_functor, _args); });
+	//return data and data->pushTask([_functor, _args...]{ _functor(_args...); });
+
+	auto functor = std::bind(std::forward<_Functor>(_functor), \
+		std::forward<_Args>(_args)...);
+	return data and data->pushTask(functor);
 }
 
 ETERFREE_SPACE_END
