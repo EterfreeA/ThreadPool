@@ -129,10 +129,12 @@ public:
 	void destroy();
 
 	// 配置任务队列与回调函数子
-	bool configure(const QueueType& _taskQueue, const Callback& _callback);
+	bool configure(const QueueType& _taskQueue, \
+		const Callback& _callback);
 
 	// 配置单任务与回调函数子
-	bool configure(const TaskType& _task, const Callback& _callback);
+	bool configure(const TaskType& _task, \
+		const Callback& _callback);
 
 	// 启动线程
 	REPLACEMENT(notify)

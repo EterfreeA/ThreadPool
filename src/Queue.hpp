@@ -89,7 +89,9 @@ public:
 		: _capacity(_capacity), _size(0) {}
 
 	auto capacity() const noexcept
-	{ return get(_capacity); }
+	{
+		return get(_capacity);
+	}
 
 	void reserve(SizeType _capacity) noexcept
 	{

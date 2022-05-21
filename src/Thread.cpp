@@ -37,7 +37,9 @@ struct Thread::Structure
 
 	// 获取线程唯一标识
 	auto getID() const noexcept
-	{ return _thread.get_id(); }
+	{
+		return _thread.get_id();
+	}
 
 	// 设置状态
 	void setState(State _state) noexcept
@@ -98,7 +100,8 @@ void Thread::execute(DataType _data)
 	_data->_condition.wait(predicate);
 
 	// 线程退出通道
-	while (_data->getValidity() || _data->_condition)
+	while (_data->getValidity() \
+		|| _data->_condition)
 	{
 		using State = Structure::State;
 		_data->setState(State::RUNNING);
@@ -216,7 +219,8 @@ void Thread::destroy()
 }
 
 // 配置任务队列与回调函数子
-bool Thread::configure(const QueueType& _taskQueue, const Callback& _callback)
+bool Thread::configure(const QueueType& _taskQueue, \
+	const Callback& _callback)
 {
 	// 无任务队列
 	if (!_taskQueue) return false;
@@ -234,7 +238,8 @@ bool Thread::configure(const QueueType& _taskQueue, const Callback& _callback)
 }
 
 // 配置单任务与回调函数子
-bool Thread::configure(const TaskType& _task, const Callback& _callback)
+bool Thread::configure(const TaskType& _task, \
+	const Callback& _callback)
 {
 	// 任务无效
 	if (!_task) return false;
@@ -262,7 +267,8 @@ bool Thread::notify()
 
 	// 若处于阻塞状态则获取任务
 	using State = Structure::State;
-	if (state == State::BLOCKED && setTask(data))
+	if (state == State::BLOCKED \
+		&& setTask(data))
 		state = State::RUNNABLE;
 
 	// 非就绪状态不必通知

@@ -14,7 +14,8 @@
 [[deprecated("The name for this item is deprecated.")]]
 
 #define REPLACEMENT(signature) \
-[[deprecated("The name for this item is deprecated. Instead, use the name: " STRING(signature) ".")]]
+[[deprecated("The name for this item is deprecated. " \
+"Instead, use the name: " STRING(signature) ".")]]
 
 // 自定义名称空间
 #define ETERFREE_SPACE_BEGIN namespace eterfree {

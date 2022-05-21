@@ -71,7 +71,8 @@ private:
 
 private:
 	// 创建线程池
-	static void create(DataType&& _data, SizeType _capacity);
+	static void create(DataType&& _data, \
+		SizeType _capacity);
 
 	// 销毁线程池
 	static void destroy(DataType&& _data);

@@ -70,7 +70,8 @@ struct ThreadPool::Structure
 	bool pushTask(TaskQueue&& _taskQueue);
 
 	// 设置线程池容量
-	void setCapacity(SizeType _capacity, bool _notified = false);
+	void setCapacity(SizeType _capacity, \
+		bool _notified = false);
 
 	// 获取线程池容量
 	auto getCapacity() const noexcept
@@ -163,7 +164,8 @@ bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 }
 
 // 设置线程池容量
-void ThreadPool::Structure::setCapacity(SizeType _capacity, bool _notified)
+void ThreadPool::Structure::setCapacity(SizeType _capacity, \
+	bool _notified)
 {
 	auto capacity = this->_capacity.exchange(_capacity, \
 		std::memory_order_relaxed);
@@ -305,8 +307,7 @@ ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
 	auto capacity = _data->getCapacity();
 
 	// 1.删减线程
-	if (size >= capacity)
-		return size - capacity;
+	if (size >= capacity) return size - capacity;
 
 	// 2.增加线程
 	size = capacity - size;
