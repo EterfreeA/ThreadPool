@@ -8,4 +8,7 @@
 
 #elif TEST == 3
 #include "test3.cpp"
+
+#elif TEST == 4
+#include "test4.cpp"
 #endif
