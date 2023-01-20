@@ -21,7 +21,7 @@ static void task()
 static void print(const ThreadPool& _threadPool)
 {
 	std::cout << _threadPool.getCapacity() << ' ' \
-		<< _threadPool.getSize() << ' ' \
+		<< _threadPool.getTotalSize() << ' ' \
 		<< _threadPool.getIdleSize() << ' ' \
 		<< _threadPool.getTaskSize() << std::endl;
 }
@@ -33,20 +33,20 @@ int main()
 	auto capacity = proxy.getCapacity();
 	for (decltype(capacity) index = 0; \
 		index < capacity; ++index)
-		threadPool.pushTask(task);
+		proxy.pushTask(task);
 
 	using namespace std::this_thread;
 	using namespace std::chrono;
 	sleep_for(seconds(2));
 	print(threadPool);
 
-	threadPool.pushTask([] \
+	proxy.pushTask([] \
 	{ std::cout << "eterfree::ThreadPool" << std::endl; });
 
 	sleep_for(seconds(1));
 	print(threadPool);
 
-	threadPool.setCapacity(capacity + 1);
+	proxy.setCapacity(capacity + 1);
 
 	sleep_for(seconds(2));
 	print(threadPool);

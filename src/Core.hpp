@@ -10,9 +10,11 @@
 // 拼接
 #define SPLICE(front, back) front##back
 
+// 弃用
 #define DEPRECATED \
 [[deprecated("The name for this item is deprecated.")]]
 
+// 替换
 #define REPLACEMENT(signature) \
 [[deprecated("The name for this item is deprecated. " \
 "Instead, use the name: " STRING(signature) ".")]]
@@ -25,13 +27,13 @@
 ETERFREE_SPACE_BEGIN
 
 //template <typename _Type, const decltype(sizeof(0)) _SIZE>
-//constexpr auto size(_Type(&_array)[_SIZE])
+//constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 //{
 //	return sizeof _array / sizeof _array[0];
 //}
 
 template <typename _Type, const decltype(sizeof(0)) _SIZE>
-constexpr auto size(_Type(&_array)[_SIZE])
+constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 {
 	return _SIZE;
 }

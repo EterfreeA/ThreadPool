@@ -45,21 +45,22 @@ static void execute(ThreadPool& _threadPool)
 	ThreadPool::TaskQueue taskQueue;
 	for (auto index = 0UL; index < 30000UL; ++index)
 		taskQueue.push_back(task);
-	_threadPool.pushTask(std::move(taskQueue));
+	proxy.pushTask(std::move(taskQueue));
 }
 
 static void terminate(ThreadPool&& _threadPool)
 {
 	_threadPool.clearTask();
-	auto threadPool(std::move(_threadPool));
+	auto threadPool(std::forward(_threadPool));
+	(void)threadPool;
 }
 
 #elif defined BOOST
 static auto getConcurrency() noexcept
 {
 	auto concurrency = std::thread::hardware_concurrency();
-	return concurrency > 0 ? concurrency \
-		: static_cast<decltype(concurrency)>(1);
+	return concurrency > 0 ? \
+		concurrency : static_cast<decltype(concurrency)>(1);
 }
 
 using ThreadPool = boost::threadpool::thread_pool<>;
@@ -75,7 +76,8 @@ static void execute(ThreadPool& _threadPool)
 
 static void terminate(ThreadPool&& _threadPool)
 {
-	auto threadPool(std::move(_threadPool));
+	auto threadPool(std::forward(_threadPool));
+	(void)threadPool;
 }
 #endif
 
@@ -83,24 +85,24 @@ int main()
 {
 	using std::cout, std::endl;
 
-	constexpr auto load = []() noexcept \
+	constexpr auto load = []() noexcept
 	{ return counter.load(std::memory_order_relaxed); };
 
 #ifdef FILE_STREAM
-	constexpr auto file = "ThreadPool.log";
+	constexpr auto FILE = "ThreadPool.log";
 
 #ifdef FILE_SYSTEM
-	std::filesystem::remove(file);
+	std::filesystem::remove(FILE);
 #endif
 
-	std::ofstream ofs(file, std::ios::app);
+	std::ofstream ofs(FILE, std::ios::app);
 	auto os = cout.rdbuf(ofs.rdbuf());
 #endif
 
 #if defined ETERFREE
-	eterfree::ThreadPool threadPool;
+	ThreadPool threadPool;
 #elif defined BOOST
-	boost::threadpool::thread_pool threadPool(getConcurrency());
+	ThreadPool threadPool(getConcurrency());
 #endif
 
 	using namespace std::chrono;
@@ -118,7 +120,7 @@ int main()
 
 #ifdef FILE_STREAM
 	cout << endl;
-	std::cout.rdbuf(os);
+	cout.rdbuf(os);
 #endif
 
 	terminate(std::move(threadPool));

@@ -34,6 +34,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
@@ -46,7 +47,12 @@ template <typename _Size = std::size_t>
 class Condition
 {
 public:
-	enum class Strategy { STRICT, RELAXED };
+	enum class Strategy : std::uint8_t
+	{
+		STRICT, RELAXED
+	};
+
+public:
 	using Size = _Size;
 
 private:
@@ -129,8 +135,7 @@ template <typename _Size>
 void Condition<_Size>::notify_one(Strategy _strategy)
 {
 	std::unique_lock lock(_mutex);
-	if (_strategy == Strategy::RELAXED)
-		lock.unlock();
+	if (_strategy == Strategy::RELAXED) lock.unlock();
 
 	_condition.notify_one();
 }
@@ -139,8 +144,7 @@ template <typename _Size>
 void Condition<_Size>::notify_all(Strategy _strategy)
 {
 	std::unique_lock lock(_mutex);
-	if (_strategy == Strategy::RELAXED)
-		lock.unlock();
+	if (_strategy == Strategy::RELAXED) lock.unlock();
 
 	_condition.notify_all();
 }
