@@ -1,8 +1,10 @@
 ﻿#include "ThreadPool.hpp"
+#include "TaskQueue.h"
 #include "Condition.hpp"
 
 #include <cstdlib>
 #include <chrono>
+#include <memory>
 #include <iostream>
 #include <atomic>
 #include <thread>
@@ -18,40 +20,51 @@ static void task()
 	{ return flag.test(std::memory_order::relaxed); });
 }
 
-template <typename _Functor, typename _Queue>
-static void print(const ThreadPool<_Functor, _Queue>& _threadPool)
+static void print(const ThreadPool<TaskManager>& _threadPool)
 {
-	auto [capacity, size, idleSize, taskSize] = _threadPool.getSnapshot();
-	std::cout << capacity << ' ' << size << ' ' \
-		<< idleSize << ' ' << taskSize << std::endl;
+	auto proxy = _threadPool.getProxy();
+	auto capacity = proxy.getCapacity();
+	auto totalSize = proxy.getTotalSize();
+	auto idleSize = proxy.getIdleSize();
+	std::cout << capacity << ' ' << totalSize << ' ' << idleSize;
+
+	if (auto taskManager = proxy.getTaskManager())
+	{
+		auto taskSize = taskManager->size();
+		std::cout << ' ' << taskSize;
+	}
+	std::cout << std::endl;
 }
 
 int main()
 {
-	ThreadPool threadPool;
+	auto taskQueue = std::make_shared<TaskQueue>();
+	ThreadPool<TaskManager> threadPool;
 	auto proxy = threadPool.getProxy();
+	proxy.setTaskManager(taskQueue);
+
 	auto capacity = proxy.getCapacity();
 	for (decltype(capacity) index = 0; \
 		index < capacity; ++index)
-		threadPool.pushTask(task);
+		taskQueue->put(task);
 
 	using namespace std::this_thread;
 	using namespace std::chrono;
 	sleep_for(seconds(2));
 	print(threadPool);
 
-	threadPool.pushTask([] \
+	taskQueue->put([] \
 	{ std::cout << "eterfree::ThreadPool" << std::endl; });
 
 	sleep_for(seconds(1));
 	print(threadPool);
 
-	threadPool.setCapacity(capacity + 1);
+	proxy.setCapacity(capacity + 1);
 
 	sleep_for(seconds(2));
 	print(threadPool);
 
-	flag.test_and_set();
+	flag.test_and_set(std::memory_order::relaxed);
 	condition.exit();
 	return EXIT_SUCCESS;
 }

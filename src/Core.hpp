@@ -13,9 +13,11 @@
 // 拼接
 #define SPLICE(front, back) front##back
 
+// 弃用
 #define DEPRECATED \
 [[deprecated("The name for this item is deprecated.")]]
 
+// 替换
 #define REPLACEMENT(signature) \
 [[deprecated("The name for this item is deprecated. " \
 "Instead, use the name: " STRING(signature) ".")]]
@@ -25,25 +27,27 @@
 #define ETERFREE_SPACE_END }
 #define USING_ETERFREE_SPACE using namespace eterfree;
 
-inline std::ostream& operator<<(std::ostream& _stream, \
-	const std::source_location& location)
-{
-	return _stream << '[' << location.file_name() << ':' \
-		<< location.function_name() << ':' << location.line() << ']';
-}
-
 ETERFREE_SPACE_BEGIN
 
 //template <typename _Type, const decltype(sizeof(0)) _SIZE>
-//constexpr auto size(_Type(&_array)[_SIZE])
+//constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 //{
 //	return sizeof _array / sizeof _array[0];
 //}
 
 template <typename _Type, const decltype(sizeof(0)) _SIZE>
-constexpr auto size(_Type(&_array)[_SIZE])
+constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 {
 	return _SIZE;
+}
+
+inline std::ostream& operator<<(std::ostream& _stream, \
+	const std::source_location& _location)
+{
+	return _stream << "in function " \
+		<< _location.function_name() << " at " \
+		<< _location.file_name() << ':' \
+		<< _location.line();
 }
 
 ETERFREE_SPACE_END

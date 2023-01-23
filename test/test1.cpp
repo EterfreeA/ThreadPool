@@ -5,6 +5,10 @@
 
 #if defined ETERFREE
 #include "ThreadPool.hpp"
+#include "TaskQueue.h"
+
+#include <memory>
+
 #elif defined BOOST
 #include <threadpool/threadpool.hpp>
 #endif
@@ -34,32 +38,36 @@ static void task()
 }
 
 #if defined ETERFREE
-using ThreadPool = eterfree::ThreadPool<>;
+using TaskQueue = eterfree::TaskQueue;
+using ThreadPool = eterfree::ThreadPool<TaskQueue>;
 
 static void execute(ThreadPool& _threadPool)
 {
-	auto proxy = _threadPool.getProxy();
-	for (auto index = 0UL; index < 20000UL; ++index)
-		proxy.pushTask(task);
+	auto taskManager = _threadPool.getTaskManager();
+	if (not taskManager) return;
 
-	ThreadPool::TaskQueue taskQueue;
+	for (auto index = 0UL; index < 20000UL; ++index)
+		taskManager->put(task);
+
+	TaskQueue::QueueType queue;
 	for (auto index = 0UL; index < 30000UL; ++index)
-		taskQueue.push_back(task);
-	_threadPool.pushTask(std::move(taskQueue));
+		queue.push_back(task);
+	taskManager->put(std::move(queue));
 }
 
 static void terminate(ThreadPool&& _threadPool)
 {
-	_threadPool.clearTask();
-	auto threadPool(std::move(_threadPool));
+	_threadPool.setTaskManager(nullptr);
+	auto threadPool(std::forward<ThreadPool>(_threadPool));
+	(void)threadPool;
 }
 
 #elif defined BOOST
 static auto getConcurrency() noexcept
 {
 	auto concurrency = std::thread::hardware_concurrency();
-	return concurrency > 0 ? concurrency \
-		: static_cast<decltype(concurrency)>(1);
+	return concurrency > 0 ? \
+		concurrency : static_cast<decltype(concurrency)>(1);
 }
 
 using ThreadPool = boost::threadpool::thread_pool<>;
@@ -75,7 +83,8 @@ static void execute(ThreadPool& _threadPool)
 
 static void terminate(ThreadPool&& _threadPool)
 {
-	auto threadPool(std::move(_threadPool));
+	auto threadPool(std::forward<ThreadPool>(_threadPool));
+	(void)threadPool;
 }
 #endif
 
@@ -83,24 +92,26 @@ int main()
 {
 	using std::cout, std::endl;
 
-	constexpr auto load = []() noexcept \
+	constexpr auto load = []() noexcept
 	{ return counter.load(std::memory_order::relaxed); };
 
 #ifdef FILE_STREAM
-	constexpr auto file = "ThreadPool.log";
+	constexpr auto FILE = "ThreadPool.log";
 
 #ifdef FILE_SYSTEM
-	std::filesystem::remove(file);
+	std::filesystem::remove(FILE);
 #endif
 
-	std::ofstream ofs(file, std::ios::app);
+	std::ofstream ofs(FILE, std::ios::app);
 	auto os = cout.rdbuf(ofs.rdbuf());
 #endif
 
 #if defined ETERFREE
-	eterfree::ThreadPool threadPool;
+	auto taskQueue = std::make_shared<TaskQueue>();
+	ThreadPool threadPool;
+	threadPool.setTaskManager(taskQueue);
 #elif defined BOOST
-	boost::threadpool::thread_pool threadPool(getConcurrency());
+	ThreadPool threadPool(getConcurrency());
 #endif
 
 	using namespace std::chrono;
@@ -118,7 +129,7 @@ int main()
 
 #ifdef FILE_STREAM
 	cout << endl;
-	std::cout.rdbuf(os);
+	cout.rdbuf(os);
 #endif
 
 	terminate(std::move(threadPool));
