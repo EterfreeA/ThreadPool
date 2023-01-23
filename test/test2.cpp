@@ -20,10 +20,11 @@ static void task()
 
 static void print(const ThreadPool& _threadPool)
 {
-	std::cout << _threadPool.getCapacity() << ' ' \
-		<< _threadPool.getTotalSize() << ' ' \
-		<< _threadPool.getIdleSize() << ' ' \
-		<< _threadPool.getTaskSize() << std::endl;
+	auto proxy = _threadPool.getProxy();
+	std::cout << proxy.getCapacity() << ' ' \
+		<< proxy.getTotalSize() << ' ' \
+		<< proxy.getIdleSize() << ' ' \
+		<< proxy.getTaskSize() << std::endl;
 }
 
 int main()

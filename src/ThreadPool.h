@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年01月20日
+* 更新日期：2023年01月23日
 * 
 * 摘要
 * 1.线程池类ThreadPool定义于此文件，实现于ThreadPool.cpp。
@@ -228,7 +228,7 @@ public:
 	void clearTask();
 
 	// 获取代理
-	Proxy getProxy();
+	Proxy getProxy() const;
 };
 
 class ThreadPool::Proxy

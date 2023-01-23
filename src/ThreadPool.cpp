@@ -526,7 +526,7 @@ void ThreadPool::clearTask()
 }
 
 // 获取代理
-ThreadPool::Proxy ThreadPool::getProxy()
+ThreadPool::Proxy ThreadPool::getProxy() const
 {
 	return load();
 }
