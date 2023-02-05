@@ -21,8 +21,8 @@
 
 #ifdef FILE_SYSTEM
 #include <filesystem>
-#endif
-#endif
+#endif // FILE_SYSTEM
+#endif // FILE_STREAM
 
 static std::atomic_ulong counter = 0;
 
@@ -35,7 +35,6 @@ static void task()
 
 #if defined ETERFREE
 using ThreadPool = eterfree::ThreadPool;
-
 static void execute(ThreadPool& _threadPool)
 {
 	auto proxy = _threadPool.getProxy();
@@ -64,7 +63,6 @@ static auto getConcurrency() noexcept
 }
 
 using ThreadPool = boost::threadpool::thread_pool<>;
-
 static void execute(ThreadPool& _threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
@@ -93,11 +91,11 @@ int main()
 
 #ifdef FILE_SYSTEM
 	std::filesystem::remove(FILE);
-#endif
+#endif // FILE_SYSTEM
 
 	std::ofstream ofs(FILE, std::ios::app);
 	auto os = cout.rdbuf(ofs.rdbuf());
-#endif
+#endif // FILE_STREAM
 
 #if defined ETERFREE
 	ThreadPool threadPool;
@@ -121,7 +119,7 @@ int main()
 #ifdef FILE_STREAM
 	cout << endl;
 	cout.rdbuf(os);
-#endif
+#endif // FILE_STREAM
 
 	terminate(std::move(threadPool));
 	cout << "任务总数：" << load() << endl;
