@@ -1,11 +1,23 @@
 ﻿#define ETERFREE
 #define BOOST
+
+#define TASK_QUEUE
+#define TASK_POOL
+
 //#define FILE_STREAM
 //#define FILE_SYSTEM
 
 #if defined ETERFREE
 #include "ThreadPool.hpp"
+
+#if defined TASK_QUEUE
 #include "TaskQueue.h"
+
+#elif defined TASK_POOL
+#include "TaskPool.hpp"
+
+#include <type_traits>
+#endif
 
 #include <memory>
 
@@ -25,22 +37,40 @@
 
 #ifdef FILE_SYSTEM
 #include <filesystem>
-#endif
-#endif
+#endif // FILE_SYSTEM
+#endif // FILE_STREAM
 
+constexpr auto SLEEP_TIME = std::chrono::milliseconds(3);
 static std::atomic_ulong counter = 0;
 
+#if not defined(ETERFREE) or defined(TASK_QUEUE)
 static void task()
 {
 	for (volatile auto index = 0UL; index < 10000UL; ++index);
-	std::this_thread::sleep_for(std::chrono::milliseconds(3));
+	std::this_thread::sleep_for(SLEEP_TIME);
 	counter.fetch_add(1, std::memory_order::relaxed);
 }
 
-#if defined ETERFREE
-using TaskQueue = eterfree::TaskQueue;
-using ThreadPool = eterfree::ThreadPool<TaskQueue>;
+#else
+using EventType = std::remove_const_t<decltype(SLEEP_TIME)>;
+static void handle(EventType& _event)
+{
+	for (volatile auto index = 0UL; index < 10000UL; ++index);
+	std::this_thread::sleep_for(SLEEP_TIME);
+	counter.fetch_add(1, std::memory_order::relaxed);
+}
+#endif
 
+#if defined ETERFREE
+#if defined TASK_QUEUE
+using TaskManager = eterfree::TaskQueue;
+#elif defined TASK_POOL
+using TaskManager = eterfree::TaskPool<EventType>;
+#endif
+
+using ThreadPool = eterfree::ThreadPool<TaskManager>;
+
+#if defined TASK_QUEUE
 static void execute(ThreadPool& _threadPool)
 {
 	auto taskManager = _threadPool.getTaskManager();
@@ -49,11 +79,30 @@ static void execute(ThreadPool& _threadPool)
 	for (auto index = 0UL; index < 20000UL; ++index)
 		taskManager->put(task);
 
-	TaskQueue::QueueType queue;
+	TaskManager::QueueType queue;
 	for (auto index = 0UL; index < 30000UL; ++index)
 		queue.push_back(task);
 	taskManager->put(std::move(queue));
 }
+
+#elif defined TASK_POOL
+static void execute(ThreadPool& _threadPool)
+{
+	auto taskManager = _threadPool.getTaskManager();
+	if (not taskManager) return;
+
+	constexpr TaskManager::IndexType INDEX = 0;
+	taskManager->set(INDEX, handle, true);
+
+	for (auto index = 0UL; index < 20000UL; ++index)
+		taskManager->put(INDEX, SLEEP_TIME);
+
+	TaskManager::EventQueue queue;
+	for (auto index = 0UL; index < 30000UL; ++index)
+		queue.push_back(SLEEP_TIME);
+	taskManager->put(INDEX, std::move(queue));
+}
+#endif
 
 static void terminate(ThreadPool&& _threadPool)
 {
@@ -71,7 +120,6 @@ static auto getConcurrency() noexcept
 }
 
 using ThreadPool = boost::threadpool::thread_pool<>;
-
 static void execute(ThreadPool& _threadPool)
 {
 	for (auto index = 0UL; index < 20000UL; ++index)
@@ -100,16 +148,17 @@ int main()
 
 #ifdef FILE_SYSTEM
 	std::filesystem::remove(FILE);
-#endif
+#endif // FILE_SYSTEM
 
 	std::ofstream ofs(FILE, std::ios::app);
 	auto os = cout.rdbuf(ofs.rdbuf());
-#endif
+#endif // FILE_STREAM
 
 #if defined ETERFREE
-	auto taskQueue = std::make_shared<TaskQueue>();
 	ThreadPool threadPool;
-	threadPool.setTaskManager(taskQueue);
+	auto taskManager = std::make_shared<TaskManager>();
+	threadPool.setTaskManager(taskManager);
+
 #elif defined BOOST
 	ThreadPool threadPool(getConcurrency());
 #endif
@@ -130,7 +179,7 @@ int main()
 #ifdef FILE_STREAM
 	cout << endl;
 	cout.rdbuf(os);
-#endif
+#endif // FILE_STREAM
 
 	terminate(std::move(threadPool));
 	cout << "任务总数：" << load() << endl;

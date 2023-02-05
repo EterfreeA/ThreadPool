@@ -1,4 +1,4 @@
-﻿#include "Timer.hpp"
+﻿#include "Timer.h"
 #include "TaskQueue.h"
 #include "ThreadPool.hpp"
 
@@ -21,33 +21,34 @@ void Task::execute()
 	using namespace std::chrono;
 
 	auto duration = getSystemTime().time_since_epoch();
-	std::cout << duration_cast<SteadyTime::duration>(duration) << std::endl;
+	auto time = duration_cast<SteadyTime::duration>(duration);
+	std::cout << time << std::endl;
 }
 
 int main()
 {
-	auto taskQueue = std::make_shared<TaskQueue>();
 	ThreadPool<TaskManager> threadPool(1);
+	auto taskQueue = std::make_shared<TaskQueue>();
 	threadPool.setTaskManager(taskQueue);
 
 	using namespace std::this_thread;
 	using namespace std::chrono;
 	sleep_for(seconds(1));
 
-	Timer<void*> timer;
+	Timer timer;
 	timer.setDuration(2000000);
 
 	SpinAdapter<SpinAdaptee> adapter(timer);
 	taskQueue->put(adapter);
 	adapter.start();
 
-	Task task;
-	task.setDuration(200000000);
-	timer.pushTask(&task, &task);
+	auto task = std::make_shared<Task>();
+	task->setDuration(200000000);
+	timer.pushTask(task);
 
 	sleep_for(seconds(2));
+	task->cancel();
 
-	timer.popTask(&task);
 	sleep_for(seconds(1));
 	return EXIT_SUCCESS;
 }

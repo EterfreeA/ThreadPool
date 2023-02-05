@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年01月23日
+* 更新日期：2023年02月04日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -23,7 +23,7 @@
 * 版本：v3.0.0
 * 变化
 * v3.0.0
-* 1.抽象任务管理器为模板隐式接口，支持自定义任务管理器。
+* 1.抽象任务管理器为模板隐式接口，以支持自定义任务管理器。
 * 2.在任务管理器为空或者无效，并且所有线程闲置时，守护线程才可以退出，否则守护线程轮询等待这两个条件。
 *   若任务管理器存在无效任务，则线程可能进行非预期性阻塞，导致在守护线程退出之前，线程无法执行任务管理器的所有任务。
 */
@@ -41,6 +41,7 @@
 
 #include "Core.hpp"
 #include "Thread.hpp"
+#include "TaskManager.h"
 
 ETERFREE_SPACE_BEGIN
 
@@ -62,7 +63,7 @@ SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 	} \
 }
 
-template <typename _TaskManager>
+template <typename _TaskManager = TaskManager>
 class ThreadPool
 {
 	// 算术枚举
@@ -300,7 +301,10 @@ public:
 	Proxy(const decltype(_data)& _data) noexcept : \
 		_data(_data) {}
 
-	explicit operator bool() const noexcept
+	explicit operator bool() const noexcept { return valid(); }
+
+	// 是否有效
+	bool valid() const noexcept
 	{
 		return static_cast<bool>(_data);
 	}
@@ -347,9 +351,10 @@ void ThreadPool<_TaskManager>::Structure::waitPoll(TimePoint& _timePoint, \
 	auto difference = (duration - _duration) % duration;
 
 	auto timePoint = Structure::getTimePoint();
-	auto realTime = (timePoint - _timePoint).count() % duration;
+	auto realTime = (timePoint - _timePoint).count();
 	_timePoint = timePoint;
 
+	realTime %= duration;
 	if (realTime >= difference) difference += duration;
 
 	auto sleepTime = difference - realTime;

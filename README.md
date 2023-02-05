@@ -18,11 +18,10 @@ Copyright © 2017 CDU Innovation Studio. Some Rights Reserved.
 [TaskQueue.cpp](./src/TaskQueue.cpp)  
 [Sorter.hpp](./src/Sorter.hpp)  
 [TaskPool.hpp](./src/TaskPool.hpp)  
-[Timer.h](./src/Timer.h)  
-[Timer.cpp](./src/Timer.cpp)  
 [SpinAdapter.hpp](./src/SpinAdapter.hpp)  
 [TimeoutQueue.hpp](./src/TimeoutQueue.hpp)  
-[Timer.hpp](./src/Timer.hpp)
+[Timer.h](./src/Timer.h)  
+[Timer.cpp](./src/Timer.cpp)  
 
 ## Author
 name: 许聪  

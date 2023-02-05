@@ -1,7 +1,9 @@
 ﻿#include "Timer.h"
 #include "Logger.h"
 
-#include <iostream>
+#include <utility>
+#include <exception>
+#include <iostream> // 测试代码
 #include <thread>
 
 #ifdef _WIN32
@@ -93,6 +95,117 @@ auto PeriodicTask::getTime() noexcept -> SystemTime
 
 	return getNextTime(timePoint, duration, \
 		getSystemTime() - timePoint);
+}
+
+// 启动定时器
+void Timer::start()
+{
+	std::lock_guard lock(_timeMutex);
+	_timePoint = TimedTask::getSteadyTime();
+	_correction = 0;
+}
+
+// 更新定时任务
+void Timer::update()
+{
+	typename TaskQueue::VectorType outVector;
+	auto time = TimedTask::getSystemTime();
+
+	std::unique_lock lock(_taskMutex);
+	if (not _taskQueue.pop(time, outVector)) return;
+	lock.unlock();
+
+	decltype(outVector) inVector;
+	inVector.reserve(outVector.size());
+
+	for (auto& task : outVector)
+	{
+		try
+		{
+			if (task->valid())
+			{
+				task->execute();
+
+				if (task->persistent())
+					inVector.push_back(std::move(task));
+			}
+		}
+		catch (std::exception& exception)
+		{
+			Logger::output(Logger::Level::ERROR, \
+				std::source_location::current(), \
+				exception);
+		}
+	}
+
+	lock.lock();
+	for (auto& task : inVector)
+	{
+		try
+		{
+			_taskQueue.push(task->getTime(), \
+				std::move(task));
+		}
+		catch (std::exception& exception)
+		{
+			Logger::output(Logger::Level::ERROR, \
+				std::source_location::current(), \
+				exception);
+		}
+	}
+}
+
+// 等待后续轮询
+void Timer::wait()
+{
+	auto duration = getDuration();
+	if (duration <= 0)
+	{
+		std::lock_guard lock(_timeMutex);
+		_timePoint = TimedTask::getSteadyTime();
+		return;
+	}
+
+	std::lock_guard lock(_timeMutex);
+	auto timePoint = TimedTask::getSteadyTime();
+	auto realTime = (timePoint - _timePoint).count();
+	_timePoint = timePoint;
+
+	auto difference = duration - _correction % duration;
+	realTime %= duration;
+	if (realTime >= difference)
+	{
+		_correction = (realTime - difference) % duration;
+		return;
+	}
+
+	auto sleepTime = difference - realTime;
+	TimedTask::sleep(sleepTime);
+
+	timePoint = TimedTask::getSteadyTime();
+	realTime = (timePoint - _timePoint).count();
+	_timePoint = timePoint;
+
+	_correction = (realTime - sleepTime) % duration;
+}
+
+// 放入定时任务
+bool Timer::pushTask(const TaskType& _task)
+{
+	if (not _task) return false;
+
+	std::lock_guard lock(_taskMutex);
+	return _taskQueue.push(_task->getTime(), _task);
+}
+
+// 放入定时任务
+bool Timer::pushTask(TaskType&& _task)
+{
+	if (not _task) return false;
+
+	std::lock_guard lock(_taskMutex);
+	return _taskQueue.push(_task->getTime(), \
+		std::forward<TaskType>(_task));
 }
 
 ETERFREE_SPACE_END

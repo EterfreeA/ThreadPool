@@ -2,7 +2,7 @@
 * 文件名称：TaskPool.hpp
 * 语言标准：C++20
 *
-* 创建日期：2023年01月23日
+* 创建日期：2023年02月04日
 *
 * 摘要
 * 1.定义任务池类模板TaskPool，继承任务管理器抽象类，确保接口的线程安全性。
@@ -179,9 +179,9 @@ private:
 	// 回复任务
 	void reply(IndexType _index);
 
-	// 设置处理者
-	bool set(IndexType _index, const HandleType& _handle, bool _parallel);
-	bool set(IndexType _index, HandleType&& _handle, bool _parallel);
+	// 放入处理者
+	bool push(IndexType _index, const HandleType& _handle, bool _parallel);
+	bool push(IndexType _index, HandleType&& _handle, bool _parallel);
 
 	// 向调度队列放入索引
 	bool push(IndexType _index);
@@ -205,28 +205,28 @@ public:
 		return queue ? queue->size() : 0;
 	}
 
-	// 放入处理者
-	bool put(IndexType _index, \
+	// 设置处理者
+	bool set(IndexType _index, \
 		const HandleType& _handle, bool _parallel = false)
 	{
-		return set(_index, _handle, _parallel);
+		return push(_index, _handle, _parallel);
 	}
-	bool put(IndexType _index, HandleType&& _handle, bool _parallel = false)
+	bool set(IndexType _index, HandleType&& _handle, bool _parallel = false)
 	{
-		return set(_index, std::forward<HandleType>(_handle), _parallel);
+		return push(_index, std::forward<HandleType>(_handle), _parallel);
 	}
 
 	// 适配不同处理接口，推进任务池模板化
 	template <typename _Functor>
-	bool put(IndexType _index, \
+	bool set(IndexType _index, \
 		const _Functor& _functor, bool _parallel = false)
 	{
-		return set(_index, _functor, _parallel);
+		return push(_index, _functor, _parallel);
 	}
 	template <typename _Functor>
-	bool put(IndexType _index, _Functor&& _functor, bool _parallel = false)
+	bool set(IndexType _index, _Functor&& _functor, bool _parallel = false)
 	{
-		return set(_index, std::forward<_Functor>(_functor), _parallel);
+		return push(_index, std::forward<_Functor>(_functor), _parallel);
 	}
 
 	// 放入单事件
@@ -583,9 +583,9 @@ void TaskPool<_EventType>::reply(IndexType _index)
 			pushIndex(_index);
 }
 
-// 设置处理者
+// 放入处理者
 template <typename _EventType>
-bool TaskPool<_EventType>::set(IndexType _index, \
+bool TaskPool<_EventType>::push(IndexType _index, \
 	const HandleType& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
@@ -618,9 +618,9 @@ bool TaskPool<_EventType>::set(IndexType _index, \
 	return true;
 }
 
-// 设置处理者
+// 放入处理者
 template <typename _EventType>
-bool TaskPool<_EventType>::set(IndexType _index, HandleType&& _handle, bool _parallel)
+bool TaskPool<_EventType>::push(IndexType _index, HandleType&& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 

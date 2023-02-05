@@ -13,6 +13,7 @@ int main()
 	thread.configure([] \
 	{ cout << "Eterfree" << endl; }, nullptr);
 	cout << boolalpha << thread.notify() << endl;
+
 	thread.destroy();
 
 	thread.create();

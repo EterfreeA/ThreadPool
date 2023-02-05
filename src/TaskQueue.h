@@ -2,7 +2,7 @@
 * 文件名称：TaskQueue.h
 * 语言标准：C++20
 * 
-* 创建日期：2023年01月22日
+* 创建日期：2023年02月04日
 * 
 * 摘要
 * 1.任务队列类TaskQueue定义于此文件，实现于TaskQueue.cpp。
@@ -135,11 +135,11 @@ public:
 template <typename _Functor, typename... _Args>
 bool TaskQueue::put(_Functor&& _functor, _Args&&... _args)
 {
-	//return put([_functor, _args...] { _functor(_args...); });
-	//return put([_functor = std::forward<_Functor>(_functor), \
+	//return push([_functor, _args...] { _functor(_args...); });
+	//return push([_functor = std::forward<_Functor>(_functor), \
 	//	_args = std::make_tuple(std::forward<_Args>(_args)...)]
 	//{ std::apply(_functor, _args); });
-	return put(std::bind(std::forward<_Functor>(_functor), \
+	return push(std::bind(std::forward<_Functor>(_functor), \
 		std::forward<_Args>(_args)...));
 }
 

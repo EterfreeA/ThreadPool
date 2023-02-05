@@ -38,7 +38,7 @@ public:
 
 static const char* LEVEL[] =
 {
-	"", "RUN", "DEBUG", "WARN", "ERROR"
+	"", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
 };
 
 std::ostream& operator<<(std::ostream& _stream, Logger::Level _level)

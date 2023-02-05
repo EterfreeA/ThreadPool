@@ -2,7 +2,7 @@
 * 文件名称：Logger.h
 * 语言标准：C++20
 * 
-* 创建日期：2023年01月21日
+* 创建日期：2023年02月01日
 * 
 * 摘要
 * 1.日志记录器抽象类Logger定义于此文件，其静态函数实现于Logger.cpp。
@@ -33,7 +33,7 @@ class Logger
 public:
 	enum class Level : std::uint8_t
 	{
-		EMPTY, RUN, DEBUG, WARN, ERROR
+		EMPTY, TRACE, DEBUG, INFO, WARN, ERROR, FATAL
 	};
 
 	enum class Mode : std::uint8_t
