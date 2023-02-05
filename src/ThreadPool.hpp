@@ -3,57 +3,45 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2022年03月17日
+* 更新日期：2023年02月04日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
-* 2.当任务队列为空，阻塞守护线程，在新增任务之时，激活守护线程，通知线程获取任务。
-* 3.当无闲置线程，阻塞守护线程，当存在闲置线程，激活守护线程，通知闲置线程获取任务。
-* 4.当销毁线程池，等待守护线程退出，而守护线程在退出之前，等待所有线程退出。
-*   线程在退出之前，默认完成任务队列的所有任务，可选弹出所有任务或者清空队列，用以支持线程立即退出。
+* 2.当无任务时，阻塞守护线程；当新增任务时，激活守护线程，通知线程获取任务。
+* 3.当无闲置线程时，阻塞守护线程；当存在闲置线程时，激活守护线程，通知闲置线程获取任务。
+* 4.当销毁线程池时，等待守护线程退出，而守护线程在退出之前，等待所有线程退出。
+*   线程在退出之前，默认执行任务管理器的所有任务。可选更换无效任务管理器或者清空任务，以支持线程立即退出。
 * 5.提供增删线程策略，由守护线程增删线程。
-*   在任务队列非空之时，一次性增加线程，当存在闲置线程之时，逐个删减线程。
+*   在任务管理器非空之时，一次性增加线程；在存在闲置线程之时，逐个删减线程。
 * 6.以原子操作确保接口的线程安全性，并且新增成员类Proxy，用于减少原子操作，针对频繁操作提升性能。
-* 7.引入双缓冲队列类模板Queue，降低读写任务的相互影响，提高放入和取出任务的效率。
-* 8.引入条件类模板Condition，当激活先于阻塞之时，确保守护线程正常退出。
-* 9.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
+* 7.守护线程主函数声明为静态成员，除去与类成员指针this的关联性。
+* 8.引入强化条件类模板Condition，当激活先于阻塞时，确保守护线程正常退出。
 * 
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v2.1.0
+* 版本：v3.0.0
 * 变化
-* v2.0.1
-* 1.运用Condition的宽松策略，提升激活守护线程的效率。
-* v2.0.2
-* 1.消除谓词对条件实例有效性的重复判断。
-* v2.0.3
-* 1.修复条件谓词异常。
-*   在延迟删减线程之时，未减少闲置线程数量，导致守护线程不必等待通知的条件谓词异常。
-* v2.0.4
-* 1.以原子操作确保移动语义的线程安全性。
-* 2.新增成员类Proxy，提供轻量接口，减少原子操作。
-* 3.新增任务可选复制语义或者移动语义。
-* v2.1.0
-* 1.修复线程池扩容问题。
-*   由于未增加线程数量，因此无限创建线程；同时未增加闲置线程数量，守护线程无法调度新线程执行任务，即线程泄漏。
-* 2.修复线程池缩容问题。
-*   在延迟删减线程之时，未减少线程数量，导致线程池反复删减线程，直至线程池为空。
+* v3.0.0
+* 1.抽象任务管理器为模板隐式接口，以支持自定义任务管理器。
+* 2.在任务管理器为空或者无效，并且所有线程闲置时，守护线程才可以退出，否则守护线程轮询等待这两个条件。
+*   若任务管理器存在无效任务，则线程可能进行非预期性阻塞，导致在守护线程退出之前，线程无法执行任务管理器的所有任务。
 */
 
 #pragma once
 
-#include <functional>
 #include <utility>
-#include <tuple>
+#include <chrono>
 #include <memory>
+#include <cstdint>
 #include <list>
 #include <atomic>
 #include <thread>
+#include <mutex>
 
 #include "Core.hpp"
 #include "Thread.hpp"
-#include "Queue.hpp"
+#include "TaskManager.h"
 
 ETERFREE_SPACE_BEGIN
 
@@ -65,8 +53,7 @@ SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 	switch (_arithmetic) \
 	{ \
 	case Arithmetic::REPLACE: \
-		field.store(_size, MEMORY_ORDER); \
-		return _size; \
+		return field.exchange(_size, MEMORY_ORDER); \
 	case Arithmetic::INCREASE: \
 		return field.fetch_add(_size, MEMORY_ORDER); \
 	case Arithmetic::DECREASE: \
@@ -76,98 +63,55 @@ SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 	} \
 }
 
-template <typename _TaskType = std::function<void()>, \
-	typename _QueueType = Queue<_TaskType>>
+template <typename _TaskManager = TaskManager>
 class ThreadPool
 {
-	using Thread = Thread<_TaskType, _QueueType>;
-	using Callback = Thread::Callback;
-	using Condition = Thread::Condition;
+	// 算术枚举
+	enum class Arithmetic : std::uint8_t
+	{
+		REPLACE,	// 替换
+		INCREASE,	// 自增
+		DECREASE	// 自减
+	};
+
+	// 线程池数据结构体
+	struct Structure;
 
 public:
+	// 线程池代理类
 	class Proxy;
 
-	using TaskType = _TaskType;
-	using QueueType = _QueueType;
-	using TaskQueue = QueueType::QueueType;
-
-	using SizeType = Thread::SizeType;
-
 private:
-	// 线程池数据结构体
-	struct Structure
-	{
-		// 算术枚举
-		enum class Arithmetic { REPLACE, INCREASE, DECREASE };
+	using TaskType = _TaskManager::TaskType;
+	using NotifyType = _TaskManager::NotifyType;
 
-		std::list<Thread> _threadTable;			// 线程表
-		std::shared_ptr<QueueType> _taskQueue;	// 任务队列
-		Callback _callback;						// 回调函数子
+	using Thread = Thread<TaskType>;
+	using Condition = Thread::Condition;
 
-		std::thread _thread;					// 守护线程
-		Condition _condition;					// 强化条件变量
+	using FetchType = Thread::FetchType;
+	using ReplyType = Thread::ReplyType;
 
-		std::atomic<SizeType> _capacity;		// 线程池容量
-		std::atomic<SizeType> _size;			// 线程数量
-		std::atomic<SizeType> _idleSize;		// 闲置线程数量
-
-		/*
-		 * 默认构造函数
-		 * 若先以运算符new创建实例，再交由共享指针std::shared_ptr托管，
-		 * 则至少二次分配内存，先为实例分配内存，再为共享指针的控制块分配内存。
-		 * 而std::make_shared典型地仅分配一次内存，实例内存和控制块内存连续。
-		 */
-		Structure()
-			: _taskQueue(std::make_shared<QueueType>()) {}
-
-		// 过滤任务
-		template <typename _TaskQueue>
-		static auto filterTask(_TaskQueue& _taskQueue);
-
-		// 放入任务
-		bool pushTask(const TaskType& _task);
-		bool pushTask(TaskType&& _task);
-
-		// 批量放入任务
-		bool pushTask(TaskQueue& _taskQueue);
-		bool pushTask(TaskQueue&& _taskQueue);
-
-		// 设置线程池容量
-		void setCapacity(SizeType _capacity, \
-			bool _notified = false);
-
-		// 获取线程池容量
-		auto getCapacity() const noexcept
-		{
-			return _capacity.load(std::memory_order::relaxed);
-		}
-
-		// 设置线程数量
-		SET_ATOMIC(SizeType, Arithmetic, setSize, this->_size);
-
-		// 获取线程数量
-		auto getSize() const noexcept
-		{
-			return _size.load(std::memory_order::relaxed);
-		}
-
-		// 设置闲置线程数量
-		SET_ATOMIC(SizeType, Arithmetic, setIdleSize, _idleSize);
-
-		// 获取闲置线程数量
-		auto getIdleSize() const noexcept
-		{
-			return _idleSize.load(std::memory_order::relaxed);
-		}
-	};
+	using Duration = std::chrono::steady_clock::rep;
 
 	using DataType = std::shared_ptr<Structure>;
 	using AtomicType = std::atomic<DataType>;
+
+public:
+	using SizeType = Thread::SizeType;
+	using TaskManager = std::shared_ptr<_TaskManager>;
 
 private:
 	AtomicType _atomic;
 
 private:
+	// 交换数据
+	static auto exchange(AtomicType& _atomic, \
+		const DataType& _data) noexcept
+	{
+		return _atomic.exchange(_data, \
+			std::memory_order::relaxed);
+	}
+
 	// 创建线程池
 	static void create(DataType&& _data, \
 		SizeType _capacity);
@@ -181,22 +125,9 @@ private:
 	// 守护线程主函数
 	static void execute(DataType _data);
 
-	// 交换数据
-	static auto exchange(AtomicType& _atomic, \
-		const DataType& _data) noexcept
-	{
-		return _atomic.exchange(_data, \
-			std::memory_order::relaxed);
-	}
-
 public:
 	// 获取支持的并发线程数量
-	static auto getConcurrency() noexcept
-	{
-		auto concurrency = std::thread::hardware_concurrency();
-		return concurrency > 0 ? concurrency \
-			: static_cast<decltype(concurrency)>(1);
-	}
+	static SizeType getConcurrency() noexcept;
 
 private:
 	// 加载非原子数据
@@ -205,10 +136,21 @@ private:
 		return _atomic.load(std::memory_order::relaxed);
 	}
 
+	// 存储非原子数据
+	void store(const DataType& _data) noexcept
+	{
+		_atomic.store(_data, std::memory_order::relaxed);
+	}
+
 public:
-	// 默认构造函数
-	ThreadPool(SizeType _capacity = getConcurrency())
-		: _atomic(std::make_shared<Structure>())
+	/*
+	 * 默认构造函数
+	 * 若先以运算符new创建实例，再交由共享指针std::shared_ptr托管，
+	 * 则至少二次分配内存，先为实例分配内存，再为共享指针的控制块分配内存。
+	 * 而std::make_shared典型地仅分配一次内存，实例内存和控制块内存连续。
+	 */
+	ThreadPool(SizeType _capacity = getConcurrency()) : \
+		_atomic(std::make_shared<Structure>())
 	{
 		create(load(), _capacity);
 	}
@@ -217,8 +159,8 @@ public:
 	ThreadPool(const ThreadPool&) = delete;
 
 	// 默认移动构造函数
-	ThreadPool(ThreadPool&& _threadPool) noexcept
-		: _atomic(exchange(_threadPool._atomic, nullptr)) {}
+	ThreadPool(ThreadPool&& _another) noexcept : \
+		_atomic(exchange(_another._atomic, nullptr)) {}
 
 	// 默认析构函数
 	~ThreadPool()
@@ -232,281 +174,320 @@ public:
 	ThreadPool& operator=(const ThreadPool&) = delete;
 
 	// 默认移动赋值运算符函数
-	ThreadPool& operator=(ThreadPool&& _threadPool) noexcept
-	{
-		exchange(_atomic, \
-			exchange(_threadPool._atomic, nullptr));
-		return *this;
-	}
+	ThreadPool& operator=(ThreadPool&& _another) noexcept;
+
+	// 设置轮询间隔
+	bool setDuration(Duration _duration) noexcept;
+
+	// 获取线程池容量
+	SizeType getCapacity() const noexcept;
+
+	// 设置线程池容量
+	bool setCapacity(SizeType _capacity);
+
+	// 获取总线程数量
+	SizeType getTotalSize() const noexcept;
+
+	// 获取闲置线程数量
+	SizeType getIdleSize() const noexcept;
+
+	// 获取任务管理器
+	TaskManager getTaskManager() const;
+
+	// 设置任务管理器
+	bool setTaskManager(const TaskManager& _taskManager);
 
 	// 获取代理
-	Proxy getProxy() noexcept { return load(); }
-
-	// 设置线程池容量
-	void setCapacity(SizeType _capacity);
-
-	// 获取快照（包括线程池容量、线程数量、闲置线程数量、任务数量）
-	auto getSnapshot() const;
-
-	// 放入任务
-	bool pushTask(const TaskType& _task);
-	bool pushTask(TaskType&& _task);
-
-	// 适配不同任务接口，推进线程池模板化
-	template <typename _Functor>
-	bool pushTask(const _Functor& _functor)
-	{
-		auto data = load();
-		return data and data->pushTask(_functor);
-	}
-	template <typename _Functor>
-	bool pushTask(_Functor&& _functor)
-	{
-		auto data = load();
-		return data \
-			and data->pushTask(std::forward<_Functor>(_functor));
-	}
-	template <typename _Functor, typename... _Args>
-	bool pushTask(_Functor&& _functor, _Args&&... _args);
-
-	// 批量放入任务
-	bool pushTask(TaskQueue& _taskQueue)
-	{
-		auto data = load();
-		return data and data->pushTask(_taskQueue);
-	}
-	bool pushTask(TaskQueue&& _taskQueue)
-	{
-		auto data = load();
-		return data \
-			and data->pushTask(std::forward<TaskQueue>(_taskQueue));
-	}
-
-	// 批量弹出任务
-	bool popTask(TaskQueue& _taskQueue)
-	{
-		auto data = load();
-		return data \
-			and data->_taskQueue->pop(_taskQueue);
-	}
-
-	// 清空任务
-	void clearTask()
-	{
-		if (auto data = load())
-			data->_taskQueue->clear();
-	}
+	Proxy getProxy() const noexcept { return load(); }
 };
 
-#undef SET_ATOMIC
-
-template <typename _TaskType, typename _QueueType>
-class ThreadPool<_TaskType, _QueueType>::Proxy
+// 线程池数据结构体
+template <typename _TaskManager>
+struct ThreadPool<_TaskManager>::Structure
 {
-	DataType _data;
+	using TimePoint = std::chrono::steady_clock::time_point;
 
-public:
-	Proxy(const decltype(_data)& _data) noexcept
-		: _data(_data) {}
+	std::atomic<Duration> _duration;		// 轮询间隔
 
-	explicit operator bool() const noexcept
+	Condition _condition;					// 强化条件变量
+	std::thread _thread;					// 守护线程
+	std::list<Thread> _threadTable;			// 线程表
+
+	std::atomic<SizeType> _capacity;		// 线程池容量
+	std::atomic<SizeType> _totalSize;		// 总线程数量
+	std::atomic<SizeType> _idleSize;		// 闲置线程数量
+
+	mutable std::mutex _taskMutex;			// 任务互斥元
+	TaskManager _taskManager;				// 任务管理器
+
+	NotifyType _notify;						// 通知函数子
+	FetchType _fetch;						// 获取函数子
+	ReplyType _reply;						// 回复函数子
+
+	// 获取时间戳
+	static auto getTimePoint() noexcept
 	{
-		return static_cast<bool>(_data);
+		return std::chrono::steady_clock::now();
 	}
 
-	// 设置线程池容量
-	void setCapacity(SizeType _capacity)
+	// 获取轮询间隔
+	auto getDuration() const noexcept
 	{
-		if (_capacity > 0 and _data)
-			_data->setCapacity(_capacity, true);
+		return _duration.load(std::memory_order::relaxed);
 	}
+
+	// 设置轮询间隔
+	void setDuration(Duration _duration) noexcept
+	{
+		this->_duration.store(_duration, \
+			std::memory_order::relaxed);
+	}
+
+	// 等待轮询
+	void waitPoll(TimePoint& _timePoint, Duration& _duration);
 
 	// 获取线程池容量
 	auto getCapacity() const noexcept
 	{
-		using SizeType = decltype(_data->getCapacity());
-		return _data ? _data->getCapacity() \
-			: static_cast<SizeType>(0);
+		return _capacity.load(std::memory_order::relaxed);
 	}
 
-	// 获取线程数量
-	auto getSize() const noexcept
+	// 设置线程池容量
+	void setCapacity(SizeType _capacity, bool _notified = false);
+
+	// 获取总线程数量
+	auto getTotalSize() const noexcept
 	{
-		using SizeType = decltype(_data->getSize());
-		return _data ? _data->getSize() \
-			: static_cast<SizeType>(0);
+		return _totalSize.load(std::memory_order::relaxed);
 	}
+
+	// 设置总线程数量
+	SET_ATOMIC(SizeType, Arithmetic, setTotalSize, _totalSize);
 
 	// 获取闲置线程数量
 	auto getIdleSize() const noexcept
 	{
-		using SizeType = decltype(_data->getIdleSize());
-		return _data ? _data->getIdleSize() \
-			: static_cast<SizeType>(0);
+		return _idleSize.load(std::memory_order::relaxed);
 	}
 
-	// 获取任务数量
-	auto getTaskSize() const noexcept
+	// 设置闲置线程数量
+	SET_ATOMIC(SizeType, Arithmetic, setIdleSize, _idleSize);
+
+	// 任务管理器是否为空
+	bool isEmptyManager() const;
+
+	// 任务管理器是否有效
+	bool isValidManager() const;
+
+	// 获取任务管理器
+	auto getTaskManager() const
 	{
-		using SizeType = decltype(_data->_taskQueue->size());
-		return _data ? _data->_taskQueue->size() \
-			: static_cast<SizeType>(0);
+		std::lock_guard lock(_taskMutex);
+		return _taskManager;
 	}
 
-	// 放入任务
-	bool pushTask(const TaskType& _task)
-	{
-		return _task and _data \
-			and _data->pushTask(_task);
-	}
-	bool pushTask(TaskType&& _task)
-	{
-		return _task and _data \
-			and _data->pushTask(std::forward<TaskType>(_task));
-	}
-
-	// 适配不同任务接口，推进线程池模板化
-	template <typename _Functor>
-	bool pushTask(const _Functor& _functor)
-	{
-		return _data and _data->pushTask(_functor);
-	}
-	template <typename _Functor>
-	bool pushTask(_Functor&& _functor)
-	{
-		return _data \
-			and _data->pushTask(std::forward<_Functor>(_functor));
-	}
-	template <typename _Functor, typename... _Args>
-	bool pushTask(_Functor&& _functor, _Args&&... _args);
-
-	// 批量放入任务
-	bool pushTask(TaskQueue& _taskQueue)
-	{
-		return _data and _data->pushTask(_taskQueue);
-	}
-	bool pushTask(TaskQueue&& _taskQueue)
-	{
-		return _data \
-			and _data->pushTask(std::forward<TaskQueue>(_taskQueue));
-	}
-
-	// 批量弹出任务
-	bool popTask(TaskQueue& _taskQueue)
-	{
-		return _data \
-			and _data->_taskQueue->pop(_taskQueue);
-	}
-
-	// 清空任务
-	void clearTask()
-	{
-		if (_data)
-			_data->_taskQueue->clear();
-	}
+	// 设置任务管理器
+	void setTaskManager(const TaskManager& _taskManager);
 };
 
-template <typename _TaskType, typename _QueueType>
-template <typename _Functor, typename... _Args>
-bool ThreadPool<_TaskType, _QueueType>::Proxy::pushTask(_Functor&& _functor, \
-	_Args&&... _args)
-{
-	//return _data and _data->pushTask([_functor, \
-	//	_args = std::make_tuple(std::forward<_Args>(_args)...)]\
-	//{ std::apply(_functor, _args); });
-	//return _data and _data->pushTask([_functor, _args...]{ _functor(_args...); });
+#undef SET_ATOMIC
 
-	auto functor = std::bind(std::forward<_Functor>(_functor), \
-		std::forward<_Args>(_args)...);
-	return _data and _data->pushTask(functor);
-}
-
-// 过滤无效任务
-template <typename _TaskType, typename _QueueType>
-template <typename _TaskQueue>
-auto ThreadPool<_TaskType, _QueueType>::Structure::filterTask(_TaskQueue& _taskQueue)
+template <typename _TaskManager>
+class ThreadPool<_TaskManager>::Proxy
 {
-	decltype(_taskQueue.size()) size = 0;
-	std::erase_if(_taskQueue, \
-		[&size](const _TaskQueue::value_type& _task) noexcept \
+	DataType _data;
+
+public:
+	Proxy(const decltype(_data)& _data) noexcept : \
+		_data(_data) {}
+
+	explicit operator bool() const noexcept { return valid(); }
+
+	// 是否有效
+	bool valid() const noexcept
 	{
-		if (not _task)
-			return true;
+		return static_cast<bool>(_data);
+	}
 
-		++size;
-		return false;
-	});
-	return size;
-}
+	// 设置轮询间隔
+	bool setDuration(Duration _duration) noexcept;
 
-// 放入单任务
-template <typename _TaskType, typename _QueueType>
-bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(const TaskType& _task)
+	// 获取线程池容量
+	SizeType getCapacity() const noexcept;
+
+	// 设置线程池容量
+	bool setCapacity(SizeType _capacity);
+
+	// 获取总线程数量
+	SizeType getTotalSize() const noexcept;
+
+	// 获取闲置线程数量
+	SizeType getIdleSize() const noexcept;
+
+	// 获取任务管理器
+	TaskManager getTaskManager() const
+	{
+		return _data ? \
+			_data->getTaskManager() : nullptr;
+	}
+
+	// 设置任务管理器
+	bool setTaskManager(const TaskManager& _taskManager);
+};
+
+// 等待轮询
+template <typename _TaskManager>
+void ThreadPool<_TaskManager>::Structure::waitPoll(TimePoint& _timePoint, \
+	Duration& _duration)
 {
-	// 若放入任务之前，任务队列为空，则通知守护线程
-	auto result = _taskQueue->push(_task);
-	if (result and result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
-	return result.has_value();
-}
+	auto duration = getDuration();
+	if (duration <= 0)
+	{
+		_timePoint = Structure::getTimePoint();
+		return;
+	}
 
-// 放入单任务
-template <typename _TaskType, typename _QueueType>
-bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(TaskType&& _task)
-{
-	// 若放入任务之前，任务队列为空，则通知守护线程
-	auto result = _taskQueue->push(std::forward<TaskType>(_task));
-	if (result and result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
-	return result.has_value();
-}
+	_duration %= duration;
+	auto difference = (duration - _duration) % duration;
 
-// 批量放入任务
-template <typename _TaskType, typename _QueueType>
-bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(TaskQueue& _taskQueue)
-{
-	// 过滤无效任务
-	if (filterTask(_taskQueue) <= 0) return false;
+	auto timePoint = Structure::getTimePoint();
+	auto realTime = (timePoint - _timePoint).count();
+	_timePoint = timePoint;
 
-	// 若放入任务之前，任务队列为空，则通知守护线程
-	auto result = this->_taskQueue->push(_taskQueue);
-	if (result and result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
-	return result.has_value();
-}
+	realTime %= duration;
+	if (realTime >= difference) difference += duration;
 
-// 批量放入任务
-template <typename _TaskType, typename _QueueType>
-bool ThreadPool<_TaskType, _QueueType>::Structure::pushTask(TaskQueue&& _taskQueue)
-{
-	// 过滤无效任务
-	if (filterTask(_taskQueue) <= 0) return false;
+	auto sleepTime = difference - realTime;
+	std::this_thread::sleep_for(TimePoint::duration(sleepTime));
 
-	// 若放入任务之前，任务队列为空，则通知守护线程
-	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
-	if (result and result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
-	return result.has_value();
+	timePoint = Structure::getTimePoint();
+	realTime = (timePoint - _timePoint).count();
+	_timePoint = timePoint;
+
+	_duration = (realTime - sleepTime) % duration;
 }
 
 // 设置线程池容量
-template <typename _TaskType, typename _QueueType>
-void ThreadPool<_TaskType, _QueueType>::Structure::setCapacity(SizeType _capacity, \
+template <typename _TaskManager>
+void ThreadPool<_TaskManager>::Structure::setCapacity(SizeType _capacity, \
 	bool _notified)
 {
-	auto capacity = this->_capacity.exchange(_capacity, std::memory_order::relaxed);
+	auto capacity = this->_capacity.exchange(_capacity, \
+		std::memory_order::relaxed);
 	if (_notified and capacity != _capacity)
 		_condition.notify_one(Condition::Strategy::RELAXED);
 }
 
-// 创建线程池
-template <typename _TaskType, typename _QueueType>
-void ThreadPool<_TaskType, _QueueType>::create(DataType&& _data, SizeType _capacity)
+// 任务管理器是否为空
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::Structure::isEmptyManager() const
 {
-	using Arithmetic = Structure::Arithmetic;
+	std::lock_guard lock(_taskMutex);
+	return not _taskManager or _taskManager->empty();
+}
 
-	// 定义回调函数子
-	_data->_callback = [_data = std::weak_ptr(_data)](bool _idle, Thread::ThreadID _id) \
+// 任务管理器是否有效
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::Structure::isValidManager() const
+{
+	std::lock_guard lock(_taskMutex);
+	return _taskManager and _taskManager->size() > 0;
+}
+
+// 设置任务管理器
+template <typename _TaskManager>
+void ThreadPool<_TaskManager>::Structure::setTaskManager(const TaskManager& _taskManager)
+{
+	std::unique_lock lock(_taskMutex);
+	if (this->_taskManager) this->_taskManager->configure(nullptr);
+	this->_taskManager = _taskManager;
+	if (_taskManager) _taskManager->configure(_notify);
+	lock.unlock();
+
+	_condition.notify_one([&_taskManager]
+		{ return _taskManager and not _taskManager->empty(); });
+}
+
+// 设置轮询间隔
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::Proxy::setDuration(Duration _duration) noexcept
+{
+	if (_duration < 0 or not _data) return false;
+
+	_data->setDuration(_duration);
+	return true;
+}
+
+// 获取线程池容量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::Proxy::getCapacity() const noexcept \
+-> SizeType
+{
+	return _data ? _data->getCapacity() : 0;
+}
+
+// 设置线程池容量
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::Proxy::setCapacity(SizeType _capacity)
+{
+	if (_capacity <= 0 or not _data) return false;
+
+	_data->setCapacity(_capacity, true);
+	return true;
+}
+
+// 获取总线程数量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::Proxy::getTotalSize() const noexcept \
+-> SizeType
+{
+	return _data ? _data->getTotalSize() : 0;
+}
+
+// 获取闲置线程数量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::Proxy::getIdleSize() const noexcept \
+-> SizeType
+{
+	return _data ? _data->getIdleSize() : 0;
+}
+
+// 设置任务管理器
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::Proxy::setTaskManager(const TaskManager& _taskManager)
+{
+	if (not _data) return false;
+
+	_data->setTaskManager(_taskManager);
+	return true;
+}
+
+// 创建线程池
+template <typename _TaskManager>
+void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
+{
+	// 定义通知函数子
+	_data->_notify = [_data = std::weak_ptr(_data)]
+	{
+		if (auto data = _data.lock())
+			data->_condition.notify_one(Condition::Strategy::RELAXED);
+	};
+
+	// 定义获取函数子
+	_data->_fetch = [_data = std::weak_ptr(_data)](TaskType& _task)
+	{
+		auto data = _data.lock();
+		if (not data) return false;
+
+		std::unique_lock lock(data->_taskMutex);
+		auto taskManager = data->_taskManager;
+		lock.unlock();
+
+		return taskManager and taskManager->take(_task);
+	};
+
+	// 定义回复函数子
+	_data->_reply = [_data = std::weak_ptr(_data)](Thread::ThreadID _id, bool _idle)
 	{
 		// 线程并非闲置状态
 		if (not _idle) return;
@@ -522,21 +503,24 @@ void ThreadPool<_TaskType, _QueueType>::create(DataType&& _data, SizeType _capac
 	for (decltype(_capacity) index = 0; index < _capacity; ++index)
 	{
 		Thread thread;
-		thread.configure(_data->_taskQueue, _data->_callback);
+		thread.configure(_data->_fetch, _data->_reply);
 		_data->_threadTable.push_back(std::move(thread));
 	}
 
 	_data->setCapacity(_capacity); // 设置线程池容量
-	_data->setSize(_capacity, Arithmetic::REPLACE); // 设置线程数量
+	_data->setTotalSize(_capacity, Arithmetic::REPLACE); // 设置总线程数量
 	_data->setIdleSize(_capacity, Arithmetic::REPLACE); // 设置闲置线程数量
+
+	// 设置轮询间隔
+	_data->setDuration(std::chrono::nanoseconds(1000000).count());
 
 	// 创建std::thread对象，即守护线程，以_data为参数，执行函数execute
 	_data->_thread = std::thread(execute, _data);
 }
 
 // 销毁线程池
-template <typename _TaskType, typename _QueueType>
-void ThreadPool<_TaskType, _QueueType>::destroy(DataType&& _data)
+template <typename _TaskManager>
+void ThreadPool<_TaskManager>::destroy(DataType&& _data)
 {
 	// 避免重复销毁
 	if (not _data->_condition) return;
@@ -551,18 +535,17 @@ void ThreadPool<_TaskType, _QueueType>::destroy(DataType&& _data)
 	if (_data->_thread.joinable())
 		_data->_thread.join();
 
-	using Arithmetic = Structure::Arithmetic;
 	_data->setCapacity(0); // 设置线程池容量
-	_data->setSize(0, Arithmetic::REPLACE); // 设置线程数量
+	_data->setTotalSize(0, Arithmetic::REPLACE); // 设置总线程数量
 	_data->setIdleSize(0, Arithmetic::REPLACE); // 设置闲置线程数量
 }
 
 // 调整线程数量
-template <typename _TaskType, typename _QueueType>
-//ThreadPool<_TaskType, _QueueType>::SizeType ThreadPool<_TaskType, _QueueType>::adjust(DataType& _data)
-auto ThreadPool<_TaskType, _QueueType>::adjust(DataType& _data) -> SizeType
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::adjust(DataType& _data) \
+-> SizeType
 {
-	auto size = _data->getSize();
+	auto size = _data->getTotalSize();
 	auto capacity = _data->getCapacity();
 
 	// 1.删减线程
@@ -575,14 +558,12 @@ auto ThreadPool<_TaskType, _QueueType>::adjust(DataType& _data) -> SizeType
 	for (decltype(size) index = 0; index < size; ++index)
 	{
 		Thread thread;
-		thread.configure(_data->_taskQueue, _data->_callback);
+		thread.configure(_data->_fetch, _data->_reply);
 		_data->_threadTable.push_back(std::move(thread));
 	}
 
-	using Arithmetic = Structure::Arithmetic;
-
-	// 增加线程数量
-	_data->setSize(size, Arithmetic::INCREASE);
+	// 增加总线程数量
+	_data->setTotalSize(size, Arithmetic::INCREASE);
 
 	// 增加闲置线程数量
 	_data->setIdleSize(size, Arithmetic::INCREASE);
@@ -590,31 +571,40 @@ auto ThreadPool<_TaskType, _QueueType>::adjust(DataType& _data) -> SizeType
 }
 
 // 守护线程主函数
-template <typename _TaskType, typename _QueueType>
-void ThreadPool<_TaskType, _QueueType>::execute(DataType _data)
+template <typename _TaskManager>
+void ThreadPool<_TaskManager>::execute(DataType _data)
 {
+	auto timeStamp = Structure::getTimePoint(); // 时间戳
+	Duration correction = 0; // 修正值
+
 	/*
 	 * 条件变量的谓词，不必等待通知的条件
-	 * 1.存在闲置线程并且任务队列非空。
-	 * 2.存在闲置线程并且需要删减线程。
-	 * 3.任务队列非空并且需要增加线程。
-	 * 4.条件无效。
+	 * 1.强化条件变量无效。
+	 * 2.任务管理器非空并且存在闲置线程。
+	 * 3.任务管理器非空并且需要增加线程。
+	 * 4.存在闲置线程并且需要删减线程。
 	 */
-	auto predicate = [&_data] \
+	auto predicate = [&_data]
 	{
+		bool empty = _data->isEmptyManager();
 		bool idle = _data->getIdleSize() > 0;
-		bool empty = _data->_taskQueue->empty();
-		auto size = _data->getSize();
+		auto size = _data->getTotalSize();
 		auto capacity = _data->getCapacity();
-		return idle and (not empty or size > capacity) \
-			or not empty and size < capacity;
+		return not empty and (idle or size < capacity) \
+			or idle and size > capacity;
 	};
 
 	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
 
-	// 守护线程退出通道
-	while (_data->_condition)
+	/*
+	 * 守护线程退出条件
+	 * 1.强化条件变量无效
+	 * 2.任务管理器无效
+	 * 3.所有线程闲置
+	 */
+	while (_data->_condition or _data->isValidManager() \
+		or _data->getIdleSize() < _data->getTotalSize())
 	{
 		// 调整线程数量
 		auto size = adjust(_data);
@@ -627,8 +617,6 @@ void ThreadPool<_TaskType, _QueueType>::execute(DataType _data)
 			// 若线程处于闲置状态
 			if (auto& thread = *iterator; thread.idle())
 			{
-				using Arithmetic = Structure::Arithmetic;
-
 				// 若通知线程执行任务成功，则减少闲置线程数量
 				if (thread.notify())
 					_data->setIdleSize(1, Arithmetic::DECREASE);
@@ -637,7 +625,7 @@ void ThreadPool<_TaskType, _QueueType>::execute(DataType _data)
 				{
 					iterator = _data->_threadTable.erase(iterator);
 					_data->setIdleSize(1, Arithmetic::DECREASE);
-					_data->setSize(1, Arithmetic::DECREASE);
+					_data->setTotalSize(1, Arithmetic::DECREASE);
 					--size;
 					continue;
 				}
@@ -646,77 +634,109 @@ void ThreadPool<_TaskType, _QueueType>::execute(DataType _data)
 		}
 
 		// 根据谓词真假，决定是否阻塞守护线程
-		_data->_condition.wait(predicate);
+		if (_data->_condition)
+			_data->_condition.wait(predicate);
+		// 在守护线程退出之前，等待其他线程完成任务
+		else
+			// 由于强化条件变量无效，因此采用时间片轮询方式
+			_data->waitPoll(timeStamp, correction);
 	}
 
 	// 清空线程
 	_data->_threadTable.clear();
 }
 
+// 获取支持的并发线程数量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::getConcurrency() noexcept -> SizeType
+{
+	auto concurrency = std::thread::hardware_concurrency();
+	return concurrency > 0 ? concurrency : 1;
+}
+
+// 默认移动赋值运算符函数
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::operator=(ThreadPool&& _another) noexcept \
+-> ThreadPool&
+{
+	if (&_another != this)
+		store(exchange(_another._atomic, nullptr));
+	return *this;
+}
+
+// 设置轮询间隔
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::setDuration(Duration _duration) noexcept
+{
+	if (_duration >= 0)
+		if (auto data = load())
+		{
+			data->setDuration(_duration);
+			return true;
+		}
+	return false;
+}
+
+// 获取线程池容量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::getCapacity() const noexcept \
+-> SizeType
+{
+	auto data = load();
+	return data ? data->getCapacity() : 0;
+}
+
 // 设置线程池容量
-template <typename _TaskType, typename _QueueType>
-void ThreadPool<_TaskType, _QueueType>::setCapacity(SizeType _capacity)
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::setCapacity(SizeType _capacity)
 {
 	if (_capacity > 0)
 		if (auto data = load())
+		{
 			data->setCapacity(_capacity, true);
+			return true;
+		}
+	return false;
 }
 
-// 获取快照（包括线程池容量、线程数量、闲置线程数量、任务数量）
-template <typename _TaskType, typename _QueueType>
-auto ThreadPool<_TaskType, _QueueType>::getSnapshot() const
+// 获取总线程数量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::getTotalSize() const noexcept \
+-> SizeType
 {
 	auto data = load();
-	using CapacityType = decltype(data->getCapacity());
-	using SizeType = decltype(data->getSize());
-	using IdleSizeType = decltype(data->getIdleSize());
-	using TaskSizeType = decltype(data->_taskQueue->size());
-
-	if (not data)
-		return std::make_tuple(static_cast<CapacityType>(0), \
-			static_cast<SizeType>(0), static_cast<IdleSizeType>(0), \
-			static_cast<TaskSizeType>(0));
-
-	return std::make_tuple(data->getCapacity(), data->getSize(), \
-		data->getIdleSize(), data->_taskQueue->size());
+	return data ? data->getTotalSize() : 0;
 }
 
-// 放入单任务
-template <typename _TaskType, typename _QueueType>
-bool ThreadPool<_TaskType, _QueueType>::pushTask(const TaskType& _task)
+// 获取闲置线程数量
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::getIdleSize() const noexcept \
+-> SizeType
 {
-	// 过滤无效任务
-	if (not _task) return false;
-
 	auto data = load();
-	return data and data->pushTask(_task);
+	return data ? data->getIdleSize() : 0;
 }
 
-// 放入单任务
-template <typename _TaskType, typename _QueueType>
-bool ThreadPool<_TaskType, _QueueType>::pushTask(TaskType&& _task)
+// 获取任务管理器
+template <typename _TaskManager>
+auto ThreadPool<_TaskManager>::getTaskManager() const \
+-> TaskManager
 {
-	// 过滤无效任务
-	if (not _task) return false;
-
 	auto data = load();
-	return data and data->pushTask(std::forward<TaskType>(_task));
+	return data ? data->getTaskManager() : nullptr;
 }
 
-template <typename _TaskType, typename _QueueType>
-template <typename _Functor, typename... _Args>
-bool ThreadPool<_TaskType, _QueueType>::pushTask(_Functor&& _functor, \
-	_Args&&... _args)
+// 设置任务管理器
+template <typename _TaskManager>
+bool ThreadPool<_TaskManager>::setTaskManager(const TaskManager& _taskManager)
 {
-	auto data = load();
-	//return data and data->pushTask([_functor, \
-	//	_args = std::make_tuple(std::forward<_Args>(_args)...)]\
-	//{ std::apply(_functor, _args); });
-	//return data and data->pushTask([_functor, _args...]{ _functor(_args...); });
-
-	auto functor = std::bind(std::forward<_Functor>(_functor), \
-		std::forward<_Args>(_args)...);
-	return data and data->pushTask(functor);
+	bool result = false;
+	if (auto data = load())
+	{
+		data->setTaskManager(_taskManager);
+		result = true;
+	}
+	return result;
 }
 
 ETERFREE_SPACE_END
