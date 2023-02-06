@@ -93,7 +93,7 @@ private:
 			OrderType::relaxed);
 	}
 
-	// 销毁线程池
+	// 销毁线程
 	static void destroy(DataType&& _data);
 
 	// 获取任务
