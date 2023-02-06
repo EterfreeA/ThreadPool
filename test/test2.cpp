@@ -38,7 +38,7 @@ int main()
 
 	using namespace std::this_thread;
 	using namespace std::chrono;
-	sleep_for(seconds(2));
+	sleep_for(seconds(1));
 	print(threadPool);
 
 	proxy.pushTask([] \
@@ -49,7 +49,7 @@ int main()
 
 	proxy.setCapacity(capacity + 1);
 
-	sleep_for(seconds(2));
+	sleep_for(seconds(1));
 	print(threadPool);
 
 	valid.store(false, std::memory_order_relaxed);
