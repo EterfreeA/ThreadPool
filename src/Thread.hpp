@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年01月14日
+* 更新日期：2023年02月06日
 * 
 * 摘要
 * 1. 定义线程类模板Thread。
@@ -22,13 +22,15 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v3.0.0
+* 版本：v3.0.1
 * 变化
 * v3.0.0
 * 1.以获取函数子替换任务队列。
 * 2.配置任务支持复制语义和移动语义。
 * 3.解决线程在销毁又创建之时可能出现的状态错误问题。
 * 4.判断获取的任务是否有效，以防止线程泄漏。
+* v3.0.1
+* 1.修复移动赋值运算符函数的资源泄漏问题。
 */
 
 #pragma once
@@ -129,7 +131,7 @@ public:
 	Thread& operator=(const Thread&) = delete;
 
 	// 默认移动赋值运算符函数
-	Thread& operator=(Thread&& _another) noexcept;
+	Thread& operator=(Thread&& _another);
 
 	// 获取线程唯一标识
 	ThreadID getID() const;
@@ -290,11 +292,14 @@ void Thread<_TaskType>::execute(DataType _data)
 
 // 默认移动赋值运算符函数
 template <typename _TaskType>
-auto Thread<_TaskType>::operator=(Thread&& _another) noexcept \
+auto Thread<_TaskType>::operator=(Thread&& _another) \
 -> Thread&
 {
 	if (&_another != this)
+	{
+		destroy();
 		store(exchange(_another._atomic, nullptr));
+	}
 	return *this;
 }
 

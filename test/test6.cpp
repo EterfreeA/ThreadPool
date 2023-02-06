@@ -38,7 +38,7 @@ static void print(const ThreadPool<TaskManager>& _threadPool)
 
 int main()
 {
-	ThreadPool<TaskManager> threadPool;
+	ThreadPool threadPool;
 
 	using TaskPool = TaskPool<const char*>;
 	auto taskPool = std::make_shared<TaskPool>();

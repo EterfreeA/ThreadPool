@@ -3,7 +3,6 @@
 
 #include <utility>
 #include <exception>
-#include <iostream> // 测试代码
 #include <thread>
 
 #ifdef _WIN32
@@ -80,7 +79,6 @@ auto PeriodicTask::getNextTime(const SystemTime& _timePoint, Duration _target, \
 	auto time = duration_cast<SteadyTime::duration>(_reality).count();
 	auto remainder = time % _target;
 	time = time - remainder + (remainder > 0 ? _target : 0);
-	std::cout << time << std::endl; // 测试代码
 
 	auto duration = duration_cast<SystemTime::duration>(SteadyTime::duration(time));
 	return _timePoint + duration;

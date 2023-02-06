@@ -27,7 +27,7 @@ void Task::execute()
 
 int main()
 {
-	ThreadPool<TaskManager> threadPool(1);
+	ThreadPool threadPool(1);
 	auto taskQueue = std::make_shared<TaskQueue>();
 	threadPool.setTaskManager(taskQueue);
 

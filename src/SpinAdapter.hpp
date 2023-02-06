@@ -30,7 +30,9 @@
 
 ETERFREE_SPACE_BEGIN
 
-template <typename _Adaptee>
+class SpinAdaptee;
+
+template <typename _Adaptee = SpinAdaptee>
 class SpinAdapter
 {
 public:
