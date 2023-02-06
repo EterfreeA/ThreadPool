@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年02月06日
+* 更新日期：2023年02月07日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -136,12 +136,6 @@ private:
 	auto load() const noexcept
 	{
 		return _atomic.load(std::memory_order::relaxed);
-	}
-
-	// 存储非原子数据
-	void store(const DataType& _data) noexcept
-	{
-		_atomic.store(_data, std::memory_order::relaxed);
 	}
 
 public:
@@ -663,10 +657,9 @@ auto ThreadPool<_TaskManager>::operator=(ThreadPool&& _another) \
 {
 	if (&_another != this)
 	{
-		if (auto data = exchange(this->_atomic, nullptr))
+		auto data = exchange(_another._atomic, nullptr);
+		if (data = exchange(this->_atomic, data))
 			destroy(std::move(data));
-
-		store(exchange(_another._atomic, nullptr));
 	}
 	return *this;
 }
