@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年02月06日
+* 更新日期：2023年02月07日
 * 
 * 摘要
 * 1. 定义线程类模板Thread。
@@ -93,6 +93,9 @@ private:
 			OrderType::relaxed);
 	}
 
+	// 销毁线程池
+	static void destroy(DataType&& _data);
+
 	// 获取任务
 	static bool getTask(DataType& _data);
 
@@ -104,12 +107,6 @@ private:
 	auto load() const noexcept
 	{
 		return _atomic.load(OrderType::relaxed);
-	}
-
-	// 存储非原子数据
-	void store(const DataType& _data) noexcept
-	{
-		_atomic.store(_data, OrderType::relaxed);
 	}
 
 public:
@@ -143,7 +140,10 @@ public:
 	bool create();
 
 	// 销毁线程
-	void destroy();
+	void destroy()
+	{
+		destroy(load());
+	}
 
 	// 配置获取与回复函数子
 	bool configure(const FetchType& _fetch, \
@@ -230,6 +230,29 @@ bool Thread<_TaskType>::Structure::getTask(TaskType& _task)
 	return static_cast<bool>(_task);
 }
 
+// 销毁线程池
+template <typename _TaskType>
+void Thread<_TaskType>::destroy(DataType&& _data)
+{
+	if (not _data) return;
+
+	std::lock_guard lock(_data->_threadMutex);
+	if (_data->getState() == State::EMPTY)
+		return;
+
+	// 通知线程退出
+	_data->_condition.exit();
+
+	// 挂起直到线程退出
+	if (_data->_thread.joinable())
+		_data->_thread.join();
+
+	// 清空配置项
+	_data->_fetch = nullptr;
+	_data->_reply = nullptr;
+	_data->setState(State::EMPTY);
+}
+
 // 获取任务
 template <typename _TaskType>
 bool Thread<_TaskType>::getTask(DataType& _data)
@@ -297,8 +320,9 @@ auto Thread<_TaskType>::operator=(Thread&& _another) \
 {
 	if (&_another != this)
 	{
-		destroy();
-		store(exchange(_another._atomic, nullptr));
+		auto data = exchange(_another._atomic, nullptr);
+		if (data = exchange(this->_atomic, data))
+			destroy(std::move(data));
 	}
 	return *this;
 }
@@ -344,30 +368,6 @@ bool Thread<_TaskType>::create()
 	// 创建std::thread对象，以data为参数，执行函数execute
 	data->_thread = std::thread(execute, data);
 	return true;
-}
-
-// 销毁线程
-template <typename _TaskType>
-void Thread<_TaskType>::destroy()
-{
-	auto data = load();
-	if (not data) return;
-
-	std::lock_guard lock(data->_threadMutex);
-	if (data->getState() == State::EMPTY)
-		return;
-
-	// 通知线程退出
-	data->_condition.exit();
-
-	// 挂起直到线程退出
-	if (data->_thread.joinable())
-		data->_thread.join();
-
-	// 清空配置项
-	data->_fetch = nullptr;
-	data->_reply = nullptr;
-	data->setState(State::EMPTY);
 }
 
 // 配置获取与回复函数子
