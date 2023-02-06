@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年02月04日
+* 更新日期：2023年02月06日
 * 
 * 摘要
 * 1.定义线程池类模板ThreadPool。
@@ -20,12 +20,14 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v3.0.0
+* 版本：v3.0.1
 * 变化
 * v3.0.0
 * 1.抽象任务管理器为模板隐式接口，以支持自定义任务管理器。
 * 2.在任务管理器为空或者无效，并且所有线程闲置时，守护线程才可以退出，否则守护线程轮询等待这两个条件。
 *   若任务管理器存在无效任务，则线程可能进行非预期性阻塞，导致在守护线程退出之前，线程无法执行任务管理器的所有任务。
+* v3.0.1
+* 1.修复移动赋值运算符函数的资源泄漏问题。
 */
 
 #pragma once
@@ -174,7 +176,7 @@ public:
 	ThreadPool& operator=(const ThreadPool&) = delete;
 
 	// 默认移动赋值运算符函数
-	ThreadPool& operator=(ThreadPool&& _another) noexcept;
+	ThreadPool& operator=(ThreadPool&& _another);
 
 	// 设置轮询间隔
 	bool setDuration(Duration _duration) noexcept;
@@ -466,6 +468,9 @@ bool ThreadPool<_TaskManager>::Proxy::setTaskManager(const TaskManager& _taskMan
 template <typename _TaskManager>
 void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 {
+	// 设置轮询间隔
+	_data->setDuration(std::chrono::nanoseconds(1000000).count());
+
 	// 定义通知函数子
 	_data->_notify = [_data = std::weak_ptr(_data)]
 	{
@@ -510,9 +515,6 @@ void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 	_data->setCapacity(_capacity); // 设置线程池容量
 	_data->setTotalSize(_capacity, Arithmetic::REPLACE); // 设置总线程数量
 	_data->setIdleSize(_capacity, Arithmetic::REPLACE); // 设置闲置线程数量
-
-	// 设置轮询间隔
-	_data->setDuration(std::chrono::nanoseconds(1000000).count());
 
 	// 创建std::thread对象，即守护线程，以_data为参数，执行函数execute
 	_data->_thread = std::thread(execute, _data);
@@ -642,7 +644,7 @@ void ThreadPool<_TaskManager>::execute(DataType _data)
 			_data->waitPoll(timeStamp, correction);
 	}
 
-	// 清空线程
+	// 清空线程表
 	_data->_threadTable.clear();
 }
 
@@ -656,11 +658,16 @@ auto ThreadPool<_TaskManager>::getConcurrency() noexcept -> SizeType
 
 // 默认移动赋值运算符函数
 template <typename _TaskManager>
-auto ThreadPool<_TaskManager>::operator=(ThreadPool&& _another) noexcept \
+auto ThreadPool<_TaskManager>::operator=(ThreadPool&& _another) \
 -> ThreadPool&
 {
 	if (&_another != this)
+	{
+		if (auto data = exchange(this->_atomic, nullptr))
+			destroy(std::move(data));
+
 		store(exchange(_another._atomic, nullptr));
+	}
 	return *this;
 }
 

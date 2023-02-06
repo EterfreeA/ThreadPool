@@ -38,7 +38,7 @@ static void print(const ThreadPool<TaskManager>& _threadPool)
 
 int main()
 {
-	ThreadPool<TaskManager> threadPool;
+	ThreadPool threadPool;
 	auto taskQueue = std::make_shared<TaskQueue>();
 	auto proxy = threadPool.getProxy();
 	proxy.setTaskManager(taskQueue);
@@ -50,7 +50,7 @@ int main()
 
 	using namespace std::this_thread;
 	using namespace std::chrono;
-	sleep_for(seconds(2));
+	sleep_for(seconds(1));
 	print(threadPool);
 
 	taskQueue->put([] \
@@ -61,7 +61,7 @@ int main()
 
 	proxy.setCapacity(capacity + 1);
 
-	sleep_for(seconds(2));
+	sleep_for(seconds(1));
 	print(threadPool);
 
 	flag.test_and_set(std::memory_order::relaxed);

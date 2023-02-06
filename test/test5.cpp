@@ -12,19 +12,13 @@
 using EventType = std::chrono::milliseconds;
 using TaskPool = eterfree::TaskPool<EventType>;
 
-using TaskManager = eterfree::TaskManager;
-using ThreadPool = eterfree::ThreadPool<TaskManager>;
+using ThreadPool = eterfree::ThreadPool<>;
 using SizeType = ThreadPool::SizeType;
 
 constexpr auto SLEEP_TIME = EventType(3);
 constexpr SizeType HANDLER_NUMBER = 17;
 
 static std::atomic_ulong counter = 0;
-
-static auto load() noexcept
-{
-	return counter.load(std::memory_order::relaxed);
-}
 
 static void handle(EventType& _event)
 {
@@ -82,6 +76,6 @@ int main()
 		taskPool->put(index, SLEEP_TIME);
 
 	threadPool.reset();
-	std::cout << load() << std::endl;
+	std::cout << counter.load(std::memory_order::relaxed) << std::endl;
 	return EXIT_SUCCESS;
 }
