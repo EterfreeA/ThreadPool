@@ -89,6 +89,41 @@ bool Thread::Structure::getTask(TaskType& _task)
 	return static_cast<bool>(_task);
 }
 
+// 移动数据
+auto Thread::move(Thread& _left, Thread&& _right) \
+-> DataType
+{
+	std::lock_guard leftLock(_left._mutex);
+	auto data = _left._data;
+
+	std::lock_guard rightLock(_right._mutex);
+	_left._data = std::move(_right._data);
+	return data;
+}
+
+// 销毁线程
+void Thread::destroy(DataType&& _data)
+{
+	if (!_data) return;
+
+	std::lock_guard lock(_data->_threadMutex);
+	using State = Structure::State;
+	if (_data->getState() == State::EMPTY)
+		return;
+
+	// 通知线程退出
+	_data->_condition.exit();
+
+	// 挂起直到线程退出
+	if (_data->_thread.joinable())
+		_data->_thread.join();
+
+	// 清空配置项
+	_data->_taskQueue = nullptr;
+	_data->_callback = nullptr;
+	_data->setState(State::EMPTY);
+}
+
 // 获取任务
 bool Thread::getTask(DataType& _data)
 {
@@ -163,9 +198,10 @@ Thread& Thread::operator=(Thread&& _another)
 {
 	if (&_another != this)
 	{
-		std::scoped_lock lock(this->_mutex, \
-			_another._mutex);
-		this->_data = std::move(_another._data);
+		auto data = move(*this, \
+			std::forward<Thread>(_another));
+
+		destroy(std::move(data));
 	}
 	return *this;
 }
@@ -210,30 +246,6 @@ bool Thread::create()
 	// 创建std::thread对象，以data为参数，执行函数execute
 	data->_thread = std::thread(execute, data);
 	return true;
-}
-
-// 销毁线程
-void Thread::destroy()
-{
-	auto data = load();
-	if (!data) return;
-
-	std::lock_guard lock(data->_threadMutex);
-	using State = Structure::State;
-	if (data->getState() == State::EMPTY)
-		return;
-
-	// 通知线程退出
-	data->_condition.exit();
-
-	// 挂起直到线程退出
-	if (data->_thread.joinable())
-		data->_thread.join();
-
-	// 清空配置项
-	data->_taskQueue = nullptr;
-	data->_callback = nullptr;
-	data->setState(State::EMPTY);
 }
 
 // 配置任务队列与回调函数子

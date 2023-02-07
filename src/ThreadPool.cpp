@@ -253,6 +253,18 @@ void ThreadPool::Proxy::clearTask()
 		_data->_taskQueue->clear();
 }
 
+// 移动数据
+auto ThreadPool::move(ThreadPool& _left, \
+	ThreadPool&& _right) -> DataType
+{
+	std::lock_guard leftLock(_left._mutex);
+	auto data = _left._data;
+
+	std::lock_guard rightLock(_right._mutex);
+	_left._data = std::move(_right._data);
+	return data;
+}
+
 // 创建线程池
 void ThreadPool::create(DataType&& _data, SizeType _capacity)
 {
@@ -429,8 +441,10 @@ ThreadPool& ThreadPool::operator=(ThreadPool&& _another)
 {
 	if (&_another != this)
 	{
-		std::scoped_lock lock(this->_mutex, _another._mutex);
-		this->_data = std::move(_another._data);
+		auto data = move(*this, \
+			std::forward<ThreadPool>(_another));
+
+		if (data) destroy(std::move(data));
 	}
 	return *this;
 }

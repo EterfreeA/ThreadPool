@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年01月14日
+* 更新日期：2023年02月07日
 * 
 * 摘要
 * 1. 线程类Thread定义于此文件，实现于Thread.cpp。
@@ -22,7 +22,7 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v2.2.0
+* 版本：v2.2.1
 * 变化
 * v2.0.1
 * 1.运用Condition的宽松策略，提升激活线程的效率。
@@ -37,6 +37,8 @@
 * 1.配置任务支持复制语义和移动语义。
 * 2.解决线程在销毁又创建之时可能出现的状态错误问题。
 * 3.判断获取的任务是否有效，以防止线程泄漏。
+* v2.2.1
+* 1.修复移动赋值运算符函数的资源泄漏问题。
 */
 
 #pragma once
@@ -80,6 +82,13 @@ private:
 	DataType _data;
 
 private:
+	// 移动数据
+	static DataType move(Thread& _left, \
+		Thread&& _right);
+
+	// 销毁线程
+	static void destroy(DataType&& _data);
+
 	// 获取任务
 	static bool getTask(DataType& _data);
 
@@ -134,7 +143,10 @@ public:
 	bool create();
 
 	// 销毁线程
-	void destroy();
+	void destroy()
+	{
+		destroy(load());
+	}
 
 	// 配置任务队列与回调函数子
 	bool configure(const QueueType& _taskQueue, \

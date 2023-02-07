@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年02月01日
+* 更新日期：2023年02月07日
 * 
 * 摘要
 * 1.线程池类ThreadPool定义于此文件，实现于ThreadPool.cpp。
@@ -21,7 +21,7 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v2.2.0
+* 版本：v2.2.1
 * 变化
 * v2.0.1
 * 1.运用Condition的宽松策略，提升激活守护线程的性能。
@@ -42,6 +42,8 @@
 * v2.2.0
 * 1.完善代码风格。
 * 2.设置线程池容量函数返回合理值。
+* v2.2.1
+* 1.修复移动赋值运算符函数的资源泄漏问题。
 */
 
 #pragma once
@@ -78,6 +80,10 @@ private:
 	DataType _data;
 
 private:
+	// 移动数据
+	static DataType move(ThreadPool& _left, \
+		ThreadPool&& _right);
+
 	// 创建线程池
 	static void create(DataType&& _data, \
 		SizeType _capacity);
