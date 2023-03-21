@@ -87,11 +87,11 @@ private:
 	using TaskType = _TaskManager::TaskType;
 	using NotifyType = _TaskManager::NotifyType;
 
-	using Thread = Thread<TaskType>;
-	using Condition = Thread::Condition;
+	using ThreadType = Thread<TaskType>;
+	using Condition = ThreadType::Condition;
 
-	using FetchType = Thread::FetchType;
-	using ReplyType = Thread::ReplyType;
+	using FetchType = ThreadType::FetchType;
+	using ReplyType = ThreadType::ReplyType;
 
 	using Duration = std::chrono::steady_clock::rep;
 
@@ -99,7 +99,7 @@ private:
 	using AtomicType = std::atomic<DataType>;
 
 public:
-	using SizeType = Thread::SizeType;
+	using SizeType = ThreadType::SizeType;
 	using TaskManager = std::shared_ptr<_TaskManager>;
 
 private:
@@ -207,7 +207,7 @@ struct ThreadPool<_TaskManager>::Structure
 
 	Condition _condition;					// 强化条件变量
 	std::thread _thread;					// 守护线程
-	std::list<Thread> _threadTable;			// 线程表
+	std::list<ThreadType> _threadTable;		// 线程表
 
 	std::atomic<SizeType> _capacity;		// 线程池容量
 	std::atomic<SizeType> _totalSize;		// 总线程数量
@@ -486,7 +486,7 @@ void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 	};
 
 	// 定义回复函数子
-	_data->_reply = [_data = std::weak_ptr(_data)](Thread::ThreadID _id, bool _idle)
+	_data->_reply = [_data = std::weak_ptr(_data)](ThreadType::ThreadID _id, bool _idle)
 	{
 		// 线程并非闲置状态
 		if (not _idle) return;
@@ -501,7 +501,7 @@ void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 	_capacity = _capacity > 0 ? _capacity : 1;
 	for (decltype(_capacity) index = 0; index < _capacity; ++index)
 	{
-		Thread thread;
+		ThreadType thread;
 		thread.configure(_data->_fetch, _data->_reply);
 		_data->_threadTable.push_back(std::move(thread));
 	}
@@ -553,7 +553,7 @@ auto ThreadPool<_TaskManager>::adjust(DataType& _data) \
 	// 添加线程至线程表
 	for (decltype(size) index = 0; index < size; ++index)
 	{
-		Thread thread;
+		ThreadType thread;
 		thread.configure(_data->_fetch, _data->_reply);
 		_data->_threadTable.push_back(std::move(thread));
 	}

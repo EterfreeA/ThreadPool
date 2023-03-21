@@ -155,7 +155,6 @@ template <typename _IDType, typename _RecordType>
 class SharedSorter
 {
 	struct Node;
-	using NodeType = Node;
 
 public:
 	using IDType = _IDType;
@@ -165,6 +164,7 @@ public:
 	using SizeType = RecordList::size_type;
 
 private:
+	using NodeType = Node;
 	using IDMapper = std::unordered_map<IDType, NodeType>;
 	using PairType = IDMapper::value_type;
 	using NodeSet = std::set<NodeType>;
