@@ -94,7 +94,7 @@ void Logger::output(Level _level, \
 		std::ostringstream stream;
 		stream << std::chrono::system_clock::now() \
 			<< ThreadID(std::this_thread::get_id()) \
-			<< _level << _location << ": " \
+			<< _level << _location \
 			<< _description << std::endl;
 		std::clog << stream.str();
 	}
@@ -110,7 +110,7 @@ void Logger::output(Level _level, \
 		std::ostringstream stream;
 		stream << std::chrono::system_clock::now() \
 			<< ThreadID(std::this_thread::get_id()) \
-			<< _level << _location << ": " \
+			<< _level << _location \
 			<< _description << std::endl;
 		std::clog << stream.str();
 	}
@@ -126,7 +126,7 @@ void Logger::output(Level _level, \
 		std::ostringstream stream;
 		stream << std::chrono::system_clock::now() \
 			<< ThreadID(std::this_thread::get_id()) \
-			<< _level << _location << ": " \
+			<< _level << _location \
 			<< _exception.what() << std::endl;
 		std::clog << stream.str();
 	}
@@ -142,7 +142,7 @@ void Logger::output(Level _level, \
 		std::ostringstream stream;
 		stream << std::chrono::system_clock::now() \
 			<< ThreadID(std::this_thread::get_id()) \
-			<< _level << _location << ": " \
+			<< _level << _location \
 			<< _code.message() << std::endl;
 		std::clog << stream.str();
 	}

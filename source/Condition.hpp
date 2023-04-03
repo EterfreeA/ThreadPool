@@ -39,7 +39,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "Core.hpp"
+#include "Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 

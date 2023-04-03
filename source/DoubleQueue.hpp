@@ -29,7 +29,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "Core.hpp"
+#include "Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 
