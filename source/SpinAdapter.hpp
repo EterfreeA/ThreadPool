@@ -25,7 +25,7 @@
 #include <cstdint>
 #include <mutex>
 
-#include "Core.hpp"
+#include "Common.hpp"
 #include "Condition.hpp"
 
 ETERFREE_SPACE_BEGIN

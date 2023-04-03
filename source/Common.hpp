@@ -46,8 +46,9 @@ inline std::ostream& operator<<(std::ostream& _stream, \
 {
 	return _stream << "in function " \
 		<< _location.function_name() << " at " \
-		<< _location.file_name() << ':' \
-		<< _location.line();
+		<< _location.file_name() << '(' \
+		<< _location.line() << ',' \
+		<< _location.column() << "): ";
 }
 
 ETERFREE_SPACE_END

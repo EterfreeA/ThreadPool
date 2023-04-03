@@ -20,7 +20,7 @@
 #include <functional>
 #include <cstddef>
 
-#include "Core.hpp"
+#include "Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 

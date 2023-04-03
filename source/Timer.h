@@ -25,7 +25,6 @@
 #include <atomic>
 #include <mutex>
 
-#include "Core.hpp"
 #include "SpinAdapter.hpp"
 #include "TimeoutQueue.hpp"
 

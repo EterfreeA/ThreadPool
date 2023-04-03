@@ -31,7 +31,7 @@
 #include <iterator>
 #include <algorithm>
 
-#include "Core.hpp"
+#include "Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 

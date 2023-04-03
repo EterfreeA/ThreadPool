@@ -27,7 +27,7 @@
 #include <vector>
 #include <map>
 
-#include "Core.hpp"
+#include "Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 
