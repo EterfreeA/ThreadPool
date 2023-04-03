@@ -54,7 +54,7 @@
 #include <list>
 #include <mutex>
 
-#include "Core.hpp"
+#include "Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 
