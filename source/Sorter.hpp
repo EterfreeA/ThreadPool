@@ -53,7 +53,7 @@ public:
 };
 
 template <typename _IDType, typename _RecordType>
-class Sorter
+class Sorter final
 {
 public:
 	using IDType = _IDType;
@@ -152,7 +152,7 @@ public:
 };
 
 template <typename _IDType, typename _RecordType>
-class SharedSorter
+class SharedSorter final
 {
 	struct Node;
 

@@ -35,8 +35,8 @@ int main()
 	using namespace std::chrono;
 	sleep_for(seconds(1));
 
-	Timer timer;
-	timer.setDuration(2000000);
+	auto timer = std::make_shared<Timer>();
+	timer->setDuration(2000000);
 
 	SpinAdapter<SpinAdaptee> adapter(timer);
 	taskQueue->put(adapter);
@@ -44,7 +44,7 @@ int main()
 
 	auto task = std::make_shared<Task>();
 	task->setDuration(200000000);
-	timer.pushTask(task);
+	timer->pushTask(task);
 
 	sleep_for(seconds(2));
 	task->cancel();

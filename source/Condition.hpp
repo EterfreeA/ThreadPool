@@ -44,7 +44,7 @@
 ETERFREE_SPACE_BEGIN
 
 template <typename _Size = std::size_t>
-class Condition
+class Condition final
 {
 public:
 	enum class Strategy : std::uint8_t

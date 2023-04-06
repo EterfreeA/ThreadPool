@@ -32,7 +32,7 @@
 ETERFREE_SPACE_BEGIN
 
 template <typename _TimeType, typename _ElementType>
-class TimeoutQueue
+class TimeoutQueue final
 {
 public:
 	using TimeType = _TimeType;
