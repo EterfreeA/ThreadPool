@@ -34,7 +34,7 @@
 ETERFREE_SPACE_BEGIN
 
 template <typename _ElementType>
-class DoubleQueue
+class DoubleQueue final
 {
 public:
 	using ElementType = _ElementType;

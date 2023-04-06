@@ -58,7 +58,7 @@
 
 ETERFREE_SPACE_BEGIN
 
-class ThreadPool
+class ThreadPool final
 {
 	// 线程池数据结构体
 	struct Structure;
@@ -237,7 +237,7 @@ public:
 	Proxy getProxy() const;
 };
 
-class ThreadPool::Proxy
+class ThreadPool::Proxy final
 {
 	DataType _data;
 

@@ -56,13 +56,7 @@ ETERFREE_SPACE_BEGIN
 template <typename _Element>
 class DoubleQueue;
 
-/*
-继承类模板enable_shared_from_this，当Thread被shared_ptr托管，而需要传递this给其它函数之时，
-需要传递指向this的shared_ptr，调用this->shared_from_this获取指向this的shared_ptr。
-不可直接传递裸指针this，否则无法确保shared_ptr的语义，也许会导致已被释放的错误。
-不可单独创建另一shared_ptr，否则多个shared_ptr的控制块不同，导致释放多次同一对象。
-*/
-class Thread //: public std::enable_shared_from_this<Thread>
+class Thread final
 {
 	// 线程数据结构体
 	struct Structure;
