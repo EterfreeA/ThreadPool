@@ -66,7 +66,7 @@ SizeType functor(SizeType _size, Arithmetic _arithmetic) noexcept \
 }
 
 template <typename _TaskManager = TaskManager>
-class ThreadPool
+class ThreadPool final
 {
 	// 算术枚举
 	enum class Arithmetic : std::uint8_t
@@ -289,7 +289,7 @@ struct ThreadPool<_TaskManager>::Structure
 #undef SET_ATOMIC
 
 template <typename _TaskManager>
-class ThreadPool<_TaskManager>::Proxy
+class ThreadPool<_TaskManager>::Proxy final
 {
 	DataType _data;
 

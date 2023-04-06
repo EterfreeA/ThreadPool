@@ -51,7 +51,7 @@
 ETERFREE_SPACE_BEGIN
 
 template <typename _TaskType = std::function<void()>>
-class Thread
+class Thread final
 {
 	// 状态枚举
 	enum class State : std::uint8_t
