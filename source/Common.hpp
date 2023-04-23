@@ -44,9 +44,8 @@ constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 inline std::ostream& operator<<(std::ostream& _stream, \
 	const std::source_location& _location)
 {
-	return _stream << "in function " \
-		<< _location.function_name() << " at " \
-		<< _location.file_name() << '(' \
+	return _stream << "in " << _location.function_name() \
+		<< " at " << _location.file_name() << '(' \
 		<< _location.line() << ',' \
 		<< _location.column() << "): ";
 }
