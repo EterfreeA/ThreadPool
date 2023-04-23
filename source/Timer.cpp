@@ -19,18 +19,21 @@ static std::string& getErrorInfo(std::string& _info, DWORD _error)
 {
 	auto size = _info.size();
 	_info.resize(size + FORMAT_MESSAGE_ALLOCATE_BUFFER);
-	if (::FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, \
-		_error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
-		_info.data() + size, \
-		FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL) == 0)
+
+	DWORD length = ::FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, \
+		NULL, _error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
+		_info.data() + size, FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL);
+	if (length == 0)
 	{
 		std::ostringstream stream;
-		stream << "FormatMessage error: " << ::GetLastError();
+		stream << "FormatMessage error " << ::GetLastError();
 
 		USING_ETERFREE_SPACE;
 		Logger::output(Logger::Level::ERROR, \
 			std::source_location::current(), stream.str());
 	}
+
+	_info.resize(size + length);
 	return _info;
 }
 #endif
@@ -47,8 +50,9 @@ void TimedTask::sleep(Duration _duration)
 	auto result = ::timeBeginPeriod(PERIOD);
 	if (result != TIMERR_NOERROR)
 	{
-		std::string info = "timeBeginPeriod error: ";
-		info += std::to_string(result) += ' ';
+		std::string info = "timeBeginPeriod error ";
+		info += std::to_string(result) += ": ";
+
 		Logger::output(Logger::Level::ERROR, \
 			std::source_location::current(), \
 			getErrorInfo(info, result));
@@ -62,8 +66,9 @@ void TimedTask::sleep(Duration _duration)
 	result = ::timeEndPeriod(PERIOD);
 	if (result != TIMERR_NOERROR)
 	{
-		std::string info = "timeEndPeriod error: ";
-		info += std::to_string(result) += ' ';
+		std::string info = "timeEndPeriod error ";
+		info += std::to_string(result) += ": ";
+
 		Logger::output(Logger::Level::ERROR, \
 			std::source_location::current(), \
 			getErrorInfo(info, result));
