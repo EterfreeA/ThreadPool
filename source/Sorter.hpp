@@ -3,7 +3,7 @@
 * 语言标准：C++20
 * 
 * 创建日期：2020年11月10日
-* 更新日期：2023年01月22日
+* 更新日期：2023年05月25日
 * 
 * 摘要
 * 1.结合无序映射与有序集合，封装通常版排序者类模板Sorter，以及共享指针版排序者类模板SharedSorter。
@@ -15,10 +15,12 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v1.0.3
+* 版本：v1.0.4
 * 变化
 * v1.0.3
 * 1.定义排序记录抽象类，排序记录可选继承抽象类，或者单独实现其接口亦可。
+* v1.0.4
+* 1.更新方法减少有序集合节点的销毁再创建操作。
 */
 
 #pragma once
@@ -343,14 +345,14 @@ void Sorter<_IDType, _RecordType>::update(const RecordType& _record)
 	if (auto iterator = _idMapper.find(id); \
 		iterator == _idMapper.end())
 	{
-		_idMapper[id] = _record;
+		_idMapper.emplace(id, _record);
 		_recordSet.insert(_record);
 	}
 	else
 	{
-		_recordSet.erase(iterator->second);
-		iterator->second = _record;
-		_recordSet.insert(_record);
+		auto node = _recordSet.extract(iterator->second);
+		node.value() = iterator->second = _record;
+		_recordSet.insert(std::move(node));
 	}
 }
 
@@ -468,15 +470,14 @@ void SharedSorter<_IDType, _RecordType>::update(const RecordType& _record)
 	if (auto iterator = _idMapper.find(id); iterator == _idMapper.end())
 	{
 		NodeType node(_record);
-		_idMapper[id] = node;
+		_idMapper.emplace(id, node);
 		_nodeSet.insert(std::move(node));
 	}
 	else
 	{
-		NodeType& node = iterator->second;
-		_nodeSet.erase(node);
-		*node._record = _record;
-		_nodeSet.insert(node);
+		auto node = _nodeSet.extract(iterator->second);
+		*node.value()._record = *iterator->second._record = _record;
+		_nodeSet.insert(std::move(node));
 	}
 }
 
