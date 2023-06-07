@@ -1,5 +1,5 @@
 ﻿#include "Timer.h"
-#include "Logger.h"
+#include "Core/Logger.h"
 
 #include <utility>
 #include <exception>

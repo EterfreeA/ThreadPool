@@ -1,5 +1,5 @@
-﻿#include "ThreadPool.hpp"
-#include "TaskPool.hpp"
+﻿#include "Concurrency/ThreadPool.hpp"
+#include "Concurrency/TaskPool.hpp"
 
 #include <cstdlib>
 #include <utility>
@@ -9,25 +9,27 @@
 #include <atomic>
 #include <thread>
 
-using EventType = std::chrono::milliseconds;
-using TaskPool = eterfree::TaskPool<EventType>;
+using Message = std::chrono::milliseconds;
+using TaskPool = eterfree::TaskPool<Message>;
 
 using ThreadPool = eterfree::ThreadPool<>;
 using SizeType = ThreadPool::SizeType;
 
-constexpr auto SLEEP_TIME = EventType(3);
-constexpr SizeType HANDLER_NUMBER = 17;
+static constexpr auto SLEEP_TIME = Message(1);
+static constexpr SizeType HANDLER_NUMBER = 17;
 
 static std::atomic_ulong counter = 0;
 
-static void handle(EventType& _event)
+static void handle(Message& _message)
 {
-	for (volatile auto index = 0UL; index < 10000UL; ++index);
-	std::this_thread::sleep_for(_event);
-	counter.fetch_add(1, std::memory_order::relaxed);
+	for (volatile auto index = 0UL; \
+		index < 10000UL; ++index);
+	std::this_thread::sleep_for(_message);
+	counter.fetch_add(1, \
+		std::memory_order::relaxed);
 }
 
-class Handler
+class Handler final
 {
 	TaskPool& _taskPool;
 	SizeType _index;
@@ -37,12 +39,12 @@ public:
 	Handler(TaskPool& _taskPool, SizeType _index) noexcept : \
 		_taskPool(_taskPool), _index(_index), _counter(0) {}
 
-	void operator()(EventType& _event);
+	void operator()(Message& _message);
 };
 
-void Handler::operator()(EventType& _event)
+void Handler::operator()(Message& _message)
 {
-	handle(_event);
+	handle(_message);
 
 	if (_counter++ < 100)
 	{
@@ -52,11 +54,11 @@ void Handler::operator()(EventType& _event)
 }
 
 template <typename _Functor>
-auto make(_Functor&& _functor)
+static auto make(_Functor&& _functor)
 {
-	return [functor = std::forward<_Functor>(_functor)](EventType& _event)
+	return [functor = std::forward<_Functor>(_functor)](Message& _message)
 	{
-		(*functor)(_event);
+		(*functor)(_message);
 	};
 }
 

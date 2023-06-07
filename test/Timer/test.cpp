@@ -1,6 +1,6 @@
-﻿#include "Timer.h"
-#include "TaskQueue.h"
-#include "ThreadPool.hpp"
+﻿#include "Concurrency/Timer.h"
+#include "Concurrency/TaskQueue.h"
+#include "Concurrency/ThreadPool.hpp"
 
 #include <cstdlib>
 #include <chrono>
@@ -27,12 +27,13 @@ void Task::execute()
 
 int main()
 {
+	using namespace std::this_thread;
+	using namespace std::chrono;
+
 	ThreadPool threadPool(1);
 	auto taskQueue = std::make_shared<TaskQueue>();
 	threadPool.setTaskManager(taskQueue);
 
-	using namespace std::this_thread;
-	using namespace std::chrono;
 	sleep_for(seconds(1));
 
 	auto timer = std::make_shared<Timer>();

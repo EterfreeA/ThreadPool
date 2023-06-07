@@ -44,9 +44,9 @@
 #include <thread>
 #include <mutex>
 
-#include "Common.hpp"
+#include "Core/Common.hpp"
+#include "Core/Logger.h"
 #include "Condition.hpp"
-#include "Logger.h"
 
 ETERFREE_SPACE_BEGIN
 

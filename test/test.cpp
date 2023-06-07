@@ -1,20 +1,27 @@
-﻿#define TEST 1
+﻿#define THREAD_POOL 1
+#define THREAD 2
+#define TASK_QUEUE 3
+#define TASK_POOL 4
+#define ACTOR 5
+#define TIMER 6
 
-#if TEST == 1
-#include "test1.cpp"
+#define TEST THREAD_POOL
 
-#elif TEST == 2
-#include "test2.cpp"
+#if TEST == THREAD_POOL
+#include "ThreadPool/test.cpp"
 
-#elif TEST == 3
-#include "test3.cpp"
+#elif TEST == THREAD
+#include "Thread/test.cpp"
 
-#elif TEST == 4
-#include "test4.cpp"
+#elif TEST == TASK_QUEUE
+#include "TaskQueue/test.cpp"
 
-#elif TEST == 5
-#include "test5.cpp"
+#elif TEST == TASK_POOL
+#include "TaskPool/test.cpp"
 
-#elif TEST == 6
-#include "test6.cpp"
+#elif TEST == ACTOR
+#include "Actor/test.cpp"
+
+#elif TEST == TIMER
+#include "Timer/test.cpp"
 #endif

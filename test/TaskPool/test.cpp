@@ -1,6 +1,6 @@
-﻿#include "ThreadPool.hpp"
-#include "TaskQueue.h"
-#include "Condition.hpp"
+﻿#include "Concurrency/TaskPool.hpp"
+#include "Concurrency/Condition.hpp"
+#include "Concurrency/ThreadPool.hpp"
 
 #include <cstdlib>
 #include <chrono>
@@ -14,7 +14,7 @@ USING_ETERFREE_SPACE
 static std::atomic_flag flag;
 static Condition condition;
 
-static void task()
+static void handle(const char*)
 {
 	condition.wait([] \
 	{ return flag.test(std::memory_order::relaxed); });
@@ -38,23 +38,40 @@ static void print(const ThreadPool<TaskManager>& _threadPool)
 
 int main()
 {
+	using TaskPool = TaskPool<const char*>;
+	using namespace std::this_thread;
+	using namespace std::chrono;
+
 	ThreadPool threadPool;
-	auto taskQueue = std::make_shared<TaskQueue>();
+	auto taskPool = std::make_shared<TaskPool>();
 	auto proxy = threadPool.getProxy();
-	proxy.setTaskManager(taskQueue);
+	proxy.setTaskManager(taskPool);
 
 	auto capacity = proxy.getCapacity();
 	for (decltype(capacity) index = 0; \
 		index < capacity; ++index)
-		taskQueue->put(task);
+		taskPool->set(index, handle);
 
-	using namespace std::this_thread;
-	using namespace std::chrono;
 	sleep_for(seconds(1));
 	print(threadPool);
 
-	taskQueue->put([] \
-	{ std::cout << "eterfree::ThreadPool" << std::endl; });
+	const char* MODULE = "eterfree::ThreadPool";
+	for (decltype(capacity) index = 0; \
+		index < capacity; ++index)
+		taskPool->put(index, MODULE);
+
+	sleep_for(seconds(1));
+	print(threadPool);
+
+	taskPool->set(capacity, [](const char* _module)
+		{
+			std::cout << _module << std::endl;
+		});
+
+	sleep_for(seconds(1));
+	print(threadPool);
+
+	taskPool->put(capacity, MODULE);
 
 	sleep_for(seconds(1));
 	print(threadPool);

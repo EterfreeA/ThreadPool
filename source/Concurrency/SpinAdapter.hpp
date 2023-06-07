@@ -29,7 +29,7 @@
 #include <cstdint>
 #include <mutex>
 
-#include "Common.hpp"
+#include "Core/Common.hpp"
 #include "Condition.hpp"
 
 ETERFREE_SPACE_BEGIN

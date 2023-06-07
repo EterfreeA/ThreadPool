@@ -17,7 +17,7 @@ public:
 	static TimeType getTime(const TimePoint& _timePoint) noexcept;
 };
 
-class ThreadID
+class ThreadID final
 {
 public:
 	using IDType = std::thread::id;

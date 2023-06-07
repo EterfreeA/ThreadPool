@@ -6,11 +6,11 @@
 *
 * 摘要
 * 1.定义任务池类模板TaskPool，继承任务管理器抽象类，确保接口的线程安全性。
-* 2.任务池由处理者、事件、排序者三元素组成，支持自定义处理者和事件类型。
-* 3.任务池支持放入不同处理者，分别对应不同事件队列。
-*   处理者默认并发处理事件，可指定并行处理事件。
-* 4.任务池支持放入无效函数子，以设置空处理者，但不会清空对应事件队列。
-*   空处理者的非空事件队列会阻止线程池的守护线程退出，可以主动调用清空事件函数。
+* 2.任务池由处理者、消息、排序者三元素组成，支持自定义处理者和消息类型。
+* 3.任务池支持放入不同处理者，分别对应不同消息队列。
+*   处理者默认并发处理消息，可指定并行处理消息。
+* 4.任务池支持放入无效函数子，以设置空处理者，但不会清空对应消息队列。
+*   空处理者的非空消息队列会阻止线程池的守护线程退出，可以主动调用清空消息函数。
 * 5.引入排序者类模板Sorter，按照时间先后对处理者索引排序，以确定任务顺序。
 *
 * 作者：许聪
@@ -33,8 +33,8 @@
 #include <mutex>
 #include <shared_mutex>
 
+#include "Utility/Sorter.hpp"
 #include "TaskManager.h"
-#include "Sorter.hpp"
 
 ETERFREE_SPACE_BEGIN
 
@@ -44,9 +44,9 @@ ETERFREE_SPACE_BEGIN
 不可直接传递裸指针this，否则无法确保shared_ptr的语义，也许会导致已被释放的错误。
 不可单独创建另一shared_ptr，否则多个shared_ptr的控制块不同，导致释放多次同一对象。
 */
-template <typename _EventType>
+template <typename _Message>
 class TaskPool : public TaskManager, \
-	public std::enable_shared_from_this<TaskPool<_EventType>>
+	public std::enable_shared_from_this<TaskPool<_Message>>
 {
 	struct Queue;
 	struct Record;
@@ -55,11 +55,12 @@ public:
 	struct Handler;
 
 public:
-	using EventType = _EventType;
-	using EventQueue = std::list<EventType>;
+	using Message = _Message;
+	using MessageQueue = std::list<Message>;
 
 	using IndexType = SizeType;
-	using HandleType = std::function<void(EventType&)>;
+	using HandleType = std::function<void(Message&)>;
+	using QueueType = Queue;
 
 private:
 	using AtomicType = std::atomic<SizeType>;
@@ -67,7 +68,7 @@ private:
 
 	using MutexMapper = std::map<IndexType, std::shared_ptr<std::mutex>>;
 	using HandleMapper = std::unordered_map<IndexType, std::shared_ptr<Handler>>;
-	using QueueMapper = std::unordered_map<IndexType, std::shared_ptr<Queue>>;
+	using QueueMapper = std::unordered_map<IndexType, std::shared_ptr<QueueType>>;
 
 private:
 	mutable std::mutex _notifyMutex; // 通知互斥元
@@ -97,7 +98,7 @@ private:
 
 	// 执行任务
 	static void execute(const std::weak_ptr<TaskPool>& _taskPool, \
-		IndexType _index, const HandleType& _handle, EventType& _event);
+		IndexType _index, const HandleType& _handle, Message& _message);
 
 private:
 	// 获取原子
@@ -163,11 +164,11 @@ private:
 	// 设置处理者
 	void setHandler(IndexType _index, std::shared_ptr<Handler>&& _handler);
 
-	// 查找事件队列
-	std::shared_ptr<Queue> findQueue(IndexType _index);
+	// 查找消息队列
+	std::shared_ptr<QueueType> findQueue(IndexType _index);
 
-	// 获取事件队列
-	std::shared_ptr<Queue> getQueue(IndexType _index);
+	// 获取消息队列
+	std::shared_ptr<QueueType> getQueue(IndexType _index);
 
 	// 向调度队列放入索引
 	bool pushIndex(IndexType _index);
@@ -229,62 +230,62 @@ public:
 		return push(_index, std::forward<_Functor>(_functor), _parallel);
 	}
 
-	// 放入单事件
-	bool put(IndexType _index, const EventType& _event);
-	bool put(IndexType _index, EventType&& _event);
+	// 放入单个消息
+	bool put(IndexType _index, const Message& _message);
+	bool put(IndexType _index, Message&& _message);
 
-	// 批量放入事件
-	bool put(IndexType _index, EventQueue& _queue);
-	bool put(IndexType _index, EventQueue&& _queue);
+	// 批量放入消息
+	bool put(IndexType _index, MessageQueue& _queue);
+	bool put(IndexType _index, MessageQueue&& _queue);
 
-	// 清空事件
+	// 清空消息
 	void clear(IndexType _index);
 
-	// 清空所有事件
+	// 清空所有消息
 	void clear();
 };
 
-template <typename _EventType>
-struct TaskPool<_EventType>::Queue
+template <typename _Message>
+struct TaskPool<_Message>::Queue
 {
 	mutable std::mutex _mutex;
-	EventQueue _eventQueue;
+	MessageQueue _messageQueue;
 	std::list<TimeType> _timeQueue;
 
 	// 是否为空
 	bool empty() const
 	{
 		std::lock_guard lock(_mutex);
-		return _eventQueue.empty();
+		return _messageQueue.empty();
 	}
 
-	// 获取事件数量
+	// 获取消息数量
 	auto size() const
 	{
 		std::lock_guard lock(_mutex);
-		return _eventQueue.size();
+		return _messageQueue.size();
 	}
 
 	// 获取最小时间
 	std::optional<TimeType> time() const;
 
-	// 放入单事件
-	std::optional<SizeType> push(const EventType& _event);
-	std::optional<SizeType> push(EventType&& _event);
+	// 放入单个消息
+	std::optional<SizeType> push(const Message& _message);
+	std::optional<SizeType> push(Message&& _message);
 
-	// 批量放入事件
-	std::optional<SizeType> push(EventQueue& _queue);
-	std::optional<SizeType> push(EventQueue&& _queue);
+	// 批量放入消息
+	std::optional<SizeType> push(MessageQueue& _queue);
+	std::optional<SizeType> push(MessageQueue&& _queue);
 
-	// 取出单事件
-	bool pop(EventType& _event);
+	// 取出单个消息
+	bool pop(Message& _message);
 
-	// 清空所有事件
+	// 清空所有消息
 	auto clear();
 };
 
-template <typename _EventType>
-struct TaskPool<_EventType>::Record
+template <typename _Message>
+struct TaskPool<_Message>::Record
 {
 	IndexType _index;
 	TimeType _time;
@@ -297,8 +298,8 @@ struct TaskPool<_EventType>::Record
 	bool operator<(const Record& _another) const noexcept;
 };
 
-template <typename _EventType>
-struct TaskPool<_EventType>::Handler
+template <typename _Message>
+struct TaskPool<_Message>::Handler
 {
 	HandleType _handle;
 	bool _parallel;
@@ -340,8 +341,8 @@ struct TaskPool<_EventType>::Handler
 };
 
 // 获取最小时间
-template <typename _EventType>
-auto TaskPool<_EventType>::Queue::time() const \
+template <typename _Message>
+auto TaskPool<_Message>::Queue::time() const \
 -> std::optional<TimeType>
 {
 	std::lock_guard lock(_mutex);
@@ -349,89 +350,89 @@ auto TaskPool<_EventType>::Queue::time() const \
 	return _timeQueue.front();
 }
 
-// 放入单事件
-template <typename _EventType>
-auto TaskPool<_EventType>::Queue::push(const EventType& _event) \
+// 放入单个消息
+template <typename _Message>
+auto TaskPool<_Message>::Queue::push(const Message& _message) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
-	auto size = _eventQueue.size();
-	_eventQueue.push_back(_event);
+	auto size = _messageQueue.size();
+	_messageQueue.push_back(_message);
 	_timeQueue.push_back(getTime());
 	return size;
 }
 
-// 放入单事件
-template <typename _EventType>
-auto TaskPool<_EventType>::Queue::push(EventType&& _event) \
+// 放入单个消息
+template <typename _Message>
+auto TaskPool<_Message>::Queue::push(Message&& _message) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
-	auto size = _eventQueue.size();
-	_eventQueue.push_back(std::forward<EventType>(_event));
+	auto size = _messageQueue.size();
+	_messageQueue.push_back(std::forward<Message>(_message));
 	_timeQueue.push_back(getTime());
 	return size;
 }
 
-// 批量放入事件
-template <typename _EventType>
-auto TaskPool<_EventType>::Queue::push(EventQueue& _queue) \
+// 批量放入消息
+template <typename _Message>
+auto TaskPool<_Message>::Queue::push(MessageQueue& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
-	auto size = _eventQueue.size();
-	_eventQueue.splice(_eventQueue.cend(), _queue);
-	_timeQueue.resize(_eventQueue.size(), getTime());
+	auto size = _messageQueue.size();
+	_messageQueue.splice(_messageQueue.cend(), _queue);
+	_timeQueue.resize(_messageQueue.size(), getTime());
 	return size;
 }
 
-// 批量放入事件
-template <typename _EventType>
-auto TaskPool<_EventType>::Queue::push(EventQueue&& _queue) \
+// 批量放入消息
+template <typename _Message>
+auto TaskPool<_Message>::Queue::push(MessageQueue&& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
-	auto size = _eventQueue.size();
-	_eventQueue.splice(_eventQueue.cend(), \
-		std::forward<EventQueue>(_queue));
-	_timeQueue.resize(_eventQueue.size(), getTime());
+	auto size = _messageQueue.size();
+	_messageQueue.splice(_messageQueue.cend(), \
+		std::forward<MessageQueue>(_queue));
+	_timeQueue.resize(_messageQueue.size(), getTime());
 	return size;
 }
 
-// 取出单事件
-template <typename _EventType>
-bool TaskPool<_EventType>::Queue::pop(EventType& _event)
+// 取出单个消息
+template <typename _Message>
+bool TaskPool<_Message>::Queue::pop(Message& _message)
 {
 	std::lock_guard lock(_mutex);
-	if (_eventQueue.empty()) return false;
+	if (_messageQueue.empty()) return false;
 
-	_event = std::move(_eventQueue.front());
-	_eventQueue.pop_front();
+	_message = std::move(_messageQueue.front());
+	_messageQueue.pop_front();
 	_timeQueue.pop_front();
 	return true;
 }
 
-// 清空所有事件
-template <typename _EventType>
-auto TaskPool<_EventType>::Queue::clear()
+// 清空所有消息
+template <typename _Message>
+auto TaskPool<_Message>::Queue::clear()
 {
 	std::lock_guard lock(_mutex);
-	auto size = _eventQueue.size();
-	_eventQueue.clear();
+	auto size = _messageQueue.size();
+	_messageQueue.clear();
 	_timeQueue.clear();
 	return size;
 }
 
-template <typename _EventType>
-bool TaskPool<_EventType>::Record::operator<(const Record& _another) const noexcept
+template <typename _Message>
+bool TaskPool<_Message>::Record::operator<(const Record& _another) const noexcept
 {
 	return this->_time < _another._time \
 		or this->_time == _another._time and this->_index < _another._index;
 }
 
 // 设置是否闲置
-template <typename _EventType>
-bool TaskPool<_EventType>::Handler::idle(bool _idle) noexcept
+template <typename _Message>
+bool TaskPool<_Message>::Handler::idle(bool _idle) noexcept
 {
 	auto idle = this->_idle;
 	this->_idle = _idle;
@@ -439,18 +440,18 @@ bool TaskPool<_EventType>::Handler::idle(bool _idle) noexcept
 }
 
 // 执行任务
-template <typename _EventType>
-void TaskPool<_EventType>::execute(const std::weak_ptr<TaskPool>& _taskPool, \
-	IndexType _index, const HandleType& _handle, EventType& _event)
+template <typename _Message>
+void TaskPool<_Message>::execute(const std::weak_ptr<TaskPool>& _taskPool, \
+	IndexType _index, const HandleType& _handle, Message& _message)
 {
-	if (_handle) _handle(_event);
+	if (_handle) _handle(_message);
 	if (auto taskPool = _taskPool.lock())
 		taskPool->reply(_index);
 }
 
 // 取出单任务
-template <typename _EventType>
-bool TaskPool<_EventType>::take(TaskType& _task)
+template <typename _Message>
+bool TaskPool<_Message>::take(TaskType& _task)
 {
 	std::lock_guard lock(_sharedMutex);
 
@@ -464,19 +465,19 @@ bool TaskPool<_EventType>::take(TaskType& _task)
 	auto queue = getQueue(index);
 	if (not queue) return false;
 
-	EventType event;
-	if (not queue->pop(event)) return false;
+	Message message;
+	if (not queue->pop(message)) return false;
 
 	subtract(_size, 1);
 	_task = std::bind(execute, \
 		std::weak_ptr(this->shared_from_this()), \
-		index, handler->_handle, std::move(event));
+		index, handler->_handle, std::move(message));
 	return true;
 }
 
 // 获取索引互斥元
-template <typename _EventType>
-std::shared_ptr<std::mutex> TaskPool<_EventType>::getMutex(IndexType _index)
+template <typename _Message>
+std::shared_ptr<std::mutex> TaskPool<_Message>::getMutex(IndexType _index)
 {
 	std::lock_guard lock(_mutex);
 	auto iterator = _mutexMapper.find(_index);
@@ -490,8 +491,8 @@ std::shared_ptr<std::mutex> TaskPool<_EventType>::getMutex(IndexType _index)
 }
 
 // 查找处理者
-template <typename _EventType>
-auto TaskPool<_EventType>::findHandler(IndexType _index) \
+template <typename _Message>
+auto TaskPool<_Message>::findHandler(IndexType _index) \
 -> std::shared_ptr<Handler>
 {
 	std::lock_guard lock(_handleMutex);
@@ -501,8 +502,8 @@ auto TaskPool<_EventType>::findHandler(IndexType _index) \
 }
 
 // 设置处理者
-template <typename _EventType>
-void TaskPool<_EventType>::setHandler(IndexType _index, \
+template <typename _Message>
+void TaskPool<_Message>::setHandler(IndexType _index, \
 	std::shared_ptr<Handler>&& _handler)
 {
 	std::lock_guard lock(_handleMutex);
@@ -511,10 +512,10 @@ void TaskPool<_EventType>::setHandler(IndexType _index, \
 		std::forward<Handler>(_handler));
 }
 
-// 查找事件队列
-template <typename _EventType>
-auto TaskPool<_EventType>::findQueue(IndexType _index) \
--> std::shared_ptr<Queue>
+// 查找消息队列
+template <typename _Message>
+auto TaskPool<_Message>::findQueue(IndexType _index) \
+-> std::shared_ptr<QueueType>
 {
 	std::lock_guard lock(_queueMutex);
 	auto iterator = _queueMapper.find(_index);
@@ -522,16 +523,16 @@ auto TaskPool<_EventType>::findQueue(IndexType _index) \
 		iterator->second : nullptr;
 }
 
-// 获取事件队列
-template <typename _EventType>
-auto TaskPool<_EventType>::getQueue(IndexType _index) \
--> std::shared_ptr<Queue>
+// 获取消息队列
+template <typename _Message>
+auto TaskPool<_Message>::getQueue(IndexType _index) \
+-> std::shared_ptr<QueueType>
 {
 	std::lock_guard lock(_queueMutex);
 	auto iterator = _queueMapper.find(_index);
 	if (iterator == _queueMapper.end())
 	{
-		auto queue = std::make_shared<Queue>();
+		auto queue = std::make_shared<QueueType>();
 		auto pair = _queueMapper.emplace(_index, queue);
 		iterator = pair.first;
 	}
@@ -540,8 +541,8 @@ auto TaskPool<_EventType>::getQueue(IndexType _index) \
 }
 
 // 向调度队列放入索引
-template <typename _EventType>
-bool TaskPool<_EventType>::pushIndex(IndexType _index)
+template <typename _Message>
+bool TaskPool<_Message>::pushIndex(IndexType _index)
 {
 	auto queue = getQueue(_index);
 	if (not queue) return false;
@@ -557,8 +558,8 @@ bool TaskPool<_EventType>::pushIndex(IndexType _index)
 }
 
 // 执行通知函数子
-template <typename _EventType>
-void TaskPool<_EventType>::notify() const
+template <typename _Message>
+void TaskPool<_Message>::notify() const
 {
 	std::unique_lock lock(_notifyMutex);
 	auto notify = _notify;
@@ -568,8 +569,8 @@ void TaskPool<_EventType>::notify() const
 }
 
 // 回复任务
-template <typename _EventType>
-void TaskPool<_EventType>::reply(IndexType _index)
+template <typename _Message>
+void TaskPool<_Message>::reply(IndexType _index)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -584,8 +585,8 @@ void TaskPool<_EventType>::reply(IndexType _index)
 }
 
 // 放入处理者
-template <typename _EventType>
-bool TaskPool<_EventType>::push(IndexType _index, \
+template <typename _Message>
+bool TaskPool<_Message>::push(IndexType _index, \
 	const HandleType& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
@@ -619,8 +620,8 @@ bool TaskPool<_EventType>::push(IndexType _index, \
 }
 
 // 放入处理者
-template <typename _EventType>
-bool TaskPool<_EventType>::push(IndexType _index, HandleType&& _handle, bool _parallel)
+template <typename _Message>
+bool TaskPool<_Message>::push(IndexType _index, HandleType&& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -653,8 +654,8 @@ bool TaskPool<_EventType>::push(IndexType _index, HandleType&& _handle, bool _pa
 }
 
 // 向调度队列放入索引
-template <typename _EventType>
-bool TaskPool<_EventType>::push(IndexType _index)
+template <typename _Message>
+bool TaskPool<_Message>::push(IndexType _index)
 {
 	auto handler = findHandler(_index);
 	return handler and handler->idle() ? \
@@ -662,8 +663,8 @@ bool TaskPool<_EventType>::push(IndexType _index)
 }
 
 // 从调度队列取出索引
-template <typename _EventType>
-auto TaskPool<_EventType>::pop() -> std::optional<IndexType>
+template <typename _Message>
+auto TaskPool<_Message>::pop() -> std::optional<IndexType>
 {
 	std::lock_guard lock(_sortMutex);
 	if (auto record = _sorter.front(true); record != nullptr)
@@ -694,10 +695,10 @@ auto TaskPool<_EventType>::pop() -> std::optional<IndexType>
 	return std::nullopt;
 }
 
-// 放入单事件
-template <typename _EventType>
-bool TaskPool<_EventType>::put(IndexType _index, \
-	const EventType& _event)
+// 放入单个消息
+template <typename _Message>
+bool TaskPool<_Message>::put(IndexType _index, \
+	const Message& _message)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -709,7 +710,7 @@ bool TaskPool<_EventType>::put(IndexType _index, \
 	auto queue = getQueue(_index);
 	if (not queue) return false;
 
-	auto result = queue->push(_event);
+	auto result = queue->push(_message);
 	if (result)
 	{
 		add(_size, 1);
@@ -720,9 +721,9 @@ bool TaskPool<_EventType>::put(IndexType _index, \
 	return result.has_value();
 }
 
-// 放入单事件
-template <typename _EventType>
-bool TaskPool<_EventType>::put(IndexType _index, EventType&& _event)
+// 放入单个消息
+template <typename _Message>
+bool TaskPool<_Message>::put(IndexType _index, Message&& _message)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -734,7 +735,7 @@ bool TaskPool<_EventType>::put(IndexType _index, EventType&& _event)
 	auto queue = getQueue(_index);
 	if (not queue) return false;
 
-	auto result = queue->push(std::forward<EventType>(_event));
+	auto result = queue->push(std::forward<Message>(_message));
 	if (result)
 	{
 		add(_size, 1);
@@ -744,10 +745,10 @@ bool TaskPool<_EventType>::put(IndexType _index, EventType&& _event)
 	return result.has_value();
 }
 
-// 批量放入事件
-template <typename _EventType>
-bool TaskPool<_EventType>::put(IndexType _index, \
-	EventQueue& _queue)
+// 批量放入消息
+template <typename _Message>
+bool TaskPool<_Message>::put(IndexType _index, \
+	MessageQueue& _queue)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -771,9 +772,9 @@ bool TaskPool<_EventType>::put(IndexType _index, \
 	return result.has_value();
 }
 
-// 批量放入事件
-template <typename _EventType>
-bool TaskPool<_EventType>::put(IndexType _index, EventQueue&& _queue)
+// 批量放入消息
+template <typename _Message>
+bool TaskPool<_Message>::put(IndexType _index, MessageQueue&& _queue)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -786,7 +787,7 @@ bool TaskPool<_EventType>::put(IndexType _index, EventQueue&& _queue)
 	if (not queue) return false;
 
 	auto size = _queue.size();
-	auto result = queue->push(std::forward<EventQueue>(_queue));
+	auto result = queue->push(std::forward<MessageQueue>(_queue));
 	if (result)
 	{
 		add(_size, size);
@@ -796,9 +797,9 @@ bool TaskPool<_EventType>::put(IndexType _index, EventQueue&& _queue)
 	return result.has_value();
 }
 
-// 清空事件
-template <typename _EventType>
-void TaskPool<_EventType>::clear(IndexType _index)
+// 清空消息
+template <typename _Message>
+void TaskPool<_Message>::clear(IndexType _index)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -817,9 +818,9 @@ void TaskPool<_EventType>::clear(IndexType _index)
 	_sorter.remove(_index);
 }
 
-// 清空所有事件
-template <typename _EventType>
-void TaskPool<_EventType>::clear()
+// 清空所有消息
+template <typename _Message>
+void TaskPool<_Message>::clear()
 {
 	std::lock_guard sharedLock(_sharedMutex);
 
