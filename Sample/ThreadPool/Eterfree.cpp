@@ -105,7 +105,7 @@ int main()
 	{ return counter.load(std::memory_order::relaxed); };
 
 #ifdef FILE_STREAM
-	constexpr auto FILE = "ThreadPool.log";
+	constexpr auto FILE = "Eterfree.txt";
 
 #ifdef FILE_SYSTEM
 	std::filesystem::remove(FILE);
