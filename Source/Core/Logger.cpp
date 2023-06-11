@@ -154,6 +154,7 @@ CommonLogger::TimeType CommonLogger::getTime(const TimePoint& _timePoint) noexce
 	try
 	{
 		using namespace std::chrono;
+
 		auto duration = _timePoint.time_since_epoch();
 		return duration_cast<nanoseconds>(duration).count();
 	}

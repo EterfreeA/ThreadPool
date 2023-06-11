@@ -10,7 +10,7 @@
 #include <sstream>
 
 #include <Windows.h>
-#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "Winmm.lib")
 
 #undef ERROR
 
@@ -81,6 +81,7 @@ auto PeriodicTask::getNextTime(const SystemTime& _timePoint, Duration _target, \
 	const SystemTime::duration& _reality) noexcept -> SystemTime
 {
 	using namespace std::chrono;
+
 	auto time = duration_cast<SteadyTime::duration>(_reality).count();
 	auto remainder = time % _target;
 	time = time - remainder + (remainder > 0 ? _target : 0);
