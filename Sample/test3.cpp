@@ -29,6 +29,9 @@ static void print(const ThreadPool& _threadPool)
 
 int main()
 {
+	using namespace std::this_thread;
+	using namespace std::chrono;
+
 	ThreadPool threadPool;
 	auto proxy = threadPool.getProxy();
 	auto capacity = proxy.getCapacity();
@@ -36,8 +39,6 @@ int main()
 		index < capacity; ++index)
 		proxy.pushTask(task);
 
-	using namespace std::this_thread;
-	using namespace std::chrono;
 	sleep_for(seconds(1));
 	print(threadPool);
 

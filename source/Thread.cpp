@@ -104,10 +104,11 @@ auto Thread::move(Thread& _left, Thread&& _right) \
 // 销毁线程
 void Thread::destroy(DataType&& _data)
 {
+	using State = Structure::State;
+
 	if (!_data) return;
 
 	std::lock_guard lock(_data->_threadMutex);
-	using State = Structure::State;
 	if (_data->getState() == State::EMPTY)
 		return;
 
@@ -119,7 +120,7 @@ void Thread::destroy(DataType&& _data)
 		_data->_thread.join();
 
 	// 清空配置项
-	_data->_taskQueue = nullptr;
+	_data->_taskQueue.reset();
 	_data->_callback = nullptr;
 	_data->setState(State::EMPTY);
 }
@@ -142,6 +143,8 @@ bool Thread::getTask(DataType& _data)
 // 线程主函数
 void Thread::execute(DataType _data)
 {
+	using State = Structure::State;
+
 	// 条件变量的谓词，若任务有效，则无需等待通知
 	auto predicate = [&_data]
 	{ return _data->getValidity(); };
@@ -153,7 +156,6 @@ void Thread::execute(DataType _data)
 	while (_data->_condition \
 		|| _data->getValidity())
 	{
-		using State = Structure::State;
 		_data->setState(State::RUNNING);
 
 		// 执行函数子之时捕获异常，防止线程泄漏
@@ -219,11 +221,12 @@ auto Thread::getID() const -> ThreadID
 // 是否闲置
 bool Thread::idle() const
 {
+	using State = Structure::State;
+
 	auto data = load();
 	if (!data) return false;
 
 	auto state = data->getState();
-	using State = Structure::State;
 	return state == State::INITIAL \
 		|| state == State::BLOCKED;
 }
@@ -231,11 +234,12 @@ bool Thread::idle() const
 // 创建线程
 bool Thread::create()
 {
+	using State = Structure::State;
+
 	auto data = load();
 	if (!data) return false;
 
 	std::lock_guard lock(data->_threadMutex);
-	using State = Structure::State;
 	if (data->getState() != State::EMPTY)
 		return false;
 
@@ -308,6 +312,8 @@ bool Thread::configure(TaskType&& _task, \
 // 激活线程
 bool Thread::notify()
 {
+	using State = Structure::State;
+
 	auto data = load();
 	if (!data) return false;
 
@@ -315,7 +321,6 @@ bool Thread::notify()
 	auto state = data->getState();
 
 	// 处于阻塞状态则获取任务
-	using State = Structure::State;
 	if (state == State::BLOCKED \
 		&& getTask(data))
 		state = State::RUNNABLE;

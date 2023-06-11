@@ -302,6 +302,8 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 // 销毁线程池
 void ThreadPool::destroy(DataType&& _data)
 {
+	using Arithmetic = Structure::Arithmetic;
+
 	// 避免重复销毁
 	if (!_data->_condition) return;
 
@@ -315,7 +317,6 @@ void ThreadPool::destroy(DataType&& _data)
 	if (_data->_thread.joinable())
 		_data->_thread.join();
 
-	using Arithmetic = Structure::Arithmetic;
 	_data->setCapacity(0); // 设置线程池容量
 	_data->setTotalSize(0, Arithmetic::REPLACE); // 设置总线程数量
 	_data->setIdleSize(0, Arithmetic::REPLACE); // 设置闲置线程数量
@@ -324,6 +325,8 @@ void ThreadPool::destroy(DataType&& _data)
 // 调整线程数量
 ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
 {
+	using Arithmetic = Structure::Arithmetic;
+
 	auto size = _data->getTotalSize();
 	auto capacity = _data->getCapacity();
 
@@ -341,8 +344,6 @@ ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
 		_data->_threadTable.push_back(std::move(thread));
 	}
 
-	using Arithmetic = Structure::Arithmetic;
-
 	// 增加总线程数量
 	_data->setTotalSize(size, Arithmetic::INCREASE);
 
@@ -354,6 +355,8 @@ ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
 // 守护线程主函数
 void ThreadPool::execute(DataType _data)
 {
+	using Arithmetic = Structure::Arithmetic;
+
 	/*
 	 * 条件变量的谓词，不必等待通知的条件
 	 * 1.强化条件变量无效。
@@ -388,8 +391,6 @@ void ThreadPool::execute(DataType _data)
 			// 若线程处于闲置状态
 			if (auto& thread = *iterator; thread.idle())
 			{
-				using Arithmetic = Structure::Arithmetic;
-
 				// 若通知线程执行任务成功，则减少闲置线程数量
 				if (thread.notify())
 					_data->setIdleSize(1, Arithmetic::DECREASE);
