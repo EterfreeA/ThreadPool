@@ -10,9 +10,9 @@
 #include <thread>
 
 using Message = std::chrono::milliseconds;
-using TaskPool = eterfree::TaskPool<Message>;
+using TaskPool = Eterfree::TaskPool<Message>;
 
-using ThreadPool = eterfree::ThreadPool<>;
+using ThreadPool = Eterfree::ThreadPool<>;
 using SizeType = ThreadPool::SizeType;
 
 static constexpr auto SLEEP_TIME = Message(1);

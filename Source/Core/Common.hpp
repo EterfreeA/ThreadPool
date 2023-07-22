@@ -23,19 +23,19 @@
 "Instead, use the name: " STRING(signature) ".")]]
 
 // 自定义名称空间
-#define ETERFREE_SPACE_BEGIN namespace eterfree {
+#define ETERFREE_SPACE_BEGIN namespace Eterfree {
 #define ETERFREE_SPACE_END }
-#define USING_ETERFREE_SPACE using namespace eterfree;
+#define USING_ETERFREE_SPACE using namespace Eterfree;
 
 ETERFREE_SPACE_BEGIN
 
-//template <typename _Type, const decltype(sizeof(0)) _SIZE>
+//template <typename _Type, const decltype(sizeof 0) _SIZE>
 //constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 //{
 //	return sizeof _array / sizeof _array[0];
 //}
 
-template <typename _Type, const decltype(sizeof(0)) _SIZE>
+template <typename _Type, const decltype(sizeof 0) _SIZE>
 constexpr auto size(_Type(&_array)[_SIZE]) noexcept
 {
 	return _SIZE;

@@ -506,8 +506,9 @@ template <typename _Message>
 void TaskPool<_Message>::setHandler(IndexType _index, \
 	std::shared_ptr<Handler>&& _handler)
 {
-	std::lock_guard lock(_handleMutex);
 	using Handler = std::remove_reference_t<decltype(_handler)>;
+
+	std::lock_guard lock(_handleMutex);
 	_handleMapper.insert_or_assign(_index, \
 		std::forward<Handler>(_handler));
 }

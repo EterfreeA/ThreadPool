@@ -27,13 +27,13 @@
 static constexpr auto SLEEP_TIME = std::chrono::milliseconds(1);
 
 #if defined TASK_QUEUE
-using TaskManager = eterfree::TaskQueue;
+using TaskManager = Eterfree::TaskQueue;
 #elif defined TASK_POOL
 using Message = std::remove_const_t<decltype(SLEEP_TIME)>;
-using TaskManager = eterfree::TaskPool<Message>;
+using TaskManager = Eterfree::TaskPool<Message>;
 #endif
 
-using ThreadPool = eterfree::ThreadPool<TaskManager>;
+using ThreadPool = Eterfree::ThreadPool<TaskManager>;
 
 static std::atomic_ulong counter = 0;
 

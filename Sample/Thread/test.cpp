@@ -7,7 +7,7 @@ int main()
 {
 	using std::cout, std::boolalpha, std::endl;
 
-	eterfree::Thread thread;
+	Eterfree::Thread thread;
 	cout << thread.getID() << endl;
 
 	thread.configure([] \
