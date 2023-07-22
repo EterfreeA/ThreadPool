@@ -55,7 +55,7 @@ int main()
 	sleep_for(seconds(1));
 	print(threadPool);
 
-	const char* MODULE = "eterfree::ThreadPool";
+	const char* MODULE = "Eterfree::ThreadPool";
 	for (decltype(capacity) index = 0; \
 		index < capacity; ++index)
 		taskPool->put(index, MODULE);
