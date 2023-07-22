@@ -1,4 +1,6 @@
-﻿#include "DoubleQueue.hpp"
+﻿#pragma once
+
+#include "DoubleQueue.hpp"
 
 ETERFREE_SPACE_BEGIN
 

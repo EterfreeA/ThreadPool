@@ -1,1 +1,3 @@
-﻿#include "Queue.hpp"
+﻿#pragma once
+
+#include "Queue.hpp"

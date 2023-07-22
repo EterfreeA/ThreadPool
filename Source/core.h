@@ -1,1 +1,3 @@
-﻿#include "Core.hpp"
+﻿#pragma once
+
+#include "Core.hpp"

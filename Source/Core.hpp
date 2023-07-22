@@ -1,1 +1,5 @@
-﻿#include "Common.hpp"
+﻿#pragma once
+
+#include "Common.hpp"
+
+namespace eterfree = Eterfree;

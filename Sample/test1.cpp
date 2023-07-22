@@ -31,7 +31,7 @@
 #endif // _WIN32
 
 #if defined ETERFREE
-using ThreadPool = eterfree::ThreadPool;
+using ThreadPool = Eterfree::ThreadPool;
 #elif defined BOOST
 using ThreadPool = boost::threadpool::thread_pool<>;
 #endif

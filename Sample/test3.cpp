@@ -43,7 +43,7 @@ int main()
 	print(threadPool);
 
 	proxy.pushTask([] \
-	{ std::cout << "eterfree::ThreadPool" << std::endl; });
+	{ std::cout << "Eterfree::ThreadPool" << std::endl; });
 
 	sleep_for(seconds(1));
 	print(threadPool);
