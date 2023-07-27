@@ -219,7 +219,7 @@ void SpinAdapter<_SpinAdaptee>::Structure::execute()
 			return true;
 		});
 
-	while (getState() == State::RUNNING && _adaptee)
+	while (getState() == State::RUNNING and _adaptee)
 		_adaptee->execute();
 
 	_condition.exit();
