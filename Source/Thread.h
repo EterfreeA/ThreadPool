@@ -46,8 +46,8 @@
 #include <functional>
 #include <utility>
 #include <memory>
-#include <thread>
 #include <mutex>
+#include <thread>
 
 #include "Common.hpp"
 

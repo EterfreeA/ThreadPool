@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <utility>
 #include <optional>
+#include <utility>
 #include <list>
 #include <atomic>
 #include <mutex>
