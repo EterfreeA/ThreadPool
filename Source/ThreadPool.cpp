@@ -1,7 +1,7 @@
 ﻿#include "ThreadPool.h"
-#include "Thread.h"
 #include "Condition.hpp"
 #include "DoubleQueue.hpp"
+#include "Thread.h"
 
 #include <cstdint>
 #include <atomic>
