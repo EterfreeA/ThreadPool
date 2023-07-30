@@ -4,11 +4,11 @@
     <Filter Include="Core">
       <UniqueIdentifier>{ce4947a8-fb09-4065-a930-9eabca9289fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Utility">
-      <UniqueIdentifier>{ffcc1a84-952c-473d-a813-03d87a65025f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Concurrency">
       <UniqueIdentifier>{ed616cb6-4773-4525-aaba-e6ff796d2648}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sequence">
+      <UniqueIdentifier>{ffcc1a84-952c-473d-a813-03d87a65025f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -29,12 +29,6 @@
     </ClInclude>
     <ClInclude Include="..\Source\Core\Logger.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Utility\Sorter.hpp">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Utility\TimeoutQueue.hpp">
-      <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\Concurrency\Condition.hpp">
       <Filter>Concurrency</Filter>
@@ -62,6 +56,12 @@
     </ClInclude>
     <ClInclude Include="..\Source\Concurrency\Timer.h">
       <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Sequence\Sorter.hpp">
+      <Filter>Sequence</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp">
+      <Filter>Sequence</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
