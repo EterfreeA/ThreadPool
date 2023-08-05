@@ -29,8 +29,8 @@ static void print(const ThreadPool& _threadPool)
 
 int main()
 {
-	using namespace std::this_thread;
 	using namespace std::chrono;
+	using namespace std::this_thread;
 
 	ThreadPool threadPool;
 	auto proxy = threadPool.getProxy();

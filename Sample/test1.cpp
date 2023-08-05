@@ -27,7 +27,7 @@
 
 #ifdef _WIN32
 #include <Windows.h>
-#pragma comment(lib, "Winmm.lib")
+#pragma comment(lib, "WinMM.Lib")
 #endif // _WIN32
 
 #if defined ETERFREE
@@ -47,6 +47,7 @@ static void task()
 
 #ifdef _WIN32
 	constexpr UINT PERIOD = 1;
+
 	auto result = ::timeBeginPeriod(PERIOD);
 	if (result != TIMERR_NOERROR)
 		std::cerr << "timeBeginPeriod error " \
@@ -112,8 +113,8 @@ static void terminate(ThreadPool&& _threadPool)
 
 int main()
 {
-	using std::cout, std::endl;
 	using namespace std::chrono;
+	using std::cout, std::endl;
 
 	constexpr auto load = []() noexcept
 	{ return counter.load(std::memory_order_relaxed); };
