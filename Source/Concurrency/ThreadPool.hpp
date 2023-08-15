@@ -33,17 +33,17 @@
 #pragma once
 
 #include <utility>
-#include <chrono>
 #include <memory>
 #include <cstdint>
 #include <list>
 #include <atomic>
-#include <thread>
 #include <mutex>
+#include <thread>
 
 #include "Core/Common.hpp"
-#include "Thread.hpp"
 #include "TaskManager.h"
+#include "Thread.hpp"
+#include "Timer.h"
 
 ETERFREE_SPACE_BEGIN
 
@@ -85,29 +85,31 @@ public:
 
 private:
 	using TaskType = _TaskManager::TaskType;
-	using NotifyType = _TaskManager::NotifyType;
+	using Notify = _TaskManager::Notify;
 
-	using ThreadType = Thread<TaskType>;
-	using Condition = ThreadType::Condition;
+	using Thread = Thread<TaskType>;
+	using Condition = Thread::Condition;
 
-	using FetchType = ThreadType::FetchType;
-	using ReplyType = ThreadType::ReplyType;
+	using FetchType = Thread::FetchType;
+	using ReplyType = Thread::ReplyType;
 
-	using Duration = std::chrono::steady_clock::rep;
+	using TimeType = Timer::TimeType;
 
 	using DataType = std::shared_ptr<Structure>;
-	using AtomicType = std::atomic<DataType>;
+	using Atomic = std::atomic<DataType>;
 
 public:
-	using SizeType = ThreadType::SizeType;
+	using SizeType = Thread::SizeType;
+	using Duration = Timer::Duration;
+
 	using TaskManager = std::shared_ptr<_TaskManager>;
 
 private:
-	AtomicType _atomic;
+	Atomic _atomic;
 
 private:
 	// 交换数据
-	static auto exchange(AtomicType& _atomic, \
+	static auto exchange(Atomic& _atomic, \
 		const DataType& _data) noexcept
 	{
 		return _atomic.exchange(_data, \
@@ -201,30 +203,22 @@ public:
 template <typename _TaskManager>
 struct ThreadPool<_TaskManager>::Structure
 {
-	using TimePoint = std::chrono::steady_clock::time_point;
+	std::atomic<Duration> _duration;	// 轮询间隔
 
-	std::atomic<Duration> _duration;		// 轮询间隔
+	Condition _condition;				// 强化条件变量
+	std::thread _thread;				// 守护线程
+	std::list<Thread> _threadTable;		// 线程表
 
-	Condition _condition;					// 强化条件变量
-	std::thread _thread;					// 守护线程
-	std::list<ThreadType> _threadTable;		// 线程表
+	std::atomic<SizeType> _capacity;	// 线程池容量
+	std::atomic<SizeType> _totalSize;	// 总线程数量
+	std::atomic<SizeType> _idleSize;	// 闲置线程数量
 
-	std::atomic<SizeType> _capacity;		// 线程池容量
-	std::atomic<SizeType> _totalSize;		// 总线程数量
-	std::atomic<SizeType> _idleSize;		// 闲置线程数量
+	mutable std::mutex _taskMutex;		// 任务互斥元
+	TaskManager _taskManager;			// 任务管理器
 
-	mutable std::mutex _taskMutex;			// 任务互斥元
-	TaskManager _taskManager;				// 任务管理器
-
-	NotifyType _notify;						// 通知函数子
-	FetchType _fetch;						// 获取函数子
-	ReplyType _reply;						// 回复函数子
-
-	// 获取时间戳
-	static auto getTimePoint() noexcept
-	{
-		return std::chrono::steady_clock::now();
-	}
+	Notify _notify;						// 通知函数子
+	FetchType _fetch;					// 获取函数子
+	ReplyType _reply;					// 回复函数子
 
 	// 获取轮询间隔
 	auto getDuration() const noexcept
@@ -238,9 +232,6 @@ struct ThreadPool<_TaskManager>::Structure
 		this->_duration.store(_duration, \
 			std::memory_order::relaxed);
 	}
-
-	// 等待轮询
-	void waitPoll(TimePoint& _timePoint, Duration& _duration);
 
 	// 获取线程池容量
 	auto getCapacity() const noexcept
@@ -330,38 +321,6 @@ public:
 	// 设置任务管理器
 	bool setTaskManager(const TaskManager& _taskManager);
 };
-
-// 等待轮询
-template <typename _TaskManager>
-void ThreadPool<_TaskManager>::Structure::waitPoll(TimePoint& _timePoint, \
-	Duration& _duration)
-{
-	auto duration = getDuration();
-	if (duration <= 0)
-	{
-		_timePoint = Structure::getTimePoint();
-		return;
-	}
-
-	_duration %= duration;
-	auto difference = (duration - _duration) % duration;
-
-	auto timePoint = Structure::getTimePoint();
-	auto realTime = (timePoint - _timePoint).count();
-	_timePoint = timePoint;
-
-	realTime %= duration;
-	if (realTime >= difference) difference += duration;
-
-	auto sleepTime = difference - realTime;
-	std::this_thread::sleep_for(TimePoint::duration(sleepTime));
-
-	timePoint = Structure::getTimePoint();
-	realTime = (timePoint - _timePoint).count();
-	_timePoint = timePoint;
-
-	_duration = (realTime - sleepTime) % duration;
-}
 
 // 设置线程池容量
 template <typename _TaskManager>
@@ -463,7 +422,7 @@ template <typename _TaskManager>
 void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 {
 	// 设置轮询间隔
-	_data->setDuration(std::chrono::nanoseconds(1000000).count());
+	_data->setDuration(TimeType(1000000).count());
 
 	// 定义通知函数子
 	_data->_notify = [_data = std::weak_ptr(_data)]
@@ -486,7 +445,7 @@ void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 	};
 
 	// 定义回复函数子
-	_data->_reply = [_data = std::weak_ptr(_data)](ThreadType::ThreadID _id, bool _idle)
+	_data->_reply = [_data = std::weak_ptr(_data)](Thread::ThreadID _id, bool _idle)
 	{
 		// 线程并非闲置状态
 		if (not _idle) return;
@@ -501,7 +460,7 @@ void ThreadPool<_TaskManager>::create(DataType&& _data, SizeType _capacity)
 	_capacity = _capacity > 0 ? _capacity : 1;
 	for (decltype(_capacity) index = 0; index < _capacity; ++index)
 	{
-		ThreadType thread;
+		Thread thread;
 		thread.configure(_data->_fetch, _data->_reply);
 		_data->_threadTable.push_back(std::move(thread));
 	}
@@ -553,7 +512,7 @@ auto ThreadPool<_TaskManager>::adjust(DataType& _data) \
 	// 添加线程至线程表
 	for (decltype(size) index = 0; index < size; ++index)
 	{
-		ThreadType thread;
+		Thread thread;
 		thread.configure(_data->_fetch, _data->_reply);
 		_data->_threadTable.push_back(std::move(thread));
 	}
@@ -570,7 +529,7 @@ auto ThreadPool<_TaskManager>::adjust(DataType& _data) \
 template <typename _TaskManager>
 void ThreadPool<_TaskManager>::execute(DataType _data)
 {
-	auto timeStamp = Structure::getTimePoint(); // 时间戳
+	auto timePoint = TimedTask::getSteadyTime(); // 时间点
 	Duration correction = 0; // 修正值
 
 	/*
@@ -634,8 +593,11 @@ void ThreadPool<_TaskManager>::execute(DataType _data)
 			_data->_condition.wait(predicate);
 		// 在守护线程退出之前，等待其他线程完成任务
 		else
+		{
 			// 由于强化条件变量无效，因此采用时间片轮询方式
-			_data->waitPoll(timeStamp, correction);
+			auto duration = _data->getDuration();
+			Timer::waitFor(timePoint, correction, duration);
+		}
 	}
 
 	// 清空线程表

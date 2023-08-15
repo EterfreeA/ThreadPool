@@ -1,9 +1,9 @@
-﻿#include "Concurrency/TaskPool.hpp"
-#include "Concurrency/Condition.hpp"
+﻿#include "Concurrency/Condition.hpp"
+#include "Concurrency/TaskPool.hpp"
 #include "Concurrency/ThreadPool.hpp"
 
-#include <cstdlib>
 #include <chrono>
+#include <cstdlib>
 #include <memory>
 #include <iostream>
 #include <atomic>
@@ -16,7 +16,7 @@ static Condition condition;
 
 static void handle(const char*)
 {
-	condition.wait([] \
+	condition.wait([]() noexcept \
 	{ return flag.test(std::memory_order::relaxed); });
 }
 
@@ -38,9 +38,10 @@ static void print(const ThreadPool<TaskManager>& _threadPool)
 
 int main()
 {
-	using TaskPool = TaskPool<const char*>;
-	using namespace std::this_thread;
 	using namespace std::chrono;
+	using namespace std::this_thread;
+
+	using TaskPool = TaskPool<const char*>;
 
 	ThreadPool threadPool;
 	auto taskPool = std::make_shared<TaskPool>();

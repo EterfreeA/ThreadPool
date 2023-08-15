@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <utility>
 #include <optional>
+#include <utility>
 #include <list>
 #include <atomic>
 #include <mutex>
@@ -33,21 +33,21 @@
 
 ETERFREE_SPACE_BEGIN
 
-template <typename _ElementType>
+template <typename _Element>
 class DoubleQueue final
 {
 public:
-	using ElementType = _ElementType;
-	using QueueType = std::list<ElementType>;
+	using Element = _Element;
+	using QueueType = std::list<Element>;
 	using SizeType = QueueType::size_type;
 
 private:
-	using AtomicType = std::atomic<SizeType>;
+	using Atomic = std::atomic<SizeType>;
 	using MutexType = std::mutex;
 
 private:
-	AtomicType _capacity;
-	AtomicType _size;
+	Atomic _capacity;
+	Atomic _size;
 
 	mutable MutexType _entryMutex;
 	QueueType _entryQueue;
@@ -56,17 +56,17 @@ private:
 	QueueType _exitQueue;
 
 private:
-	static auto get(const AtomicType& _atomic) noexcept
+	static auto get(const Atomic& _atomic) noexcept
 	{
 		return _atomic.load(std::memory_order::relaxed);
 	}
 
-	static void set(AtomicType& _atomic, SizeType _size) noexcept
+	static void set(Atomic& _atomic, SizeType _size) noexcept
 	{
 		_atomic.store(_size, std::memory_order::relaxed);
 	}
 
-	static auto exchange(AtomicType& _atomic, SizeType _size) noexcept
+	static auto exchange(Atomic& _atomic, SizeType _size) noexcept
 	{
 		return _atomic.exchange(_size, std::memory_order::relaxed);
 	}
@@ -114,22 +114,22 @@ public:
 	auto size() const noexcept { return get(_size); }
 	bool empty() const noexcept { return size() == 0; }
 
-	std::optional<SizeType> push(const ElementType& _element);
-	std::optional<SizeType> push(ElementType&& _element);
+	std::optional<SizeType> push(const Element& _element);
+	std::optional<SizeType> push(Element&& _element);
 
 	std::optional<SizeType> push(QueueType& _queue);
 	std::optional<SizeType> push(QueueType&& _queue);
 
-	bool pop(ElementType& _element);
-	std::optional<ElementType> pop();
+	bool pop(Element& _element);
+	std::optional<Element> pop();
 
 	bool pop(QueueType& _queue);
 
 	SizeType clear();
 };
 
-template <typename _ElementType>
-void DoubleQueue<_ElementType>::copy(DoubleQueue& _left, \
+template <typename _Element>
+void DoubleQueue<_Element>::copy(DoubleQueue& _left, \
 	const DoubleQueue& _right)
 {
 	_left._exitQueue = _right._exitQueue;
@@ -138,8 +138,8 @@ void DoubleQueue<_ElementType>::copy(DoubleQueue& _left, \
 	set(_left._capacity, get(_right._capacity));
 }
 
-template <typename _ElementType>
-void DoubleQueue<_ElementType>::move(DoubleQueue& _left, \
+template <typename _Element>
+void DoubleQueue<_Element>::move(DoubleQueue& _left, \
 	DoubleQueue&& _right) noexcept
 {
 	_left._exitQueue = std::move(_right._exitQueue);
@@ -148,22 +148,24 @@ void DoubleQueue<_ElementType>::move(DoubleQueue& _left, \
 	set(_left._capacity, exchange(_right._capacity, 0));
 }
 
-template <typename _ElementType>
-DoubleQueue<_ElementType>::DoubleQueue(const DoubleQueue& _another)
+template <typename _Element>
+DoubleQueue<_Element>::DoubleQueue(const DoubleQueue& _another)
 {
-	std::scoped_lock lock(_another._exitMutex, _another._entryMutex);
+	std::scoped_lock lock(_another._exitMutex, \
+		_another._entryMutex);
 	copy(*this, _another);
 }
 
-template <typename _ElementType>
-DoubleQueue<_ElementType>::DoubleQueue(DoubleQueue&& _another)
+template <typename _Element>
+DoubleQueue<_Element>::DoubleQueue(DoubleQueue&& _another)
 {
-	std::scoped_lock lock(_another._exitMutex, _another._entryMutex);
+	std::scoped_lock lock(_another._exitMutex, \
+		_another._entryMutex);
 	move(*this, std::forward<DoubleQueue>(_another));
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::operator=(const DoubleQueue& _another) \
+template <typename _Element>
+auto DoubleQueue<_Element>::operator=(const DoubleQueue& _another) \
 -> DoubleQueue&
 {
 	if (&_another != this)
@@ -175,8 +177,8 @@ auto DoubleQueue<_ElementType>::operator=(const DoubleQueue& _another) \
 	return *this;
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::operator=(DoubleQueue&& _another) \
+template <typename _Element>
+auto DoubleQueue<_Element>::operator=(DoubleQueue&& _another) \
 -> DoubleQueue&
 {
 	if (&_another != this)
@@ -188,8 +190,8 @@ auto DoubleQueue<_ElementType>::operator=(DoubleQueue&& _another) \
 	return *this;
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::push(const ElementType& _element) \
+template <typename _Element>
+auto DoubleQueue<_Element>::push(const Element& _element) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
@@ -201,8 +203,8 @@ auto DoubleQueue<_ElementType>::push(const ElementType& _element) \
 	return add(1);
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::push(ElementType&& _element) \
+template <typename _Element>
+auto DoubleQueue<_Element>::push(Element&& _element) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
@@ -210,12 +212,12 @@ auto DoubleQueue<_ElementType>::push(ElementType&& _element) \
 		capacity > 0 and size() >= capacity)
 		return std::nullopt;
 
-	_entryQueue.push_back(std::forward<ElementType>(_element));
+	_entryQueue.push_back(std::forward<Element>(_element));
 	return add(1);
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::push(QueueType& _queue) \
+template <typename _Element>
+auto DoubleQueue<_Element>::push(QueueType& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
@@ -230,8 +232,8 @@ auto DoubleQueue<_ElementType>::push(QueueType& _queue) \
 	return add(size);
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::push(QueueType&& _queue) \
+template <typename _Element>
+auto DoubleQueue<_Element>::push(QueueType&& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
@@ -248,8 +250,8 @@ auto DoubleQueue<_ElementType>::push(QueueType&& _queue) \
 }
 
 // 支持元素的完全移动语义
-template <typename _ElementType>
-bool DoubleQueue<_ElementType>::pop(ElementType& _element)
+template <typename _Element>
+bool DoubleQueue<_Element>::pop(Element& _element)
 {
 	std::lock_guard lock(_exitMutex);
 	if (empty()) return false;
@@ -267,8 +269,8 @@ bool DoubleQueue<_ElementType>::pop(ElementType& _element)
 }
 
 // 编译器RVO机制决定完全移动语义或者移动语义与复制语义
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::pop() -> std::optional<ElementType>
+template <typename _Element>
+auto DoubleQueue<_Element>::pop() -> std::optional<Element>
 {
 	std::lock_guard lock(_exitMutex);
 	if (empty()) return std::nullopt;
@@ -285,8 +287,8 @@ auto DoubleQueue<_ElementType>::pop() -> std::optional<ElementType>
 	return result;
 }
 
-template <typename _ElementType>
-bool DoubleQueue<_ElementType>::pop(QueueType& _queue)
+template <typename _Element>
+bool DoubleQueue<_Element>::pop(QueueType& _queue)
 {
 	std::lock_guard exitLock(_exitMutex);
 	if (empty()) return false;
@@ -299,8 +301,8 @@ bool DoubleQueue<_ElementType>::pop(QueueType& _queue)
 	return true;
 }
 
-template <typename _ElementType>
-auto DoubleQueue<_ElementType>::clear() -> SizeType
+template <typename _Element>
+auto DoubleQueue<_Element>::clear() -> SizeType
 {
 	std::scoped_lock lock(_exitMutex, _entryMutex);
 	_exitQueue.clear();

@@ -22,6 +22,7 @@
     <ClCompile Include="..\Source\Concurrency\TaskQueue.cpp" />
     <ClCompile Include="..\Source\Concurrency\Timer.cpp" />
     <ClCompile Include="..\Source\Core\Logger.cpp" />
+    <ClCompile Include="..\Source\Platform\Core\Windows\Common.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -36,8 +37,9 @@
     <ClInclude Include="..\Source\Concurrency\Timer.h" />
     <ClInclude Include="..\Source\Core\Common.hpp" />
     <ClInclude Include="..\Source\Core\Logger.h" />
-    <ClInclude Include="..\Source\Utility\Sorter.hpp" />
-    <ClInclude Include="..\Source\Utility\TimeoutQueue.hpp" />
+    <ClInclude Include="..\Source\Platform\Core\Common.h" />
+    <ClInclude Include="..\Source\Sequence\Sorter.hpp" />
+    <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

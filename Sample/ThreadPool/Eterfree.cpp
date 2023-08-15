@@ -16,15 +16,15 @@
 #include <type_traits>
 #endif
 
+#include <chrono>
 #include <cstdlib>
 #include <utility>
-#include <chrono>
 #include <memory>
 #include <iostream>
 #include <atomic>
 #include <thread>
 
-static constexpr auto SLEEP_TIME = std::chrono::milliseconds(1);
+static constexpr std::chrono::nanoseconds::rep SLEEP_TIME = 1000000;
 
 #if defined TASK_QUEUE
 using TaskManager = Eterfree::TaskQueue;
@@ -42,7 +42,7 @@ static void task()
 {
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
-	sleep_for(SLEEP_TIME);
+	Eterfree::sleepFor(SLEEP_TIME);
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);
 }
@@ -62,11 +62,11 @@ static void execute(ThreadPool& _threadPool)
 }
 
 #elif defined TASK_POOL
-static void handle(Message& _message)
+static void handle(Message _message)
 {
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
-	sleep_for(_message);
+	Eterfree::sleepFor(_message);
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);
 }
@@ -98,8 +98,9 @@ static void terminate(ThreadPool&& _threadPool)
 
 int main()
 {
-	using std::cout, std::endl;
 	using namespace std::chrono;
+
+	using std::cout, std::endl;
 
 	constexpr auto load = []() noexcept
 	{ return counter.load(std::memory_order::relaxed); };
@@ -108,7 +109,8 @@ int main()
 	constexpr auto FILE = "Eterfree.txt";
 
 #ifdef FILE_SYSTEM
-	std::filesystem::remove(FILE);
+	if (std::filesystem::exists(FILE))
+		std::filesystem::remove(FILE);
 #endif // FILE_SYSTEM
 
 	std::ofstream ofs(FILE, std::ios::app);
@@ -139,5 +141,3 @@ int main()
 	cout << "任务总数：" << load() << endl;
 	return EXIT_SUCCESS;
 }
-
-#include "Common.cpp"

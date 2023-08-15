@@ -41,8 +41,8 @@
 #include <cstdint>
 #include <exception>
 #include <atomic>
-#include <thread>
 #include <mutex>
+#include <thread>
 
 #include "Core/Common.hpp"
 #include "Core/Logger.h"
@@ -68,7 +68,7 @@ class Thread final
 
 private:
 	using DataType = std::shared_ptr<Structure>;
-	using AtomicType = std::atomic<DataType>;
+	using Atomic = std::atomic<DataType>;
 	using OrderType = std::memory_order;
 
 public:
@@ -82,11 +82,11 @@ public:
 	using SizeType = Condition::Size;
 
 private:
-	AtomicType _atomic;
+	Atomic _atomic;
 
 private:
 	// 交换数据
-	static auto exchange(AtomicType& _atomic, \
+	static auto exchange(Atomic& _atomic, \
 		const DataType& _data) noexcept
 	{
 		return _atomic.exchange(_data, \

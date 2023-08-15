@@ -18,13 +18,13 @@
 
 #pragma once
 
-#include <utility>
 //#include <tuple>
+#include <utility>
 #include <memory>
 #include <mutex>
 
-#include "TaskManager.h"
 #include "DoubleQueue.hpp"
+#include "TaskManager.h"
 
 ETERFREE_SPACE_BEGIN
 
@@ -39,21 +39,21 @@ public:
 
 private:
 	mutable std::mutex _mutex; // 通知互斥元
-	NotifyType _notify; // 通知函数子
+	Notify _notify; // 通知函数子
 
 	DoubleQueue _queue; // 任务队列
 
 public:
 	// 配置通知函数子
-	virtual void configure(const NotifyType& _notify) override
+	virtual void configure(const Notify& _notify) override
 	{
 		std::lock_guard lock(_mutex);
 		this->_notify = _notify;
 	}
-	virtual void configure(NotifyType&& _notify) override
+	virtual void configure(Notify&& _notify) override
 	{
 		std::lock_guard lock(_mutex);
-		this->_notify = std::forward<NotifyType>(_notify);
+		this->_notify = std::forward<Notify>(_notify);
 	}
 
 	// 是否为空
@@ -87,9 +87,9 @@ public:
 
 	TaskQueue(const TaskQueue&) = delete;
 
-	TaskQueue& operator=(const TaskQueue&) = delete;
-
 	virtual ~TaskQueue() = default;
+
+	TaskQueue& operator=(const TaskQueue&) = delete;
 
 	// 放入单任务
 	bool put(const TaskType& _task)
