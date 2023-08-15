@@ -21,10 +21,10 @@
 
 #pragma once
 
-#include <type_traits>
-#include <utility>
 #include <chrono>
 #include <optional>
+#include <type_traits>
+#include <utility>
 #include <memory>
 #include <list>
 #include <map>
@@ -33,7 +33,7 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "Utility/Sorter.hpp"
+#include "Sequence/Sorter.hpp"
 #include "TaskManager.h"
 
 ETERFREE_SPACE_BEGIN
@@ -59,11 +59,11 @@ public:
 	using MessageQueue = std::list<Message>;
 
 	using IndexType = SizeType;
-	using HandleType = std::function<void(Message&)>;
+	using Handle = std::function<void(Message&)>;
 	using QueueType = Queue;
 
 private:
-	using AtomicType = std::atomic<SizeType>;
+	using Atomic = std::atomic<SizeType>;
 	using TimeType = std::chrono::steady_clock::time_point;
 
 	using MutexMapper = std::map<IndexType, std::shared_ptr<std::mutex>>;
@@ -72,7 +72,7 @@ private:
 
 private:
 	mutable std::mutex _notifyMutex; // 通知互斥元
-	NotifyType _notify; // 通知函数子
+	Notify _notify; // 通知函数子
 
 	std::shared_mutex _sharedMutex; // 并行互斥元
 	std::mutex _mutex; // 互斥元
@@ -84,7 +84,7 @@ private:
 	std::mutex _queueMutex; // 队列互斥元
 	QueueMapper _queueMapper; // 队列映射
 
-	AtomicType _size; // 任务数量
+	Atomic _size; // 任务数量
 
 	mutable std::mutex _sortMutex; // 排序互斥元
 	Sorter<IndexType, Record> _sorter; // 排序者
@@ -98,44 +98,44 @@ private:
 
 	// 执行任务
 	static void execute(const std::weak_ptr<TaskPool>& _taskPool, \
-		IndexType _index, const HandleType& _handle, Message& _message);
+		IndexType _index, const Handle& _handle, Message& _message);
 
 private:
 	// 获取原子
-	static auto get(const AtomicType& _atomic) noexcept
+	static auto get(const Atomic& _atomic) noexcept
 	{
 		return _atomic.load(std::memory_order::relaxed);
 	}
 
 	// 设置原子
-	static void set(AtomicType& _atomic, SizeType _size) noexcept
+	static void set(Atomic& _atomic, SizeType _size) noexcept
 	{
 		_atomic.store(_size, std::memory_order::relaxed);
 	}
 
 	// 原子加法
-	static auto add(AtomicType& _atomic, SizeType _size) noexcept
+	static auto add(Atomic& _atomic, SizeType _size) noexcept
 	{
 		return _atomic.fetch_add(_size, std::memory_order::relaxed);
 	}
 
 	// 原子减法
-	static auto subtract(AtomicType& _atomic, SizeType _size) noexcept
+	static auto subtract(Atomic& _atomic, SizeType _size) noexcept
 	{
 		return _atomic.fetch_sub(_size, std::memory_order::relaxed);
 	}
 
 public:
 	// 配置通知函数子
-	virtual void configure(const NotifyType& _notify) override
+	virtual void configure(const Notify& _notify) override
 	{
 		std::lock_guard lock(_notifyMutex);
 		this->_notify = _notify;
 	}
-	virtual void configure(NotifyType&& _notify) override
+	virtual void configure(Notify&& _notify) override
 	{
 		std::lock_guard lock(_notifyMutex);
-		this->_notify = std::forward<NotifyType>(_notify);
+		this->_notify = std::forward<Notify>(_notify);
 	}
 
 	// 是否无任务
@@ -181,8 +181,8 @@ private:
 	void reply(IndexType _index);
 
 	// 放入处理者
-	bool push(IndexType _index, const HandleType& _handle, bool _parallel);
-	bool push(IndexType _index, HandleType&& _handle, bool _parallel);
+	bool push(IndexType _index, const Handle& _handle, bool _parallel);
+	bool push(IndexType _index, Handle&& _handle, bool _parallel);
 
 	// 向调度队列放入索引
 	bool push(IndexType _index);
@@ -195,9 +195,9 @@ public:
 
 	TaskPool(const TaskPool&) = delete;
 
-	TaskPool& operator=(const TaskPool&) = delete;
-
 	virtual ~TaskPool() = default;
+
+	TaskPool& operator=(const TaskPool&) = delete;
 
 	// 任务数量
 	SizeType size(IndexType _index) const
@@ -208,13 +208,13 @@ public:
 
 	// 设置处理者
 	bool set(IndexType _index, \
-		const HandleType& _handle, bool _parallel = false)
+		const Handle& _handle, bool _parallel = false)
 	{
 		return push(_index, _handle, _parallel);
 	}
-	bool set(IndexType _index, HandleType&& _handle, bool _parallel = false)
+	bool set(IndexType _index, Handle&& _handle, bool _parallel = false)
 	{
-		return push(_index, std::forward<HandleType>(_handle), _parallel);
+		return push(_index, std::forward<Handle>(_handle), _parallel);
 	}
 
 	// 适配不同处理接口，推进任务池模板化
@@ -301,26 +301,26 @@ struct TaskPool<_Message>::Record
 template <typename _Message>
 struct TaskPool<_Message>::Handler
 {
-	HandleType _handle;
+	Handle _handle;
 	bool _parallel;
 	bool _idle;
 
 	Handler() noexcept : _parallel(false), _idle(true) {}
-	Handler(const HandleType& _handle, bool _parallel) : \
+	Handler(const Handle& _handle, bool _parallel) : \
 		_handle(_handle), _parallel(_parallel), _idle(true) {}
-	Handler(HandleType&& _handle, bool _parallel) noexcept : \
-		_handle(std::forward<HandleType>(_handle)), \
+	Handler(Handle&& _handle, bool _parallel) noexcept : \
+		_handle(std::forward<Handle>(_handle)), \
 		_parallel(_parallel), _idle(true) {}
 
 	// 赋值替换
-	void assign(const HandleType& _handle, bool _parallel)
+	void assign(const Handle& _handle, bool _parallel)
 	{
 		this->_handle = _handle;
 		this->_parallel = _parallel;
 	}
-	void assign(HandleType&& _handle, bool _parallel) noexcept
+	void assign(Handle&& _handle, bool _parallel) noexcept
 	{
-		this->_handle = std::forward<HandleType>(_handle);
+		this->_handle = std::forward<Handle>(_handle);
 		this->_parallel = _parallel;
 	}
 
@@ -442,7 +442,7 @@ bool TaskPool<_Message>::Handler::idle(bool _idle) noexcept
 // 执行任务
 template <typename _Message>
 void TaskPool<_Message>::execute(const std::weak_ptr<TaskPool>& _taskPool, \
-	IndexType _index, const HandleType& _handle, Message& _message)
+	IndexType _index, const Handle& _handle, Message& _message)
 {
 	if (_handle) _handle(_message);
 	if (auto taskPool = _taskPool.lock())
@@ -588,7 +588,7 @@ void TaskPool<_Message>::reply(IndexType _index)
 // 放入处理者
 template <typename _Message>
 bool TaskPool<_Message>::push(IndexType _index, \
-	const HandleType& _handle, bool _parallel)
+	const Handle& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -622,7 +622,7 @@ bool TaskPool<_Message>::push(IndexType _index, \
 
 // 放入处理者
 template <typename _Message>
-bool TaskPool<_Message>::push(IndexType _index, HandleType&& _handle, bool _parallel)
+bool TaskPool<_Message>::push(IndexType _index, Handle&& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -640,13 +640,13 @@ bool TaskPool<_Message>::push(IndexType _index, HandleType&& _handle, bool _para
 			_sorter.remove(_index);
 		}
 
-		handler->assign(std::forward<HandleType>(_handle), _parallel);
+		handler->assign(std::forward<Handle>(_handle), _parallel);
 		return true;
 	}
 
 	if (not _handle) return true;
 
-	handler = std::make_shared<Handler>(std::forward<HandleType>(_handle), _parallel);
+	handler = std::make_shared<Handler>(std::forward<Handle>(_handle), _parallel);
 	if (not handler) return false;
 
 	setHandler(_index, std::move(handler));
@@ -668,30 +668,28 @@ template <typename _Message>
 auto TaskPool<_Message>::pop() -> std::optional<IndexType>
 {
 	std::lock_guard lock(_sortMutex);
-	if (auto record = _sorter.front(true); record != nullptr)
+	auto record = _sorter.front(true);
+	while (record != nullptr)
 	{
-		do
+		auto index = record->_index;
+		if (auto handler = findHandler(index))
 		{
-			auto index = record->_index;
-			if (auto handler = findHandler(index))
+			if (handler->parallel())
 			{
-				if (handler->parallel())
-				{
-					if (auto queue = getQueue(index))
-						if (auto time = queue->time())
-							_sorter.update({ index, time.value() });
-				}
-				else
-				{
-					handler->idle(false);
-					_sorter.remove(index);
-				}
-				return index;
+				if (auto queue = getQueue(index))
+					if (auto time = queue->time())
+						_sorter.update({ index, time.value() });
 			}
+			else
+			{
+				handler->idle(false);
+				_sorter.remove(index);
+			}
+			return index;
+		}
 
-			_sorter.remove(index);
-			record = _sorter.front(true);
-		} while (record != nullptr);
+		_sorter.remove(index);
+		record = _sorter.front(true);
 	}
 	return std::nullopt;
 }

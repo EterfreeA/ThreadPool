@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include <functional>
 #include <cstddef>
+#include <functional>
 
 #include "Core/Common.hpp"
 
@@ -28,15 +28,15 @@ class TaskManager
 {
 public:
 	using SizeType = std::size_t;
-	using NotifyType = std::function<void()>;
+	using Notify = std::function<void()>;
 	using TaskType = std::function<void()>;
 
 public:
 	virtual ~TaskManager() noexcept {}
 
-	virtual void configure(const NotifyType&) = 0;
+	virtual void configure(const Notify&) = 0;
 
-	virtual void configure(NotifyType&&) = 0;
+	virtual void configure(Notify&&) = 0;
 
 	virtual bool empty() const = 0;
 

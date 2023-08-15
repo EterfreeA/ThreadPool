@@ -3,8 +3,9 @@
 #define THREAD
 #define ASIO
 
+#include "Common.h"
+
 #if defined THREAD
-#include "Common.cpp"
 #include <boost/threadpool.hpp>
 
 #elif defined ASIO
@@ -12,13 +13,12 @@
 #include <WinSock2.h>
 #endif // _WIN32
 
-#include "Common.cpp"
 #include <boost/asio.hpp>
 #endif
 
+#include <chrono>
 #include <cstdlib>
 #include <utility>
-#include <chrono>
 #include <iostream>
 #include <atomic>
 #include <thread>
@@ -29,24 +29,24 @@ using ThreadPool = boost::threadpool::thread_pool<>;
 using ThreadPool = boost::asio::thread_pool;
 #endif
 
-static constexpr auto SLEEP_TIME = std::chrono::milliseconds(1);
+static constexpr std::chrono::nanoseconds::rep SLEEP_TIME = 1000000;
 
 static std::atomic_ulong counter = 0;
-
-static void task()
-{
-	for (volatile auto index = 0UL; \
-		index < 10000UL; ++index);
-	sleep_for(SLEEP_TIME);
-	counter.fetch_add(1, \
-		std::memory_order::relaxed);
-}
 
 static auto getConcurrency() noexcept
 {
 	auto concurrency = std::thread::hardware_concurrency();
 	return concurrency > 0 ? \
 		concurrency : static_cast<decltype(concurrency)>(1);
+}
+
+static void task()
+{
+	for (volatile auto index = 0UL; \
+		index < 10000UL; ++index);
+	Eterfree::sleepFor(SLEEP_TIME);
+	counter.fetch_add(1, \
+		std::memory_order::relaxed);
 }
 
 #if defined THREAD
@@ -83,8 +83,9 @@ static void terminate(ThreadPool&& _threadPool)
 
 int main()
 {
-	using std::cout, std::endl;
 	using namespace std::chrono;
+
+	using std::cout, std::endl;
 
 	constexpr auto load = []() noexcept
 	{ return counter.load(std::memory_order::relaxed); };
@@ -93,7 +94,8 @@ int main()
 	constexpr auto FILE = "Boost.txt";
 
 #ifdef FILE_SYSTEM
-	std::filesystem::remove(FILE);
+	if (std::filesystem::exists(FILE))
+		std::filesystem::remove(FILE);
 #endif // FILE_SYSTEM
 
 	std::ofstream ofs(FILE, std::ios::app);

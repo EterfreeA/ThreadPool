@@ -3,8 +3,6 @@
 //#define FILE_STREAM
 //#define FILE_SYSTEM
 
-#include <chrono>
-
 #ifdef FILE_STREAM
 #include <fstream>
 
@@ -13,4 +11,4 @@
 #endif // FILE_SYSTEM
 #endif // FILE_STREAM
 
-void sleep_for(const std::chrono::milliseconds& time);
+#include "Platform/Core/Common.h"

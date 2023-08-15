@@ -25,7 +25,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "Utility/TimeoutQueue.hpp"
+#include "Sequence/TimeoutQueue.hpp"
 #include "SpinAdapter.hpp"
 
 ETERFREE_SPACE_BEGIN
@@ -36,7 +36,9 @@ class TimedTask : \
 public:
 	using SteadyTime = std::chrono::steady_clock::time_point;
 	using SystemTime = std::chrono::system_clock::time_point;
-	using Duration = std::chrono::steady_clock::rep;
+
+	using TimeType = std::chrono::nanoseconds;
+	using Duration = TimeType::rep;
 
 public:
 	// 获取单调时间
@@ -50,9 +52,6 @@ public:
 	{
 		return std::chrono::system_clock::now();
 	}
-
-	// 暂停指定时间
-	static void sleep(Duration _duration);
 
 public:
 	virtual ~TimedTask() noexcept {}
@@ -81,7 +80,7 @@ class PeriodicTask : public TimedTask
 private:
 	// 获取后续执行时间
 	static SystemTime getNextTime(const SystemTime& _timePoint, \
-		Duration _target, const SystemTime::duration& _reality) noexcept;
+		Duration _duration, const SystemTime::duration& _realTime) noexcept;
 
 public:
 	// 获取执行时间
@@ -106,30 +105,29 @@ public:
 		return true;
 	}
 
-private:
-	// 获取时间点
-	auto getTimePoint() const noexcept
-	{
-		return _timePoint.load(std::memory_order::relaxed);
-	}
-
-	// 获取间隔时间
-	Duration getDuration() const noexcept
-	{
-		return _duration.load(std::memory_order::relaxed);
-	}
-
 public:
 	PeriodicTask() noexcept : \
 		_timePoint(getSystemTime()), _duration(0) {}
 
 	virtual ~PeriodicTask() noexcept = default;
 
+	// 获取时间点
+	auto getTimePoint() const noexcept
+	{
+		return _timePoint.load(std::memory_order::relaxed);
+	}
+
 	// 设置时间点
 	void setTimePoint(const SystemTime& _timePoint) noexcept
 	{
 		this->_timePoint.store(_timePoint, \
 			std::memory_order::relaxed);
+	}
+
+	// 获取间隔时间
+	Duration getDuration() const noexcept
+	{
+		return _duration.load(std::memory_order::relaxed);
 	}
 
 	// 设置间隔时间
@@ -145,6 +143,8 @@ class Timer : public SpinAdaptee
 public:
 	using SteadyTime = TimedTask::SteadyTime;
 	using SystemTime = TimedTask::SystemTime;
+
+	using TimeType = TimedTask::TimeType;
 	using Duration = TimedTask::Duration;
 
 	using TaskType = std::shared_ptr<TimedTask>;
@@ -161,6 +161,11 @@ private:
 
 	std::mutex _taskMutex;
 	TaskQueue _taskQueue;
+
+public:
+	// 等待相对时间
+	static void waitFor(SteadyTime& _timePoint, \
+		Duration& _correction, Duration _duration);
 
 private:
 	// 启动定时器
@@ -190,9 +195,9 @@ public:
 
 	Timer(const Timer&) = delete;
 
-	Timer& operator=(const Timer&) = delete;
-
 	virtual ~Timer() = default;
+
+	Timer& operator=(const Timer&) = delete;
 
 	// 获取暂停间隔
 	auto getDuration() const noexcept

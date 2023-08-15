@@ -10,6 +10,12 @@
     <Filter Include="Sequence">
       <UniqueIdentifier>{ffcc1a84-952c-473d-a813-03d87a65025f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{1ff1b54c-d9b5-4b26-ad30-ebb89b53fe1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Core">
+      <UniqueIdentifier>{6a0f541a-912a-4785-8549-f0365a3c1ff2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test.cpp" />
@@ -21,6 +27,9 @@
     </ClCompile>
     <ClCompile Include="..\Source\Concurrency\Timer.cpp">
       <Filter>Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Platform\Core\Windows\Common.cpp">
+      <Filter>Platform\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -62,6 +71,9 @@
     </ClInclude>
     <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp">
       <Filter>Sequence</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Platform\Core\Common.h">
+      <Filter>Platform\Core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

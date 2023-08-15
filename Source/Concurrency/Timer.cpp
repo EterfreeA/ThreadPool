@@ -1,92 +1,23 @@
 ﻿#include "Timer.h"
 #include "Core/Logger.h"
+#include "Platform/Core/Common.h"
 
 #include <utility>
 #include <exception>
-#include <thread>
-
-#ifdef _WIN32
-#include <string>
-#include <sstream>
-
-#include <Windows.h>
-#pragma comment(lib, "Winmm.lib")
-
-#undef ERROR
-
-// 获取错误描述
-static std::string& getErrorInfo(std::string& _info, DWORD _error)
-{
-	auto size = _info.size();
-	_info.resize(size + FORMAT_MESSAGE_ALLOCATE_BUFFER);
-
-	DWORD length = ::FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, \
-		NULL, _error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), \
-		_info.data() + size, FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL);
-	if (length == 0)
-	{
-		std::ostringstream stream;
-		stream << "FormatMessage error " << ::GetLastError();
-
-		USING_ETERFREE_SPACE;
-		Logger::output(Logger::Level::ERROR, \
-			std::source_location::current(), stream.str());
-	}
-
-	_info.resize(size + length);
-	return _info;
-}
-#endif
 
 ETERFREE_SPACE_BEGIN
 
-// 暂停指定时间
-void TimedTask::sleep(Duration _duration)
-{
-	if (_duration <= 0) return;
-
-#ifdef _WIN32
-	constexpr UINT PERIOD = 1;
-	auto result = ::timeBeginPeriod(PERIOD);
-	if (result != TIMERR_NOERROR)
-	{
-		std::string info = "timeBeginPeriod error ";
-		info += std::to_string(result) += ": ";
-
-		Logger::output(Logger::Level::ERROR, \
-			std::source_location::current(), \
-			getErrorInfo(info, result));
-	}
-#endif
-
-	auto duration = SteadyTime::duration(_duration);
-	std::this_thread::sleep_for(duration);
-
-#ifdef _WIN32
-	result = ::timeEndPeriod(PERIOD);
-	if (result != TIMERR_NOERROR)
-	{
-		std::string info = "timeEndPeriod error ";
-		info += std::to_string(result) += ": ";
-
-		Logger::output(Logger::Level::ERROR, \
-			std::source_location::current(), \
-			getErrorInfo(info, result));
-	}
-#endif
-}
-
 // 获取后续执行时间
-auto PeriodicTask::getNextTime(const SystemTime& _timePoint, Duration _target, \
-	const SystemTime::duration& _reality) noexcept -> SystemTime
+auto PeriodicTask::getNextTime(const SystemTime& _timePoint, Duration _duration, \
+	const SystemTime::duration& _realTime) noexcept -> SystemTime
 {
 	using namespace std::chrono;
 
-	auto time = duration_cast<SteadyTime::duration>(_reality).count();
-	auto remainder = time % _target;
-	time = time - remainder + (remainder > 0 ? _target : 0);
+	auto time = duration_cast<TimeType>(_realTime).count();
+	auto remainder = time % _duration;
+	time = time - remainder + (remainder != 0 ? _duration : 0);
 
-	auto duration = duration_cast<SystemTime::duration>(SteadyTime::duration(time));
+	auto duration = duration_cast<SystemTime::duration>(TimeType(time));
 	return _timePoint + duration;
 }
 
@@ -101,6 +32,37 @@ auto PeriodicTask::getTime() noexcept -> SystemTime
 		getSystemTime() - timePoint);
 }
 
+// 等待相对时间
+void Timer::waitFor(SteadyTime& _timePoint, \
+	Duration& _correction, Duration _duration)
+{
+	using namespace std::chrono;
+
+	if (_duration <= 0)
+	{
+		_timePoint = TimedTask::getSteadyTime();
+		return;
+	}
+
+	auto timePoint = TimedTask::getSteadyTime();
+	auto time = duration_cast<TimeType>(timePoint - _timePoint);
+	_timePoint = timePoint;
+
+	auto realTime = time.count() % _duration;
+	auto difference = _duration - _correction % _duration;
+	if (difference <= realTime) difference += _duration;
+
+	auto sleepTime = difference - realTime;
+	sleepFor(sleepTime);
+
+	timePoint = TimedTask::getSteadyTime();
+	time = duration_cast<TimeType>(timePoint - _timePoint);
+	_timePoint = timePoint;
+
+	realTime = time.count();
+	_correction = realTime - sleepTime;
+}
+
 // 启动定时器
 void Timer::start()
 {
@@ -112,7 +74,7 @@ void Timer::start()
 // 更新定时任务
 void Timer::update()
 {
-	typename TaskQueue::VectorType outVector;
+	typename TaskQueue::Vector outVector;
 	auto time = TimedTask::getSystemTime();
 
 	std::unique_lock lock(_taskMutex);
@@ -163,34 +125,9 @@ void Timer::update()
 void Timer::wait()
 {
 	auto duration = getDuration();
-	if (duration <= 0)
-	{
-		std::lock_guard lock(_timeMutex);
-		_timePoint = TimedTask::getSteadyTime();
-		return;
-	}
 
 	std::lock_guard lock(_timeMutex);
-	auto timePoint = TimedTask::getSteadyTime();
-	auto realTime = (timePoint - _timePoint).count();
-	_timePoint = timePoint;
-
-	auto difference = duration - _correction % duration;
-	realTime %= duration;
-	if (realTime >= difference)
-	{
-		_correction = (realTime - difference) % duration;
-		return;
-	}
-
-	auto sleepTime = difference - realTime;
-	TimedTask::sleep(sleepTime);
-
-	timePoint = TimedTask::getSteadyTime();
-	realTime = (timePoint - _timePoint).count();
-	_timePoint = timePoint;
-
-	_correction = (realTime - sleepTime) % duration;
+	waitFor(_timePoint, _correction, duration);
 }
 
 // 放入定时任务

@@ -22,27 +22,27 @@
 
 #pragma once
 
-#include <utility>
 #include <optional>
-#include <vector>
+#include <utility>
 #include <map>
+#include <vector>
 
 #include "Core/Common.hpp"
 
 ETERFREE_SPACE_BEGIN
 
-template <typename _TimeType, typename _ElementType>
+template <typename _TimeType, typename _Element>
 class TimeoutQueue final
 {
 public:
 	using TimeType = _TimeType;
-	using ElementType = _ElementType;
+	using Element = _Element;
 
-	using VectorType = std::vector<ElementType>;
-	using SizeType = VectorType::size_type;
+	using Vector = std::vector<Element>;
+	using SizeType = Vector::size_type;
 
 private:
-	using QueueType = std::multimap<TimeType, ElementType>;
+	using QueueType = std::multimap<TimeType, Element>;
 
 private:
 	SizeType _capacity;
@@ -61,11 +61,11 @@ public:
 	bool empty() const noexcept { return _queue.empty(); }
 	auto size() const noexcept { return _queue.size(); }
 
-	bool push(TimeType _time, const ElementType& _element);
-	bool push(TimeType _time, ElementType&& _element);
+	bool push(TimeType _time, const Element& _element);
+	bool push(TimeType _time, Element&& _element);
 
-	bool pop(TimeType _time, VectorType& _vector);
-	bool pop(VectorType& _vector);
+	bool pop(TimeType _time, Vector& _vector);
+	bool pop(Vector& _vector);
 
 	void clear() noexcept
 	{
@@ -73,9 +73,9 @@ public:
 	}
 };
 
-template <typename _TimeType, typename _ElementType>
-bool TimeoutQueue<_TimeType, _ElementType>::push(TimeType _time, \
-	const ElementType& _element)
+template <typename _TimeType, typename _Element>
+bool TimeoutQueue<_TimeType, _Element>::push(TimeType _time, \
+	const Element& _element)
 {
 	if (_capacity > 0 and size() >= _capacity) return false;
 
@@ -83,18 +83,18 @@ bool TimeoutQueue<_TimeType, _ElementType>::push(TimeType _time, \
 	return true;
 }
 
-template <typename _TimeType, typename _ElementType>
-bool TimeoutQueue<_TimeType, _ElementType>::push(TimeType _time, \
-	ElementType&& _element)
+template <typename _TimeType, typename _Element>
+bool TimeoutQueue<_TimeType, _Element>::push(TimeType _time, \
+	Element&& _element)
 {
 	if (_capacity > 0 and size() >= _capacity) return false;
 
-	_queue.emplace(_time, std::forward<ElementType>(_element));
+	_queue.emplace(_time, std::forward<Element>(_element));
 	return true;
 }
 
-template <typename _TimeType, typename _ElementType>
-bool TimeoutQueue<_TimeType, _ElementType>::pop(TimeType _time, VectorType& _vector)
+template <typename _TimeType, typename _Element>
+bool TimeoutQueue<_TimeType, _Element>::pop(TimeType _time, Vector& _vector)
 {
 	auto size = _vector.size();
 	for (auto iterator = _queue.begin(), end = _queue.upper_bound(_time); \
@@ -103,8 +103,8 @@ bool TimeoutQueue<_TimeType, _ElementType>::pop(TimeType _time, VectorType& _vec
 	return _vector.size() > size;
 }
 
-template <typename _TimeType, typename _ElementType>
-bool TimeoutQueue<_TimeType, _ElementType>::pop(VectorType& _vector)
+template <typename _TimeType, typename _Element>
+bool TimeoutQueue<_TimeType, _Element>::pop(Vector& _vector)
 {
 	if (empty()) return false;
 
