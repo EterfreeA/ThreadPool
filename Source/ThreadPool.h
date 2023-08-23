@@ -3,7 +3,7 @@
 * 语言标准：C++17
 * 
 * 创建日期：2017年09月22日
-* 更新日期：2023年02月07日
+* 更新日期：2023年08月24日
 * 
 * 摘要
 * 1.线程池类ThreadPool定义于此文件，实现于ThreadPool.cpp。
@@ -21,7 +21,7 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 * 
-* 版本：v2.2.1
+* 版本：v2.2.2
 * 变化
 * v2.0.1
 * 1.运用Condition的宽松策略，提升激活守护线程的性能。
@@ -44,6 +44,9 @@
 * 2.设置线程池容量函数返回合理值。
 * v2.2.1
 * 1.修复移动赋值运算符函数的资源泄漏问题。
+* v2.2.2
+* 1.优化移动语义。
+* 2.确保移动构造函数和析构函数的异常安全性。
 */
 
 #pragma once
@@ -121,19 +124,10 @@ public:
 	ThreadPool(const ThreadPool&) = delete;
 
 	// 默认移动构造函数
-	ThreadPool(ThreadPool&& _another)
-	{
-		std::lock_guard lock(_another._mutex);
-		this->_data = std::move(_another._data);
-	}
+	ThreadPool(ThreadPool&& _another) noexcept;
 
 	// 默认析构函数
-	~ThreadPool()
-	{
-		// 数据非空才进行销毁，以支持移动语义
-		if (auto data = load())
-			destroy(std::move(data));
-	}
+	~ThreadPool() noexcept;
 
 	// 删除默认复制赋值运算符函数
 	ThreadPool& operator=(const ThreadPool&) = delete;

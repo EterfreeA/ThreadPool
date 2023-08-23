@@ -94,7 +94,7 @@ auto Thread::move(Thread& _left, Thread&& _right) \
 -> DataType
 {
 	std::lock_guard leftLock(_left._mutex);
-	auto data = _left._data;
+	auto data = std::move(_left._data);
 
 	std::lock_guard rightLock(_right._mutex);
 	_left._data = std::move(_right._data);
@@ -193,6 +193,27 @@ Thread::Thread() : \
 	_data(std::make_shared<Structure>())
 {
 	create();
+}
+
+// 默认移动构造函数
+Thread::Thread(Thread&& _another) noexcept
+{
+	try
+	{
+		std::lock_guard lock(_another._mutex);
+		this->_data = std::move(_another._data);
+	}
+	catch (std::exception&) {}
+}
+
+// 默认析构函数
+Thread::~Thread() noexcept
+{
+	try
+	{
+		destroy();
+	}
+	catch (std::exception&) {}
 }
 
 // 默认移动赋值运算符函数

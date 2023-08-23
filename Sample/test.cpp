@@ -5,11 +5,11 @@
 #define TEST THREAD_POOL
 
 #if TEST == THREAD_POOL
-#include "test1.cpp"
+#include "ThreadPool/test.cpp"
 
 #elif TEST == THREAD
-#include "test2.cpp"
+#include "Thread/test.cpp"
 
 #elif TEST == DOUBLE_QUEUE
-#include "test3.cpp"
+#include "DoubleQueue/test.cpp"
 #endif

@@ -258,7 +258,7 @@ auto ThreadPool::move(ThreadPool& _left, \
 	ThreadPool&& _right) -> DataType
 {
 	std::lock_guard leftLock(_left._mutex);
-	auto data = _left._data;
+	auto data = std::move(_left._data);
 
 	std::lock_guard rightLock(_right._mutex);
 	_left._data = std::move(_right._data);
@@ -437,6 +437,29 @@ ThreadPool::ThreadPool(SizeType _size, \
 	create(load(), _capacity);
 }
 
+// 默认移动构造函数
+ThreadPool::ThreadPool(ThreadPool&& _another) noexcept
+{
+	try
+	{
+		std::lock_guard lock(_another._mutex);
+		this->_data = std::move(_another._data);
+	}
+	catch (std::exception&) {}
+}
+
+// 默认析构函数
+ThreadPool::~ThreadPool() noexcept
+{
+	try
+	{
+		// 数据非空才进行销毁，以支持移动语义
+		if (auto data = load())
+			destroy(std::move(data));
+	}
+	catch (std::exception&) {}
+}
+
 // 默认移动赋值运算符函数
 ThreadPool& ThreadPool::operator=(ThreadPool&& _another)
 {
@@ -451,7 +474,7 @@ ThreadPool& ThreadPool::operator=(ThreadPool&& _another)
 }
 
 // 获取线程池容量
-ThreadPool::SizeType ThreadPool::getCapacity() const
+auto ThreadPool::getCapacity() const -> SizeType
 {
 	auto data = load();
 	return data ? data->getCapacity() : 0;
@@ -470,21 +493,21 @@ bool ThreadPool::setCapacity(SizeType _capacity)
 }
 
 // 获取总线程数量
-ThreadPool::SizeType ThreadPool::getTotalSize() const
+auto ThreadPool::getTotalSize() const -> SizeType
 {
 	auto data = load();
 	return data ? data->getTotalSize() : 0;
 }
 
 // 获取闲置线程数量
-ThreadPool::SizeType ThreadPool::getIdleSize() const
+auto ThreadPool::getIdleSize() const -> SizeType
 {
 	auto data = load();
 	return data ? data->getIdleSize() : 0;
 }
 
 // 获取任务数量
-ThreadPool::SizeType ThreadPool::getTaskSize() const
+auto ThreadPool::getTaskSize() const -> SizeType
 {
 	auto data = load();
 	return data ? data->_taskQueue->size() : 0;
@@ -530,7 +553,8 @@ bool ThreadPool::pushTask(TaskQueue&& _taskQueue)
 bool ThreadPool::popTask(TaskQueue& _taskQueue)
 {
 	auto data = load();
-	return data && data->_taskQueue->pop(_taskQueue);
+	return data \
+		&& data->_taskQueue->pop(_taskQueue);
 }
 
 // 清空任务
@@ -541,7 +565,8 @@ void ThreadPool::clearTask()
 }
 
 // 获取代理
-ThreadPool::Proxy ThreadPool::getProxy() const
+auto ThreadPool::getProxy() const \
+-> Proxy
 {
 	return load();
 }
