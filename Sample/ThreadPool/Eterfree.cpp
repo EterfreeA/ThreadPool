@@ -42,7 +42,9 @@ static void task()
 {
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
+
 	Eterfree::sleepFor(SLEEP_TIME);
+
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);
 }

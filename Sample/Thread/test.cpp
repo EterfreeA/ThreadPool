@@ -20,7 +20,7 @@ int main()
 	cout << thread.getID() << endl;
 
 	thread.configure([] \
-	{ cout << "solifree" << endl; }, nullptr);
+	{ cout << "Solifree" << endl; }, nullptr);
 	cout << boolalpha << thread.notify() << endl;
 	return EXIT_SUCCESS;
 }
