@@ -1,4 +1,6 @@
-﻿#define THREAD
+﻿#undef THREAD
+
+#define THREAD
 #define ASIO
 
 #if defined THREAD

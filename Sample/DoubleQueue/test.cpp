@@ -14,7 +14,7 @@ static Condition condition;
 
 static void task()
 {
-	condition.wait([] \
+	condition.wait([]() noexcept \
 	{ return !valid.load(std::memory_order_relaxed); });
 }
 
