@@ -5,7 +5,7 @@
 #define TASK_POOL
 
 #include "Common.h"
-#include "Concurrency/ThreadPool.hpp"
+#include "Concurrency/ThreadPool.h"
 
 #if defined TASK_QUEUE
 #include "Concurrency/TaskQueue.h"
@@ -26,14 +26,14 @@
 
 static constexpr std::chrono::nanoseconds::rep SLEEP_TIME = 1000000;
 
+using ThreadPool = Eterfree::ThreadPool;
+
 #if defined TASK_QUEUE
 using TaskManager = Eterfree::TaskQueue;
 #elif defined TASK_POOL
 using Message = std::remove_const_t<decltype(SLEEP_TIME)>;
 using TaskManager = Eterfree::TaskPool<Message>;
 #endif
-
-using ThreadPool = Eterfree::ThreadPool<TaskManager>;
 
 static std::atomic_ulong counter = 0;
 
@@ -52,15 +52,16 @@ static void task()
 static void execute(ThreadPool& _threadPool)
 {
 	auto taskManager = _threadPool.getTaskManager();
-	if (not taskManager) return;
+	auto taskQueue = dynamic_cast<TaskManager*>(taskManager.get());
+	if (taskQueue == nullptr) return;
 
 	for (auto index = 0UL; index < 50000UL; ++index)
-		taskManager->put(task);
+		taskQueue->put(task);
 
 	TaskManager::QueueType queue;
 	for (auto index = 0UL; index < 50000UL; ++index)
 		queue.push_back(task);
-	taskManager->put(std::move(queue));
+	taskQueue->put(std::move(queue));
 }
 
 #elif defined TASK_POOL
@@ -76,18 +77,19 @@ static void handle(Message _message)
 static void execute(ThreadPool& _threadPool)
 {
 	auto taskManager = _threadPool.getTaskManager();
-	if (not taskManager) return;
+	auto taskPool = dynamic_cast<TaskManager*>(taskManager.get());
+	if (taskPool == nullptr) return;
 
 	constexpr TaskManager::IndexType INDEX = 0;
-	taskManager->set(INDEX, handle, true);
+	taskPool->set(INDEX, handle, true);
 
 	for (auto index = 0UL; index < 50000UL; ++index)
-		taskManager->put(INDEX, SLEEP_TIME);
+		taskPool->put(INDEX, SLEEP_TIME);
 
 	TaskManager::MessageQueue queue;
 	for (auto index = 0UL; index < 50000UL; ++index)
 		queue.push_back(SLEEP_TIME);
-	taskManager->put(INDEX, std::move(queue));
+	taskPool->put(INDEX, std::move(queue));
 }
 #endif
 

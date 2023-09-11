@@ -1,6 +1,6 @@
 ﻿#include "Concurrency/TaskQueue.h"
-#include "Concurrency/ThreadPool.hpp"
-#include "Concurrency/Timer.h"
+#include "Concurrency/ThreadPool.h"
+#include "Core/Timer.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -37,7 +37,7 @@ int main()
 	auto timer = std::make_shared<Timer>();
 	timer->setDuration(2000000);
 
-	SpinAdapter<SpinAdaptee> adapter(timer);
+	SpinAdapter adapter(timer);
 	taskQueue->put(adapter);
 	adapter.start();
 

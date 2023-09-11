@@ -1,6 +1,6 @@
-﻿#include "Concurrency/Condition.hpp"
-#include "Concurrency/TaskQueue.h"
-#include "Concurrency/ThreadPool.hpp"
+﻿#include "Concurrency/TaskQueue.h"
+#include "Concurrency/ThreadPool.h"
+#include "Core/Condition.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -20,13 +20,14 @@ static void task()
 	{ return flag.test(std::memory_order::relaxed); });
 }
 
-static void print(const ThreadPool<TaskManager>& _threadPool)
+static void print(const ThreadPool& _threadPool)
 {
 	auto proxy = _threadPool.getProxy();
 	auto capacity = proxy.getCapacity();
 	auto totalSize = proxy.getTotalSize();
 	auto idleSize = proxy.getIdleSize();
-	std::cout << capacity << ' ' << totalSize << ' ' << idleSize;
+	std::cout << capacity << ' ' \
+		<< totalSize << ' ' << idleSize;
 
 	if (auto taskManager = proxy.getTaskManager())
 	{

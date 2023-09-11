@@ -1,5 +1,5 @@
 ﻿#include "Concurrency/TaskPool.hpp"
-#include "Concurrency/ThreadPool.hpp"
+#include "Concurrency/ThreadPool.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -12,7 +12,7 @@
 using Message = std::chrono::milliseconds;
 using TaskPool = Eterfree::TaskPool<Message>;
 
-using ThreadPool = Eterfree::ThreadPool<>;
+using ThreadPool = Eterfree::ThreadPool;
 using SizeType = ThreadPool::SizeType;
 
 static constexpr auto SLEEP_TIME = Message(1);

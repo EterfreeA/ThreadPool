@@ -1,4 +1,4 @@
-﻿#include "Concurrency/Thread.hpp"
+﻿#include "Concurrency/Thread.h"
 
 #include <cstdlib>
 #include <iostream>

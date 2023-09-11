@@ -25,11 +25,20 @@
     <ClCompile Include="..\Source\Concurrency\TaskQueue.cpp">
       <Filter>Concurrency</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\Concurrency\Timer.cpp">
-      <Filter>Concurrency</Filter>
-    </ClCompile>
     <ClCompile Include="..\Source\Platform\Core\Windows\Common.cpp">
       <Filter>Platform\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Concurrency\Thread.cpp">
+      <Filter>Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Concurrency\ThreadPool.cpp">
+      <Filter>Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Core\Timer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Core\SpinAdapter.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -39,13 +48,7 @@
     <ClInclude Include="..\Source\Core\Logger.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\Condition.hpp">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
     <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\SpinAdapter.hpp">
       <Filter>Concurrency</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\Concurrency\TaskManager.h">
@@ -57,13 +60,10 @@
     <ClInclude Include="..\Source\Concurrency\TaskQueue.h">
       <Filter>Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\Thread.hpp">
+    <ClInclude Include="..\Source\Concurrency\Thread.h">
       <Filter>Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\ThreadPool.hpp">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\Timer.h">
+    <ClInclude Include="..\Source\Concurrency\ThreadPool.h">
       <Filter>Concurrency</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\Sequence\Sorter.hpp">
@@ -74,6 +74,15 @@
     </ClInclude>
     <ClInclude Include="..\Source\Platform\Core\Common.h">
       <Filter>Platform\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Core\Timer.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Core\Condition.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Core\SpinAdapter.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
