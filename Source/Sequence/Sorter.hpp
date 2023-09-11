@@ -210,7 +210,7 @@ public:
 
 	SharedSorter& operator=(const SharedSorter& _another);
 
-	SharedSorter& operator=(SharedSorter&&) = default;
+	SharedSorter& operator=(SharedSorter&&) noexcept = default;
 
 	// 是否为空
 	bool empty() const noexcept

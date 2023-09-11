@@ -20,23 +20,26 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Source\Concurrency\TaskQueue.cpp" />
-    <ClCompile Include="..\Source\Concurrency\Timer.cpp" />
+    <ClCompile Include="..\Source\Concurrency\Thread.cpp" />
+    <ClCompile Include="..\Source\Concurrency\ThreadPool.cpp" />
     <ClCompile Include="..\Source\Core\Logger.cpp" />
+    <ClCompile Include="..\Source\Core\SpinAdapter.cpp" />
+    <ClCompile Include="..\Source\Core\Timer.cpp" />
     <ClCompile Include="..\Source\Platform\Core\Windows\Common.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Source\Concurrency\Condition.hpp" />
     <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp" />
-    <ClInclude Include="..\Source\Concurrency\SpinAdapter.hpp" />
     <ClInclude Include="..\Source\Concurrency\TaskManager.h" />
     <ClInclude Include="..\Source\Concurrency\TaskPool.hpp" />
     <ClInclude Include="..\Source\Concurrency\TaskQueue.h" />
-    <ClInclude Include="..\Source\Concurrency\Thread.hpp" />
-    <ClInclude Include="..\Source\Concurrency\ThreadPool.hpp" />
-    <ClInclude Include="..\Source\Concurrency\Timer.h" />
+    <ClInclude Include="..\Source\Concurrency\Thread.h" />
+    <ClInclude Include="..\Source\Concurrency\ThreadPool.h" />
     <ClInclude Include="..\Source\Core\Common.hpp" />
+    <ClInclude Include="..\Source\Core\Condition.hpp" />
     <ClInclude Include="..\Source\Core\Logger.h" />
+    <ClInclude Include="..\Source\Core\SpinAdapter.h" />
+    <ClInclude Include="..\Source\Core\Timer.h" />
     <ClInclude Include="..\Source\Platform\Core\Common.h" />
     <ClInclude Include="..\Source\Sequence\Sorter.hpp" />
     <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp" />

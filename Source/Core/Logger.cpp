@@ -1,6 +1,6 @@
 ﻿#include "Logger.h"
+#include "Timer.h"
 
-#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -10,8 +10,10 @@ ETERFREE_SPACE_BEGIN
 class CommonLogger : public Logger
 {
 public:
-	using TimeType = std::chrono::nanoseconds::rep;
-	using TimePoint = std::chrono::system_clock::time_point;
+	using TimePoint = TimedTask::SystemTime;
+
+	using Duration = TimedTask::TimeType;
+	using TimeType = TimedTask::Duration;
 
 public:
 	static TimeType getTime(const TimePoint& _timePoint) noexcept;
@@ -92,7 +94,7 @@ void Logger::output(Level _level, \
 	try
 	{
 		std::ostringstream stream;
-		stream << std::chrono::system_clock::now() \
+		stream << TimedTask::getSystemTime() \
 			<< ThreadID(std::this_thread::get_id()) \
 			<< _level << _location \
 			<< _description << std::endl;
@@ -108,7 +110,7 @@ void Logger::output(Level _level, \
 	try
 	{
 		std::ostringstream stream;
-		stream << std::chrono::system_clock::now() \
+		stream << TimedTask::getSystemTime() \
 			<< ThreadID(std::this_thread::get_id()) \
 			<< _level << _location \
 			<< _description << std::endl;
@@ -124,7 +126,7 @@ void Logger::output(Level _level, \
 	try
 	{
 		std::ostringstream stream;
-		stream << std::chrono::system_clock::now() \
+		stream << TimedTask::getSystemTime() \
 			<< ThreadID(std::this_thread::get_id()) \
 			<< _level << _location \
 			<< _exception.what() << std::endl;
@@ -140,7 +142,7 @@ void Logger::output(Level _level, \
 	try
 	{
 		std::ostringstream stream;
-		stream << std::chrono::system_clock::now() \
+		stream << TimedTask::getSystemTime() \
 			<< ThreadID(std::this_thread::get_id()) \
 			<< _level << _location \
 			<< _code.message() << std::endl;
@@ -149,14 +151,12 @@ void Logger::output(Level _level, \
 	catch (std::exception&) {}
 }
 
-CommonLogger::TimeType CommonLogger::getTime(const TimePoint& _timePoint) noexcept
+auto CommonLogger::getTime(const TimePoint& _timePoint) noexcept -> TimeType
 {
 	try
 	{
-		using namespace std::chrono;
-
 		auto duration = _timePoint.time_since_epoch();
-		return duration_cast<nanoseconds>(duration).count();
+		return duration_cast<Duration>(duration).count();
 	}
 	catch (std::exception& exception)
 	{
