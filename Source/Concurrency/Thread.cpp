@@ -88,7 +88,7 @@ bool Thread::Structure::getTask(TaskType& _task)
 	return static_cast<bool>(_task);
 }
 
-// 销毁线程池
+// 销毁线程
 void Thread::destroy(DataType&& _data)
 {
 	using State = Structure::State;

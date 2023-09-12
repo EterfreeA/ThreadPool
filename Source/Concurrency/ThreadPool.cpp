@@ -347,7 +347,7 @@ void ThreadPool::execute(DataType _data)
 
 	/*
 	 * 守护线程退出条件
-	 * 1.强化条件变量无效
+	 * 1.守护线程无效
 	 * 2.任务管理器无效
 	 * 3.所有线程闲置
 	 */
@@ -382,8 +382,7 @@ void ThreadPool::execute(DataType _data)
 		}
 
 		// 根据谓词真假，决定是否阻塞守护线程
-		if (_data->_condition)
-			_data->_condition.wait(predicate);
+		_data->_condition.wait(predicate);
 	}
 
 	// 销毁线程
@@ -399,6 +398,8 @@ auto ThreadPool::getConcurrency() noexcept -> SizeType
 }
 
 /*
+ * 默认构造函数
+ *
  * 若先以运算符new创建实例，再交由共享指针std::shared_ptr托管，
  * 则至少二次分配内存，先为实例分配内存，再为共享指针的控制块分配内存。
  * 而std::make_shared典型地仅分配一次内存，实例内存和控制块内存连续。
@@ -439,9 +440,9 @@ ThreadPool::ThreadPool(SizeType _capacity) : \
 		if (not _idle) return;
 
 		// 若在增加之前，无闲置线程，或者在增加之后，所有线程闲置，则通知守护线程
-		if (auto data = _data.lock(); data and \
-			(data->setIdleSize(1, Structure::Arithmetic::INCREASE) == 0) \
-			or data->getIdleSize() >= data->getTotalSize())
+		if (auto data = _data.lock(); data \
+			and (data->setIdleSize(1, Structure::Arithmetic::INCREASE) == 0 \
+			or data->getIdleSize() >= data->getTotalSize()))
 			data->_condition.notify_one(Strategy::RELAXED);
 	};
 
