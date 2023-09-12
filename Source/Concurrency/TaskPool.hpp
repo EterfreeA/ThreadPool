@@ -439,14 +439,17 @@ template <typename _Message>
 void TaskPool<_Message>::execute(const std::weak_ptr<TaskPool>& _taskPool, \
 	IndexType _index, const Handle& _handle, Message& _message)
 {
-	try
+	if (_handle)
 	{
-		if (_handle) _handle(_message);
-	}
-	catch (std::exception& exception)
-	{
-		Logger::output(Logger::Level::ERROR, \
-			std::source_location::current(), exception);
+		try
+		{
+			_handle(_message);
+		}
+		catch (std::exception& exception)
+		{
+			Logger::output(Logger::Level::ERROR, \
+				std::source_location::current(), exception);
+		}
 	}
 
 	if (auto taskPool = _taskPool.lock()) taskPool->reply(_index);

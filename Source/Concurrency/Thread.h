@@ -57,10 +57,10 @@ private:
 	using Atomic = std::atomic<DataType>;
 
 public:
-	using ThreadID = std::thread::id;
-
 	using TaskType = std::function<void()>;
 	using FetchType = std::function<bool(TaskType&)>;
+
+	using ThreadID = std::thread::id;
 	using ReplyType = std::function<void(ThreadID, bool)>;
 
 private:
