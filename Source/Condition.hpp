@@ -239,7 +239,8 @@ template <typename _Clock, typename _Duration>
 bool Condition<_Size>::wait_until(const std::chrono::time_point<_Clock, _Duration>& _absolute)
 {
 	std::unique_lock lock(_mutex);
-	return valid() && _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
+	return valid() \
+		&& _condition.wait_until(lock, _absolute) == std::cv_status::no_timeout;
 }
 
 template <typename _Size>

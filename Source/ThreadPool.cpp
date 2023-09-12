@@ -4,6 +4,7 @@
 #include "Thread.h"
 
 #include <cstdint>
+#include <exception>
 #include <atomic>
 #include <thread>
 
@@ -39,9 +40,11 @@ struct ThreadPool::Structure
 	};
 
 	using Condition = Condition<>;
+
 	using QueueType = DoubleQueue<TaskType>;
 	using Callback = Thread::Callback;
 
+	std::atomic_bool _valid;				// 线程有效性
 	Condition _condition;					// 强化条件变量
 	std::thread _thread;					// 守护线程
 	std::list<Thread> _threadTable;			// 线程表
@@ -65,6 +68,19 @@ struct ThreadPool::Structure
 	 */
 	Structure() : \
 		_taskQueue(std::make_shared<QueueType>()) {}
+
+	// 守护线程是否有效
+	bool isValid() const noexcept
+	{
+		return _valid.load(std::memory_order_relaxed);
+	}
+
+	// 设置有效性
+	void setValid(bool _valid) noexcept
+	{
+		this->_valid.store(_valid, \
+			std::memory_order_relaxed);
+	}
 
 	// 获取线程池容量
 	auto getCapacity() const noexcept
@@ -276,9 +292,10 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 		// 线程并非闲置状态
 		if (!_idle) return;
 
-		// 若未增加之前，无闲置线程，则通知守护线程
-		if (auto data = _data.lock(); \
-			data && data->setIdleSize(1, Arithmetic::INCREASE) == 0)
+		// 若在增加之前，无闲置线程，或者在增加之后，所有线程闲置，则通知守护线程
+		if (auto data = _data.lock(); data \
+			&& (data->setIdleSize(1, Arithmetic::INCREASE) == 0 \
+			|| data->getIdleSize() >= data->getTotalSize()))
 			data->_condition.notify_one(Structure::Condition::Strategy::RELAXED);
 	};
 
@@ -295,6 +312,9 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 	_data->setTotalSize(_capacity, Arithmetic::REPLACE); // 设置总线程数量
 	_data->setIdleSize(_capacity, Arithmetic::REPLACE); // 设置闲置线程数量
 
+	// 守护线程设为有效
+	_data->setValid(true);
+
 	// 创建std::thread对象，即守护线程，以_data为参数，执行函数execute
 	_data->_thread = std::thread(execute, _data);
 }
@@ -303,15 +323,19 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 void ThreadPool::destroy(DataType&& _data)
 {
 	using Arithmetic = Structure::Arithmetic;
+	using Strategy = Structure::Condition::Strategy;
 
 	// 避免重复销毁
-	if (!_data->_condition) return;
+	if (!_data->isValid()) return;
+
+	// 守护线程设为无效
+	_data->setValid(false);
+
+	// 通知守护线程退出
+	_data->_condition.notify_all(Strategy::RELAXED);
 
 	// 分离守护线程
 	//_data->_thread.detach();
-
-	// 通知守护线程退出
-	_data->_condition.exit();
 
 	// 挂起直到守护线程退出
 	if (_data->_thread.joinable())
@@ -323,7 +347,7 @@ void ThreadPool::destroy(DataType&& _data)
 }
 
 // 调整线程数量
-ThreadPool::SizeType ThreadPool::adjust(DataType& _data)
+auto ThreadPool::adjust(DataType& _data) -> SizeType
 {
 	using Arithmetic = Structure::Arithmetic;
 
@@ -359,26 +383,48 @@ void ThreadPool::execute(DataType _data)
 
 	/*
 	 * 条件变量的谓词，不必等待通知的条件
-	 * 1.强化条件变量无效。
-	 * 2.任务队列非空并且存在闲置线程。
-	 * 3.任务队列非空并且需要增加线程。
-	 * 4.存在闲置线程并且需要删减线程。
+	 * 1.在守护线程有效的情况下：
+	 *     a.任务队列非空并且存在闲置线程。
+	 *     b.任务队列非空并且需要增加线程。
+	 *     c.存在闲置线程并且需要删减线程。
+	 * 2.在守护线程无效的情况下：
+	 *     a.任务队列非空并且存在闲置线程
+	 *     b.所有线程闲置
 	 */
 	auto predicate = [&_data]
 	{
 		bool empty = _data->_taskQueue->empty();
-		bool idle = _data->getIdleSize() > 0;
-		auto size = _data->getTotalSize();
-		auto capacity = _data->getCapacity();
-		return !empty && (idle || size < capacity) \
-			|| idle && size > capacity;
+
+		if (_data->isValid())
+		{
+			bool idle = _data->getIdleSize() > 0;
+			auto size = _data->getTotalSize();
+			auto capacity = _data->getCapacity();
+			return !empty \
+				&& (idle || size < capacity) \
+				|| idle && size > capacity;
+		}
+		else
+		{
+			auto size = _data->getIdleSize();
+			auto capacity = _data->getTotalSize();
+			bool idle = size > 0;
+			return !empty && idle \
+				|| size >= capacity;
+		}
 	};
 
 	// 若谓词非真，自动解锁互斥元，阻塞守护线程，直至通知激活，再次锁定互斥元
 	_data->_condition.wait(predicate);
 
-	// 守护线程退出通道
-	while (_data->_condition)
+	/*
+	 * 守护线程退出条件
+	 * 1.守护线程无效
+	 * 2.任务队列为空
+	 * 3.所有线程闲置
+	 */
+	while (_data->isValid() || !_data->_taskQueue->empty() \
+		|| _data->getIdleSize() < _data->getTotalSize())
 	{
 		// 调整线程数量
 		auto size = adjust(_data);
@@ -416,7 +462,7 @@ void ThreadPool::execute(DataType _data)
 }
 
 // 获取支持的并发线程数量
-ThreadPool::SizeType ThreadPool::getConcurrency() noexcept
+auto ThreadPool::getConcurrency() noexcept -> SizeType
 {
 	auto concurrency = std::thread::hardware_concurrency();
 	return concurrency > 0 ? concurrency : 1;
@@ -461,14 +507,19 @@ ThreadPool::~ThreadPool() noexcept
 }
 
 // 默认移动赋值运算符函数
-ThreadPool& ThreadPool::operator=(ThreadPool&& _another)
+auto ThreadPool::operator=(ThreadPool&& _another) noexcept \
+-> ThreadPool&
 {
 	if (&_another != this)
 	{
-		auto data = move(*this, \
-			std::forward<ThreadPool>(_another));
+		try
+		{
+			auto data = move(*this, \
+				std::forward<ThreadPool>(_another));
 
-		if (data) destroy(std::move(data));
+			if (data) destroy(std::move(data));
+		}
+		catch (std::exception&) {}
 	}
 	return *this;
 }

@@ -2,6 +2,7 @@
 #include "Condition.hpp"
 #include "DoubleQueue.hpp"
 
+#include <utility>
 #include <cstdint>
 #include <exception>
 #include <iostream>
@@ -128,14 +129,16 @@ void Thread::destroy(DataType&& _data)
 // 获取任务
 bool Thread::getTask(DataType& _data)
 {
+	using State = Structure::State;
+
 	if (!_data->_taskQueue)
 		return false;
 
 	decltype(_data->_task) task;
-	if (!_data->_taskQueue->pop(task) \
-		|| !task) return false;
+	if (!_data->_taskQueue->pop(task))
+		return false;
 
-	_data->setState(Structure::State::RUNNABLE);
+	_data->setState(State::RUNNABLE);
 	_data->setTask(std::move(task));
 	return true;
 }
@@ -217,14 +220,19 @@ Thread::~Thread() noexcept
 }
 
 // 默认移动赋值运算符函数
-Thread& Thread::operator=(Thread&& _another)
+auto Thread::operator=(Thread&& _another) noexcept \
+-> Thread&
 {
 	if (&_another != this)
 	{
-		auto data = move(*this, \
-			std::forward<Thread>(_another));
+		try
+		{
+			auto data = move(*this, \
+				std::forward<Thread>(_another));
 
-		destroy(std::move(data));
+			destroy(std::move(data));
+		}
+		catch (std::exception&) {}
 	}
 	return *this;
 }
@@ -334,9 +342,11 @@ bool Thread::configure(TaskType&& _task, \
 bool Thread::notify()
 {
 	using State = Structure::State;
+	using Strategy = Structure::Condition::Strategy;
 
 	auto data = load();
-	if (!data) return false;
+	if (!data)
+		return false;
 
 	std::lock_guard lock(data->_threadMutex);
 	auto state = data->getState();
@@ -350,7 +360,7 @@ bool Thread::notify()
 	if (state != State::RUNNABLE)
 		return false;
 
-	data->_condition.notify_one(Structure::Condition::Strategy::RELAXED);
+	data->_condition.notify_one(Strategy::RELAXED);
 	return true;
 }
 
