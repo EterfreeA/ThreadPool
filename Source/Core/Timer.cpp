@@ -32,6 +32,22 @@ auto PeriodicTask::getTime() noexcept -> SystemTime
 		getSystemTime() - timePoint);
 }
 
+// 取消任务
+bool PeriodicTask::cancel() noexcept
+{
+	this->_duration.store(-1, \
+		std::memory_order::relaxed);
+	return true;
+}
+
+// 设置间隔时间
+void PeriodicTask::setDuration(Duration _duration) noexcept
+{
+	if (_duration < 0) _duration = 0;
+	this->_duration.store(_duration, \
+		std::memory_order::relaxed);
+}
+
 // 等待相对时间
 void Timer::waitFor(SteadyTime& _timePoint, \
 	Duration& _correction, Duration _duration)
@@ -131,7 +147,7 @@ void Timer::wait()
 }
 
 // 放入定时任务
-bool Timer::pushTask(const TaskType& _task)
+bool Timer::putTask(const TaskType& _task)
 {
 	if (not _task) return false;
 
@@ -140,7 +156,7 @@ bool Timer::pushTask(const TaskType& _task)
 }
 
 // 放入定时任务
-bool Timer::pushTask(TaskType&& _task)
+bool Timer::putTask(TaskType&& _task)
 {
 	if (not _task) return false;
 
