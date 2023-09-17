@@ -99,11 +99,7 @@ public:
 	}
 
 	// 取消任务
-	virtual bool cancel() noexcept override
-	{
-		setDuration(-1);
-		return true;
-	}
+	virtual bool cancel() noexcept override;
 
 public:
 	PeriodicTask() noexcept : \
@@ -131,11 +127,7 @@ public:
 	}
 
 	// 设置间隔时间
-	void setDuration(Duration _duration) noexcept
-	{
-		this->_duration.store(_duration, \
-			std::memory_order::relaxed);
-	}
+	void setDuration(Duration _duration) noexcept;
 };
 
 class Timer : public SpinAdaptee
@@ -213,8 +205,8 @@ public:
 	}
 
 	// 放入定时任务
-	bool pushTask(const TaskType& _task);
-	bool pushTask(TaskType&& _task);
+	bool putTask(const TaskType& _task);
+	bool putTask(TaskType&& _task);
 };
 
 ETERFREE_SPACE_END

@@ -43,7 +43,7 @@ int main()
 
 	auto task = std::make_shared<Task>();
 	task->setDuration(200000000);
-	timer->pushTask(task);
+	timer->putTask(task);
 
 	sleep_for(seconds(2));
 	task->cancel();
