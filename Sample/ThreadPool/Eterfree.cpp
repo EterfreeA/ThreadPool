@@ -1,19 +1,16 @@
 ﻿#undef TASK_QUEUE
-#undef TASK_POOL
+#undef TASK_MAPPER
 
 #define TASK_QUEUE
-#define TASK_POOL
+#define TASK_MAPPER
 
 #include "Common.h"
 #include "Concurrency/ThreadPool.h"
 
 #if defined TASK_QUEUE
 #include "Concurrency/TaskQueue.h"
-
-#elif defined TASK_POOL
-#include "Concurrency/TaskPool.hpp"
-
-#include <type_traits>
+#elif defined TASK_MAPPER
+#include "Concurrency/TaskMapper.hpp"
 #endif
 
 #include <chrono>
@@ -24,16 +21,21 @@
 #include <atomic>
 #include <thread>
 
-static constexpr std::chrono::nanoseconds::rep SLEEP_TIME = 1000000;
-
 using ThreadPool = Eterfree::ThreadPool;
+using TimeType = std::chrono::nanoseconds::rep;
 
 #if defined TASK_QUEUE
-using TaskManager = Eterfree::TaskQueue;
-#elif defined TASK_POOL
-using Message = std::remove_const_t<decltype(SLEEP_TIME)>;
-using TaskManager = Eterfree::TaskPool<Message>;
+using TaskPool = Eterfree::TaskQueue;
+
+#elif defined TASK_MAPPER
+using Message = TimeType;
+using TaskPool = Eterfree::TaskMapper<Message>;
+
+static constexpr bool PARALLEL = true;
 #endif
+
+static constexpr TaskPool::IndexType INDEX = 0;
+static constexpr TimeType SLEEP_TIME = 1000000;
 
 static std::atomic_ulong counter = 0;
 
@@ -52,24 +54,29 @@ static void task()
 static void execute(ThreadPool& _threadPool)
 {
 	auto taskManager = _threadPool.getTaskManager();
-	auto taskQueue = dynamic_cast<TaskManager*>(taskManager.get());
+	if (taskManager == nullptr) return;
+
+	auto taskPool = taskManager->find(INDEX);
+	auto taskQueue = dynamic_cast<TaskPool*>(taskPool.get());
 	if (taskQueue == nullptr) return;
 
 	for (auto index = 0UL; index < 50000UL; ++index)
 		taskQueue->put(task);
 
-	TaskManager::QueueType queue;
+	TaskPool::TaskList taskList;
 	for (auto index = 0UL; index < 50000UL; ++index)
-		queue.push_back(task);
-	taskQueue->put(std::move(queue));
+		taskList.push_back(task);
+	taskQueue->put(std::move(taskList));
 }
 
-#elif defined TASK_POOL
-static void handle(Message _message)
+#elif defined TASK_MAPPER
+static void handle(Message& _message)
 {
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
+
 	Eterfree::sleepFor(_message);
+
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);
 }
@@ -77,25 +84,29 @@ static void handle(Message _message)
 static void execute(ThreadPool& _threadPool)
 {
 	auto taskManager = _threadPool.getTaskManager();
-	auto taskPool = dynamic_cast<TaskManager*>(taskManager.get());
-	if (taskPool == nullptr) return;
+	if (taskManager == nullptr) return;
 
-	constexpr TaskManager::IndexType INDEX = 0;
-	taskPool->set(INDEX, handle, true);
+	auto taskPool = taskManager->find(INDEX);
+	auto taskMapper = dynamic_cast<TaskPool*>(taskPool.get());
+	if (taskMapper == nullptr) return;
 
+	taskMapper->set(INDEX, handle, PARALLEL);
 	for (auto index = 0UL; index < 50000UL; ++index)
-		taskPool->put(INDEX, SLEEP_TIME);
+		taskMapper->put(INDEX, SLEEP_TIME);
 
-	TaskManager::MessageQueue queue;
+	TaskPool::MessageQueue queue;
 	for (auto index = 0UL; index < 50000UL; ++index)
 		queue.push_back(SLEEP_TIME);
-	taskPool->put(INDEX, std::move(queue));
+	taskMapper->put(INDEX, std::move(queue));
 }
 #endif
 
 static void terminate(ThreadPool&& _threadPool)
 {
-	_threadPool.setTaskManager(nullptr);
+	auto taskManager = _threadPool.getTaskManager();
+	if (taskManager != nullptr)
+		taskManager->clear();
+
 	auto threadPool(std::forward<ThreadPool>(_threadPool));
 	(void)threadPool;
 }
@@ -122,8 +133,12 @@ int main()
 #endif // FILE_STREAM
 
 	ThreadPool threadPool;
-	auto taskManager = std::make_shared<TaskManager>();
-	threadPool.setTaskManager(taskManager);
+	auto taskManager = threadPool.getTaskManager();
+	if (taskManager != nullptr)
+	{
+		auto taskPool = std::make_shared<TaskPool>(INDEX);
+		taskManager->insert(taskPool);
+	}
 
 	auto begin = system_clock::now();
 	execute(threadPool);

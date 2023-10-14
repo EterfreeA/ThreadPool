@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Source\Concurrency\TaskManager.cpp" />
     <ClCompile Include="..\Source\Concurrency\TaskQueue.cpp" />
     <ClCompile Include="..\Source\Concurrency\Thread.cpp" />
     <ClCompile Include="..\Source\Concurrency\ThreadPool.cpp" />
@@ -31,7 +32,8 @@
   <ItemGroup>
     <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp" />
     <ClInclude Include="..\Source\Concurrency\TaskManager.h" />
-    <ClInclude Include="..\Source\Concurrency\TaskPool.hpp" />
+    <ClInclude Include="..\Source\Concurrency\TaskPool.h" />
+    <ClInclude Include="..\Source\Concurrency\TaskMapper.hpp" />
     <ClInclude Include="..\Source\Concurrency\TaskQueue.h" />
     <ClInclude Include="..\Source\Concurrency\Thread.h" />
     <ClInclude Include="..\Source\Concurrency\ThreadPool.h" />

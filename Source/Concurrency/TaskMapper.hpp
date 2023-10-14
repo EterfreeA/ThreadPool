@@ -1,14 +1,14 @@
 ﻿/*
-* 文件名称：TaskPool.hpp
+* 文件名称：TaskMapper.hpp
 * 语言标准：C++20
 *
 * 创建日期：2023年02月04日
-* 更新日期：2023年09月09日
+* 更新日期：2023年10月14日
 *
 * 摘要
-* 1.定义任务池类模板TaskPool，继承任务管理器抽象类，确保接口的线程安全性。
-* 2.任务池由处理者、消息、排序者三元素组成，支持自定义处理者和消息类型。
-* 3.任务池可以设置不同处理者，分别对应不同消息队列。
+* 1.定义任务映射器类模板TaskMapper，继承任务池抽象类，确保接口的线程安全性。
+* 2.任务映射器由处理者、消息、排序者三元素组成，支持自定义处理者和消息类型。
+* 3.任务映射器可以设置不同处理者，分别对应不同消息队列。
 *   处理者默认并发处理消息，可选并行处理消息。
 * 4.处理者可以反复更换，支持以无效函数子作为空处理者，但不会清空对应消息队列。
 *   空处理者与非空消息队列会阻止线程池的守护线程退出，可以主动清空非空消息队列，确保线程池的守护线程正常退出。
@@ -17,11 +17,14 @@
 * 作者：许聪
 * 邮箱：solifree@qq.com
 *
-* 版本：v1.1.0
+* 版本：v2.0.0
 * 变化
 * v1.1.0
 * 1.在设置处理者之后，判断是否通知线程执行任务。
 *   当先放入消息后设置处理者时，或者更换空处理者为非空处理者，避免未及时激活线程。
+* v2.0.0
+* 1.重命名任务池TaskPool为任务映射器TaskMapper。
+* 2.修复并行处理消息未更新索引排序导致线程泄漏。
 */
 
 #pragma once
@@ -41,19 +44,19 @@
 #include "Core/Logger.h"
 #include "Core/Timer.h"
 #include "Sequence/Sorter.hpp"
-#include "TaskManager.h"
+#include "TaskPool.h"
 
 ETERFREE_SPACE_BEGIN
 
 /*
-继承类模板enable_shared_from_this，当TaskPool被shared_ptr托管，传递this给其它函数时，
+继承类模板enable_shared_from_this，当TaskMapper被shared_ptr托管，传递this给其它函数时，
 需要传递指向this的shared_ptr，调用this->shared_from_this获取指向this的shared_ptr。
 不可直接传递裸指针this，否则无法确保shared_ptr的语义，也许会导致已被释放的错误。
 不可单独创建另一shared_ptr，否则多个shared_ptr的控制块不同，导致多次释放同一对象。
 */
 template <typename _Message>
-class TaskPool : public TaskManager, \
-	public std::enable_shared_from_this<TaskPool<_Message>>
+class TaskMapper : public TaskPool, \
+	public std::enable_shared_from_this<TaskMapper<_Message>>
 {
 	struct Queue;
 	struct Record;
@@ -62,7 +65,6 @@ public:
 	struct Handler;
 
 public:
-	using IndexType = SizeType;
 	using QueueType = Queue;
 
 	using Message = _Message;
@@ -72,7 +74,6 @@ public:
 
 private:
 	using Atomic = std::atomic<SizeType>;
-	using TimeType = TimedTask::SteadyTime;
 
 	using MutexMapper = std::map<IndexType, std::shared_ptr<std::mutex>>;
 	using HandleMapper = std::unordered_map<IndexType, std::shared_ptr<Handler>>;
@@ -92,7 +93,9 @@ private:
 	mutable std::mutex _queueMutex; // 队列互斥元
 	QueueMapper _queueMapper; // 队列映射
 
+	IndexType _index; // 唯一索引
 	Atomic _size; // 任务数量
+
 	mutable std::mutex _sortMutex; // 排序互斥元
 	Sorter<IndexType, Record> _sorter; // 排序者
 
@@ -122,7 +125,7 @@ private:
 	}
 
 	// 执行任务
-	static void execute(const std::weak_ptr<TaskPool>& _taskPool, \
+	static void execute(const std::weak_ptr<TaskMapper>& _taskMapper, \
 		IndexType _index, const Handle& _handle, Message& _message);
 
 public:
@@ -138,6 +141,12 @@ public:
 		this->_notify = std::forward<Notify>(_notify);
 	}
 
+	// 唯一索引
+	virtual IndexType index() const noexcept override
+	{
+		return _index;
+	}
+
 	// 是否无任务
 	virtual bool empty() const override
 	{
@@ -150,6 +159,9 @@ public:
 	{
 		return get(_size);
 	}
+
+	// 最小时间
+	virtual std::optional<TimeType> time() const override;
 
 	// 取出单任务
 	virtual bool take(TaskType& _task) override;
@@ -188,13 +200,14 @@ private:
 	std::optional<IndexType> pop();
 
 public:
-	TaskPool() : _size(0) {}
+	TaskMapper(IndexType _index) : \
+		_index(_index), _size(0) {}
 
-	TaskPool(const TaskPool&) = delete;
+	TaskMapper(const TaskMapper&) = delete;
 
-	virtual ~TaskPool() = default;
+	virtual ~TaskMapper() = default;
 
-	TaskPool& operator=(const TaskPool&) = delete;
+	TaskMapper& operator=(const TaskMapper&) = delete;
 
 	// 任务数量
 	SizeType size(IndexType _index) const
@@ -209,7 +222,7 @@ public:
 	bool set(IndexType _index, Handle&& _handle, \
 		bool _parallel = false);
 
-	// 适配不同处理接口，推进任务池模板化
+	// 适配不同处理接口，推进任务映射器模板化
 	template <typename _Functor>
 	bool set(IndexType _index, const _Functor& _functor, \
 		bool _parallel = false)
@@ -239,7 +252,7 @@ public:
 };
 
 template <typename _Message>
-struct TaskPool<_Message>::Queue
+struct TaskMapper<_Message>::Queue
 {
 	mutable std::mutex _mutex;
 	MessageQueue _messageQueue;
@@ -278,7 +291,7 @@ struct TaskPool<_Message>::Queue
 };
 
 template <typename _Message>
-struct TaskPool<_Message>::Record
+struct TaskMapper<_Message>::Record
 {
 	IndexType _index;
 	TimeType _time;
@@ -292,7 +305,7 @@ struct TaskPool<_Message>::Record
 };
 
 template <typename _Message>
-struct TaskPool<_Message>::Handler
+struct TaskMapper<_Message>::Handler
 {
 	Handle _handle;
 	bool _parallel;
@@ -335,7 +348,7 @@ struct TaskPool<_Message>::Handler
 
 // 获取最小时间
 template <typename _Message>
-auto TaskPool<_Message>::Queue::time() const \
+auto TaskMapper<_Message>::Queue::time() const \
 -> std::optional<TimeType>
 {
 	std::lock_guard lock(_mutex);
@@ -345,7 +358,7 @@ auto TaskPool<_Message>::Queue::time() const \
 
 // 放入单个消息
 template <typename _Message>
-auto TaskPool<_Message>::Queue::push(const Message& _message) \
+auto TaskMapper<_Message>::Queue::push(const Message& _message) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
@@ -357,7 +370,7 @@ auto TaskPool<_Message>::Queue::push(const Message& _message) \
 
 // 放入单个消息
 template <typename _Message>
-auto TaskPool<_Message>::Queue::push(Message&& _message) \
+auto TaskMapper<_Message>::Queue::push(Message&& _message) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
@@ -369,7 +382,7 @@ auto TaskPool<_Message>::Queue::push(Message&& _message) \
 
 // 批量放入消息
 template <typename _Message>
-auto TaskPool<_Message>::Queue::push(MessageQueue& _queue) \
+auto TaskMapper<_Message>::Queue::push(MessageQueue& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
@@ -382,7 +395,7 @@ auto TaskPool<_Message>::Queue::push(MessageQueue& _queue) \
 
 // 批量放入消息
 template <typename _Message>
-auto TaskPool<_Message>::Queue::push(MessageQueue&& _queue) \
+auto TaskMapper<_Message>::Queue::push(MessageQueue&& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_mutex);
@@ -396,7 +409,7 @@ auto TaskPool<_Message>::Queue::push(MessageQueue&& _queue) \
 
 // 取出单个消息
 template <typename _Message>
-bool TaskPool<_Message>::Queue::pop(Message& _message)
+bool TaskMapper<_Message>::Queue::pop(Message& _message)
 {
 	std::lock_guard lock(_mutex);
 	if (_messageQueue.empty()) return false;
@@ -409,7 +422,7 @@ bool TaskPool<_Message>::Queue::pop(Message& _message)
 
 // 清空所有消息
 template <typename _Message>
-auto TaskPool<_Message>::Queue::clear()
+auto TaskMapper<_Message>::Queue::clear()
 {
 	std::lock_guard lock(_mutex);
 	auto size = _messageQueue.size();
@@ -419,7 +432,7 @@ auto TaskPool<_Message>::Queue::clear()
 }
 
 template <typename _Message>
-bool TaskPool<_Message>::Record::operator<(const Record& _another) const noexcept
+bool TaskMapper<_Message>::Record::operator<(const Record& _another) const noexcept
 {
 	return this->_time < _another._time \
 		or this->_time == _another._time and this->_index < _another._index;
@@ -427,7 +440,7 @@ bool TaskPool<_Message>::Record::operator<(const Record& _another) const noexcep
 
 // 设置是否闲置
 template <typename _Message>
-bool TaskPool<_Message>::Handler::idle(bool _idle) noexcept
+bool TaskMapper<_Message>::Handler::idle(bool _idle) noexcept
 {
 	auto idle = this->_idle;
 	this->_idle = _idle;
@@ -436,7 +449,7 @@ bool TaskPool<_Message>::Handler::idle(bool _idle) noexcept
 
 // 执行任务
 template <typename _Message>
-void TaskPool<_Message>::execute(const std::weak_ptr<TaskPool>& _taskPool, \
+void TaskMapper<_Message>::execute(const std::weak_ptr<TaskMapper>& _taskMapper, \
 	IndexType _index, const Handle& _handle, Message& _message)
 {
 	if (_handle)
@@ -452,14 +465,26 @@ void TaskPool<_Message>::execute(const std::weak_ptr<TaskPool>& _taskPool, \
 		}
 	}
 
-	if (auto taskPool = _taskPool.lock()) taskPool->reply(_index);
+	if (auto taskMapper = _taskMapper.lock()) taskMapper->reply(_index);
+}
+
+// 最小时间
+template <typename _Message>
+auto TaskMapper<_Message>::time() const \
+-> std::optional<TimeType>
+{
+	std::lock_guard lock(_sortMutex);
+	auto record = _sorter.front(true);
+	if (record != nullptr)
+		return record->_time;
+	return std::nullopt;
 }
 
 // 取出单任务
 template <typename _Message>
-bool TaskPool<_Message>::take(TaskType& _task)
+bool TaskMapper<_Message>::take(TaskType& _task)
 {
-	std::lock_guard lock(_sharedMutex);
+	std::lock_guard sharedLock(_sharedMutex);
 
 	auto result = pop();
 	if (not result) return false;
@@ -474,6 +499,18 @@ bool TaskPool<_Message>::take(TaskType& _task)
 	Message message;
 	if (not queue->pop(message)) return false;
 
+	bool idle = handler->parallel();
+	if (not idle) handler->idle(idle);
+
+	std::unique_lock sortLock(_sortMutex);
+	if (idle)
+		if (auto time = queue->time(); \
+			idle = time.has_value())
+			_sorter.update({ index, time.value() });
+
+	if (not idle) _sorter.remove(index);
+	sortLock.unlock();
+
 	subtract(_size, 1);
 	_task = std::bind(execute, \
 		std::weak_ptr(this->shared_from_this()), \
@@ -484,7 +521,7 @@ bool TaskPool<_Message>::take(TaskType& _task)
 
 // 获取索引互斥元
 template <typename _Message>
-std::shared_ptr<std::mutex> TaskPool<_Message>::getMutex(IndexType _index)
+std::shared_ptr<std::mutex> TaskMapper<_Message>::getMutex(IndexType _index)
 {
 	std::lock_guard lock(_mutex);
 	auto iterator = _mutexMapper.find(_index);
@@ -499,7 +536,7 @@ std::shared_ptr<std::mutex> TaskPool<_Message>::getMutex(IndexType _index)
 
 // 查找处理者
 template <typename _Message>
-auto TaskPool<_Message>::findHandler(IndexType _index) const \
+auto TaskMapper<_Message>::findHandler(IndexType _index) const \
 -> std::shared_ptr<Handler>
 {
 	std::lock_guard lock(_handleMutex);
@@ -510,7 +547,7 @@ auto TaskPool<_Message>::findHandler(IndexType _index) const \
 
 // 设置处理者
 template <typename _Message>
-void TaskPool<_Message>::setHandler(IndexType _index, \
+void TaskMapper<_Message>::setHandler(IndexType _index, \
 	std::shared_ptr<Handler>&& _handler)
 {
 	using Handler = std::remove_reference_t<decltype(_handler)>;
@@ -522,7 +559,7 @@ void TaskPool<_Message>::setHandler(IndexType _index, \
 
 // 查找消息队列
 template <typename _Message>
-auto TaskPool<_Message>::findQueue(IndexType _index) const \
+auto TaskMapper<_Message>::findQueue(IndexType _index) const \
 -> std::shared_ptr<QueueType>
 {
 	std::lock_guard lock(_queueMutex);
@@ -533,7 +570,7 @@ auto TaskPool<_Message>::findQueue(IndexType _index) const \
 
 // 获取消息队列
 template <typename _Message>
-auto TaskPool<_Message>::getQueue(IndexType _index) \
+auto TaskMapper<_Message>::getQueue(IndexType _index) \
 -> std::shared_ptr<QueueType>
 {
 	std::lock_guard lock(_queueMutex);
@@ -551,18 +588,18 @@ auto TaskPool<_Message>::getQueue(IndexType _index) \
 
 // 执行通知函数子
 template <typename _Message>
-void TaskPool<_Message>::notify() const
+void TaskMapper<_Message>::notify() const
 {
 	std::unique_lock lock(_notifyMutex);
 	auto notify = _notify;
 	lock.unlock();
 
-	if (notify) notify();
+	if (notify) notify(_index);
 }
 
 // 回复任务
 template <typename _Message>
-void TaskPool<_Message>::reply(IndexType _index)
+void TaskMapper<_Message>::reply(IndexType _index)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -578,7 +615,7 @@ void TaskPool<_Message>::reply(IndexType _index)
 
 // 调度队列对索引排序
 template <typename _Message>
-bool TaskPool<_Message>::sort(IndexType _index)
+bool TaskMapper<_Message>::sort(IndexType _index)
 {
 	auto queue = findQueue(_index);
 	if (not queue) return false;
@@ -599,7 +636,7 @@ bool TaskPool<_Message>::sort(IndexType _index)
 
 // 向调度队列放入索引
 template <typename _Message>
-bool TaskPool<_Message>::push(IndexType _index)
+bool TaskMapper<_Message>::push(IndexType _index)
 {
 	auto handler = findHandler(_index);
 	return handler and handler->_handle \
@@ -609,7 +646,7 @@ bool TaskPool<_Message>::push(IndexType _index)
 
 // 从调度队列取出索引
 template <typename _Message>
-auto TaskPool<_Message>::pop() -> std::optional<IndexType>
+auto TaskMapper<_Message>::pop() -> std::optional<IndexType>
 {
 	std::lock_guard lock(_sortMutex);
 	auto record = _sorter.front(true);
@@ -617,20 +654,7 @@ auto TaskPool<_Message>::pop() -> std::optional<IndexType>
 	{
 		auto index = record->_index;
 		if (auto handler = findHandler(index))
-		{
-			if (handler->parallel())
-			{
-				if (auto queue = findQueue(index))
-					if (auto time = queue->time())
-						_sorter.update({ index, time.value() });
-			}
-			else
-			{
-				handler->idle(false);
-				_sorter.remove(index);
-			}
 			return index;
-		}
 
 		_sorter.remove(index);
 		record = _sorter.front(true);
@@ -640,7 +664,7 @@ auto TaskPool<_Message>::pop() -> std::optional<IndexType>
 
 // 设置处理者
 template <typename _Message>
-bool TaskPool<_Message>::set(IndexType _index, \
+bool TaskMapper<_Message>::set(IndexType _index, \
 	const Handle& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
@@ -681,7 +705,7 @@ bool TaskPool<_Message>::set(IndexType _index, \
 
 // 设置处理者
 template <typename _Message>
-bool TaskPool<_Message>::set(IndexType _index, Handle&& _handle, bool _parallel)
+bool TaskMapper<_Message>::set(IndexType _index, Handle&& _handle, bool _parallel)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -719,7 +743,7 @@ bool TaskPool<_Message>::set(IndexType _index, Handle&& _handle, bool _parallel)
 
 // 放入单个消息
 template <typename _Message>
-bool TaskPool<_Message>::put(IndexType _index, \
+bool TaskMapper<_Message>::put(IndexType _index, \
 	const Message& _message)
 {
 	std::shared_lock sharedLock(_sharedMutex);
@@ -744,7 +768,7 @@ bool TaskPool<_Message>::put(IndexType _index, \
 
 // 放入单个消息
 template <typename _Message>
-bool TaskPool<_Message>::put(IndexType _index, Message&& _message)
+bool TaskMapper<_Message>::put(IndexType _index, Message&& _message)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -768,7 +792,7 @@ bool TaskPool<_Message>::put(IndexType _index, Message&& _message)
 
 // 批量放入消息
 template <typename _Message>
-bool TaskPool<_Message>::put(IndexType _index, \
+bool TaskMapper<_Message>::put(IndexType _index, \
 	MessageQueue& _queue)
 {
 	std::shared_lock sharedLock(_sharedMutex);
@@ -794,7 +818,7 @@ bool TaskPool<_Message>::put(IndexType _index, \
 
 // 批量放入消息
 template <typename _Message>
-bool TaskPool<_Message>::put(IndexType _index, MessageQueue&& _queue)
+bool TaskMapper<_Message>::put(IndexType _index, MessageQueue&& _queue)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -819,7 +843,7 @@ bool TaskPool<_Message>::put(IndexType _index, MessageQueue&& _queue)
 
 // 清空消息
 template <typename _Message>
-void TaskPool<_Message>::clear(IndexType _index)
+void TaskMapper<_Message>::clear(IndexType _index)
 {
 	std::shared_lock sharedLock(_sharedMutex);
 
@@ -840,7 +864,7 @@ void TaskPool<_Message>::clear(IndexType _index)
 
 // 清空所有消息
 template <typename _Message>
-void TaskPool<_Message>::clear()
+void TaskMapper<_Message>::clear()
 {
 	std::lock_guard sharedLock(_sharedMutex);
 

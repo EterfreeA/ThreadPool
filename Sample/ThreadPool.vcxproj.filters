@@ -40,6 +40,9 @@
     <ClCompile Include="..\Source\Core\SpinAdapter.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="..\Source\Concurrency\TaskManager.cpp">
+      <Filter>Concurrency</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Source\Core\Common.hpp">
@@ -51,10 +54,10 @@
     <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp">
       <Filter>Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\TaskManager.h">
+    <ClInclude Include="..\Source\Concurrency\TaskPool.h">
       <Filter>Concurrency</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\TaskPool.hpp">
+    <ClInclude Include="..\Source\Concurrency\TaskMapper.hpp">
       <Filter>Concurrency</Filter>
     </ClInclude>
     <ClInclude Include="..\Source\Concurrency\TaskQueue.h">
@@ -83,6 +86,9 @@
     </ClInclude>
     <ClInclude Include="..\Source\Core\SpinAdapter.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Concurrency\TaskManager.h">
+      <Filter>Concurrency</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

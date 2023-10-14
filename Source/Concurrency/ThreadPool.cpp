@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <exception>
 #include <list>
-#include <mutex>
 #include <thread>
 
 ETERFREE_SPACE_BEGIN
@@ -43,7 +42,7 @@ struct ThreadPool::Structure
 
 	using Condition = Condition<>;
 
-	using Notify = TaskManager::Notify;
+	using Notify = TaskManager::ThreadNotify;
 	using FetchType = Thread::FetchType;
 	using ReplyType = Thread::ReplyType;
 
@@ -56,8 +55,7 @@ struct ThreadPool::Structure
 	std::atomic<SizeType> _totalSize;	// 总线程数量
 	std::atomic<SizeType> _idleSize;	// 闲置线程数量
 
-	mutable std::mutex _taskMutex;		// 任务互斥元
-	Manager _taskManager;				// 任务管理器
+	TaskManager _taskManager;			// 任务管理器
 
 	Notify _notify;						// 通知函数子
 	FetchType _fetch;					// 获取函数子
@@ -103,21 +101,17 @@ struct ThreadPool::Structure
 	// 设置闲置线程数量
 	SET_ATOMIC(SizeType, Arithmetic, setIdleSize, _idleSize);
 
-	// 任务管理器是否为空
-	bool isEmptyManager() const;
-
 	// 任务管理器是否有效
-	bool isValidManager() const;
-
-	// 获取任务管理器
-	auto getTaskManager() const
+	bool isValidManager() const
 	{
-		std::lock_guard lock(_taskMutex);
-		return _taskManager;
+		return _taskManager.valid();
 	}
 
-	// 设置任务管理器
-	void setTaskManager(const Manager& _taskManager);
+	// 任务管理器是否为空
+	bool isEmptyManager() const noexcept
+	{
+		return _taskManager.empty();
+	}
 };
 
 #undef SET_ATOMIC
@@ -130,33 +124,6 @@ void ThreadPool::Structure::setCapacity(SizeType _capacity, \
 		std::memory_order::relaxed);
 	if (_notified and capacity != _capacity)
 		_condition.notify_one(Condition::Strategy::RELAXED);
-}
-
-// 任务管理器是否为空
-bool ThreadPool::Structure::isEmptyManager() const
-{
-	std::lock_guard lock(_taskMutex);
-	return not _taskManager or _taskManager->empty();
-}
-
-// 任务管理器是否有效
-bool ThreadPool::Structure::isValidManager() const
-{
-	std::lock_guard lock(_taskMutex);
-	return _taskManager and _taskManager->size() > 0;
-}
-
-// 设置任务管理器
-void ThreadPool::Structure::setTaskManager(const Manager& _taskManager)
-{
-	std::unique_lock lock(_taskMutex);
-	if (this->_taskManager) this->_taskManager->configure(nullptr);
-	this->_taskManager = _taskManager;
-	if (_taskManager) _taskManager->configure(_notify);
-	lock.unlock();
-
-	_condition.notify_one([&_taskManager]
-		{ return _taskManager and not _taskManager->empty(); });
 }
 
 // 获取线程池容量
@@ -191,19 +158,9 @@ auto ThreadPool::Proxy::getIdleSize() const noexcept \
 
 // 获取任务管理器
 auto ThreadPool::Proxy::getTaskManager() const \
--> Manager
+-> TaskManager*
 {
-	return _data ? \
-		_data->getTaskManager() : nullptr;
-}
-
-// 设置任务管理器
-bool ThreadPool::Proxy::setTaskManager(const Manager& _taskManager)
-{
-	if (not _data) return false;
-
-	_data->setTaskManager(_taskManager);
-	return true;
+	return _data ? &_data->_taskManager : nullptr;
 }
 
 // 创建线程池
@@ -424,13 +381,7 @@ ThreadPool::ThreadPool(SizeType _capacity) : \
 	data->_fetch = [_data = std::weak_ptr(data)](TaskType& _task)
 	{
 		auto data = _data.lock();
-		if (not data) return false;
-
-		std::unique_lock lock(data->_taskMutex);
-		auto taskManager = data->_taskManager;
-		lock.unlock();
-
-		return taskManager and taskManager->take(_task);
+		return data ? data->_taskManager.take(_task) : false;
 	};
 
 	// 定义回复函数子
@@ -445,6 +396,9 @@ ThreadPool::ThreadPool(SizeType _capacity) : \
 			or data->getIdleSize() >= data->getTotalSize()))
 			data->_condition.notify_one(Strategy::RELAXED);
 	};
+
+	// 配置通知函数子
+	data->_taskManager.configure(data->_notify);
 
 	// 创建线程池
 	create(std::move(data), _capacity);
@@ -530,22 +484,10 @@ auto ThreadPool::getIdleSize() const noexcept \
 }
 
 // 获取任务管理器
-auto ThreadPool::getTaskManager() const -> Manager
+auto ThreadPool::getTaskManager() const -> TaskManager*
 {
 	auto data = load();
-	return data ? data->getTaskManager() : nullptr;
-}
-
-// 设置任务管理器
-bool ThreadPool::setTaskManager(const Manager& _taskManager)
-{
-	bool result = false;
-	if (auto data = load())
-	{
-		data->setTaskManager(_taskManager);
-		result = true;
-	}
-	return result;
+	return data ? &data->_taskManager : nullptr;
 }
 
 // 获取代理

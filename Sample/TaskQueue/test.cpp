@@ -29,7 +29,8 @@ static void print(const ThreadPool& _threadPool)
 	std::cout << capacity << ' ' \
 		<< totalSize << ' ' << idleSize;
 
-	if (auto taskManager = proxy.getTaskManager())
+	if (auto taskManager = proxy.getTaskManager(); \
+		taskManager != nullptr)
 	{
 		auto taskSize = taskManager->size();
 		std::cout << ' ' << taskSize;
@@ -43,9 +44,12 @@ int main()
 	using namespace std::this_thread;
 
 	ThreadPool threadPool;
-	auto taskQueue = std::make_shared<TaskQueue>();
 	auto proxy = threadPool.getProxy();
-	proxy.setTaskManager(taskQueue);
+
+	auto taskQueue = std::make_shared<TaskQueue>(0);
+	auto taskManager = proxy.getTaskManager();
+	if (taskManager != nullptr)
+		taskManager->insert(taskQueue);
 
 	auto capacity = proxy.getCapacity();
 	for (decltype(capacity) index = 0; \

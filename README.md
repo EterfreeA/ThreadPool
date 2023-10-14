@@ -8,7 +8,9 @@ Copyright © 2017 CDU Innovation Studio. Some Rights Reserved.
 ## Source Code
 [Concurrency/DoubleQueue.hpp](./Source/Concurrency/DoubleQueue.hpp)  
 [Concurrency/TaskManager.h](./Source/Concurrency/TaskManager.h)  
-[Concurrency/TaskPool.hpp](./Source/Concurrency/TaskPool.hpp)  
+[Concurrency/TaskManager.cpp](./Source/Concurrency/TaskManager.cpp)  
+[Concurrency/TaskMapper.hpp](./Source/Concurrency/TaskMapper.hpp)  
+[Concurrency/TaskPool.h](./Source/Concurrency/TaskPool.h)  
 [Concurrency/TaskQueue.h](./Source/Concurrency/TaskQueue.h)  
 [Concurrency/TaskQueue.cpp](./Source/Concurrency/TaskQueue.cpp)  
 [Concurrency/Thread.h](./Source/Concurrency/Thread.h)  
