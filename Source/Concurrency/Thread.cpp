@@ -124,6 +124,8 @@ bool Thread::getTask(DataType& _data)
 	if (not _data->_fetch(task))
 		return false;
 
+	if (not task) task = [] {};
+
 	_data->setState(State::RUNNABLE);
 	_data->setTask(std::move(task));
 	return true;

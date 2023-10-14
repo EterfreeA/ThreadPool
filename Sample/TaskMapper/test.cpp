@@ -1,4 +1,4 @@
-﻿#include "Concurrency/TaskPool.hpp"
+﻿#include "Concurrency/TaskMapper.hpp"
 #include "Concurrency/ThreadPool.h"
 #include "Core/Condition.hpp"
 
@@ -42,17 +42,20 @@ int main()
 	using namespace std::chrono;
 	using namespace std::this_thread;
 
-	using TaskPool = TaskPool<const char*>;
+	using TaskMapper = TaskMapper<const char*>;
 
 	ThreadPool threadPool;
-	auto taskPool = std::make_shared<TaskPool>();
 	auto proxy = threadPool.getProxy();
-	proxy.setTaskManager(taskPool);
+
+	auto taskMapper = std::make_shared<TaskMapper>(0);
+	auto taskManager = proxy.getTaskManager();
+	if (taskManager != nullptr)
+		taskManager->insert(taskMapper);
 
 	auto capacity = proxy.getCapacity();
 	for (decltype(capacity) index = 0; \
 		index < capacity; ++index)
-		taskPool->set(index, handle);
+		taskMapper->set(index, handle);
 
 	sleep_for(seconds(1));
 	print(threadPool);
@@ -60,12 +63,12 @@ int main()
 	const char* MODULE = "Eterfree::ThreadPool";
 	for (decltype(capacity) index = 0; \
 		index < capacity; ++index)
-		taskPool->put(index, MODULE);
+		taskMapper->put(index, MODULE);
 
 	sleep_for(seconds(1));
 	print(threadPool);
 
-	taskPool->set(capacity, [](const char* _module)
+	taskMapper->set(capacity, [](const char* _module)
 		{
 			std::cout << _module << std::endl;
 		});
@@ -73,7 +76,7 @@ int main()
 	sleep_for(seconds(1));
 	print(threadPool);
 
-	taskPool->put(capacity, MODULE);
+	taskMapper->put(capacity, MODULE);
 
 	sleep_for(seconds(1));
 	print(threadPool);

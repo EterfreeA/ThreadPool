@@ -2,12 +2,12 @@
 * 文件名称：TaskManager.h
 * 语言标准：C++20
 * 
-* 创建日期：2023年01月21日
+* 创建日期：2023年10月02日
 * 
 * 摘要
-* 1.定义任务管理器抽象类TaskManager。
-* 2.线程池支持指定任务管理器，任务管理器抽象类接口对应线程池调用的隐式接口。
-*   自定义任务管理器可选继承此抽象类，由于被多线程并发调用，因此需要确保接口的线程安全性。
+* 1.任务管理器类TaskManager定义于此文件，实现于TaskManager.cpp。
+* 2.线程池支持指定任务池，任务池抽象类接口对应线程池调用的隐式接口。
+*   自定义任务池可选继承此抽象类，由于被多线程并发调用，因此需要确保接口的线程安全性。
 * 
 * 作者：许聪
 * 邮箱：solifree@qq.com
@@ -17,32 +17,54 @@
 
 #pragma once
 
-#include <cstddef>
 #include <functional>
+#include <memory>
 
 #include "Core/Common.hpp"
+#include "TaskPool.h"
 
 ETERFREE_SPACE_BEGIN
 
-class TaskManager
+class TaskManager final
 {
-public:
-	using SizeType = std::size_t;
-	using Notify = std::function<void()>;
-	using TaskType = std::function<void()>;
+	struct Structure;
+
+private:
+	using DataType = std::shared_ptr<Structure>;
 
 public:
-	virtual ~TaskManager() noexcept {}
+	using SizeType = TaskPool::SizeType;
+	using IndexType = TaskPool::IndexType;
 
-	virtual void configure(const Notify&) = 0;
+	using ThreadNotify = std::function<void()>;
+	using TaskNotify = TaskPool::Notify;
 
-	virtual void configure(Notify&&) = 0;
+	using TaskType = TaskPool::TaskType;
+	using PoolType = std::shared_ptr<TaskPool>;
 
-	virtual bool empty() const = 0;
+private:
+	DataType _data;
 
-	virtual SizeType size() const = 0;
+public:
+	TaskManager();
 
-	virtual bool take(TaskType&) = 0;
+	void configure(const ThreadNotify& _notify);
+
+	bool valid() const;
+
+	bool empty() const noexcept;
+
+	SizeType size() const;
+
+	bool take(TaskType& _task);
+
+	PoolType find(IndexType _index);
+
+	bool insert(const PoolType& _pool);
+
+	bool remove(IndexType _index);
+
+	void clear();
 };
 
 ETERFREE_SPACE_END

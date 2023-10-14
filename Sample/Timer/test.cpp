@@ -31,8 +31,11 @@ int main()
 	using namespace std::this_thread;
 
 	ThreadPool threadPool(1);
-	auto taskQueue = std::make_shared<TaskQueue>();
-	threadPool.setTaskManager(taskQueue);
+	auto taskQueue = std::make_shared<TaskQueue>(0);
+
+	auto taskManager = threadPool.getTaskManager();
+	if (taskManager != nullptr)
+		taskManager->insert(taskQueue);
 
 	auto timer = std::make_shared<Timer>();
 	timer->setDuration(2000000);
