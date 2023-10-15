@@ -1,5 +1,5 @@
-﻿#include "Concurrency/TaskQueue.h"
-#include "Concurrency/TaskMapper.hpp"
+﻿#include "Concurrency/TaskMapper.hpp"
+#include "Concurrency/TaskQueue.h"
 #include "Concurrency/ThreadPool.h"
 #include "Platform/Core/Common.h"
 
