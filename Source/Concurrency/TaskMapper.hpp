@@ -594,7 +594,7 @@ void TaskMapper<_Message>::notify() const
 	auto notify = _notify;
 	lock.unlock();
 
-	if (notify) notify(_index);
+	if (notify) notify(index());
 }
 
 // 回复任务

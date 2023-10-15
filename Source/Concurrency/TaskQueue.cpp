@@ -60,7 +60,7 @@ void TaskQueue::notify() const
 	auto notify = _notify;
 	lock.unlock();
 
-	if (notify) notify(_index);
+	if (notify) notify(index());
 }
 
 // 未达到队列容量限制
