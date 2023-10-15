@@ -40,6 +40,7 @@ static void execute(ThreadPool& _threadPool)
 static void terminate(ThreadPool&& _threadPool)
 {
 	_threadPool.clearTask();
+
 	auto threadPool(std::forward<ThreadPool>(_threadPool));
 	(void)threadPool;
 }

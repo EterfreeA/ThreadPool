@@ -457,7 +457,7 @@ void ThreadPool::execute(DataType _data)
 		_data->_condition.wait(predicate);
 	}
 
-	// 清空线程
+	// 清空线程表
 	_data->_threadTable.clear();
 }
 

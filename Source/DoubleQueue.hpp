@@ -88,6 +88,8 @@ private:
 			std::memory_order_relaxed);
 	}
 
+	bool valid(QueueType& _queue) const noexcept;
+
 public:
 	// 若_capacity小于等于零，则无限制，否则其为上限值
 	DoubleQueue(SizeType _capacity = 0) : \
@@ -149,6 +151,16 @@ void DoubleQueue<_Element>::move(DoubleQueue& _left, \
 	_left._entryQueue = std::move(_right._entryQueue);
 	set(_left._size, exchange(_right._size, 0));
 	set(_left._capacity, exchange(_right._capacity, 0));
+}
+
+template <typename _Element>
+bool DoubleQueue<_Element>::valid(QueueType& _queue) const noexcept
+{
+	auto capacity = this->capacity();
+	if (capacity <= 0) return true;
+
+	auto size = this->size();
+	return size < capacity && _queue.size() <= capacity - size;
 }
 
 template <typename _Element>
@@ -224,11 +236,7 @@ auto DoubleQueue<_Element>::push(QueueType& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
-	if (auto capacity = this->capacity(), \
-		size = this->size(); \
-		capacity > 0 && (size >= capacity \
-			|| _queue.size() >= capacity - size))
-		return std::nullopt;
+	if (not valid(_queue)) return std::nullopt;
 
 	auto size = _queue.size();
 	_entryQueue.splice(_entryQueue.cend(), _queue);
@@ -240,11 +248,7 @@ auto DoubleQueue<_Element>::push(QueueType&& _queue) \
 -> std::optional<SizeType>
 {
 	std::lock_guard lock(_entryMutex);
-	if (auto capacity = this->capacity(), \
-		size = this->size(); \
-		capacity > 0 && (size >= capacity \
-			|| _queue.size() >= capacity - size))
-		return std::nullopt;
+	if (not valid(_queue)) return std::nullopt;
 
 	auto size = _queue.size();
 	_entryQueue.splice(_entryQueue.cend(), \

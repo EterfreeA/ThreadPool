@@ -138,6 +138,8 @@ bool Thread::getTask(DataType& _data)
 	if (!_data->_taskQueue->pop(task))
 		return false;
 
+	if (!task) task = [] {};
+
 	_data->setState(State::RUNNABLE);
 	_data->setTask(std::move(task));
 	return true;
