@@ -9,7 +9,9 @@
 #include <atomic>
 #include <thread>
 
-USING_ETERFREE_SPACE
+using Condition = Eterfree::Condition<>;
+using TaskMapper = Eterfree::TaskMapper<const char*>;
+using ThreadPool = Eterfree::ThreadPool;
 
 static std::atomic_flag flag;
 static Condition condition;
@@ -41,8 +43,6 @@ int main()
 {
 	using namespace std::chrono;
 	using namespace std::this_thread;
-
-	using TaskMapper = TaskMapper<const char*>;
 
 	ThreadPool threadPool;
 	auto proxy = threadPool.getProxy();

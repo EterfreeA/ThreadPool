@@ -22,12 +22,10 @@ struct Thread::Structure
 		BLOCKED,	// 阻塞态
 	};
 
-	using Condition = Condition<>;
-
 	std::mutex _threadMutex;		// 线程互斥元
 	std::thread _thread;			// 线程实体
 
-	Condition _condition;			// 强化条件变量
+	Condition<> _condition;			// 强化条件变量
 	std::atomic<State> _state;		// 原子状态
 
 	mutable std::mutex _taskMutex;	// 任务互斥元
@@ -328,7 +326,7 @@ bool Thread::configure(TaskType&& _task, \
 bool Thread::notify()
 {
 	using State = Structure::State;
-	using Strategy = Structure::Condition::Strategy;
+	using Strategy = Condition<>::Strategy;
 
 	auto data = load();
 	if (not data)
