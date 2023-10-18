@@ -39,13 +39,11 @@ struct ThreadPool::Structure
 		DECREASE	// 自减
 	};
 
-	using Condition = Condition<>;
-
 	using QueueType = DoubleQueue<TaskType>;
 	using Callback = Thread::Callback;
 
 	std::atomic_bool _valid;				// 线程有效性
-	Condition _condition;					// 强化条件变量
+	Condition<> _condition;					// 强化条件变量
 	std::thread _thread;					// 守护线程
 	std::list<Thread> _threadTable;			// 线程表
 
@@ -144,7 +142,7 @@ void ThreadPool::Structure::setCapacity(SizeType _capacity, \
 	auto capacity = this->_capacity.exchange(_capacity, \
 		std::memory_order_relaxed);
 	if (_notified && capacity != _capacity)
-		_condition.notify_one(Condition::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Strategy::RELAXED);
 }
 
 // 放入任务
@@ -153,7 +151,7 @@ bool ThreadPool::Structure::pushTask(const TaskType& _task)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = _taskQueue->push(_task);
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Strategy::RELAXED);
 	return result.has_value();
 }
 
@@ -163,7 +161,7 @@ bool ThreadPool::Structure::pushTask(TaskType&& _task)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = _taskQueue->push(std::forward<TaskType>(_task));
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Strategy::RELAXED);
 	return result.has_value();
 }
 
@@ -176,7 +174,7 @@ bool ThreadPool::Structure::pushTask(TaskQueue& _taskQueue)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(_taskQueue);
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Strategy::RELAXED);
 	return result.has_value();
 }
 
@@ -189,7 +187,7 @@ bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Strategy::RELAXED);
 	return result.has_value();
 }
 
@@ -296,7 +294,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 		if (auto data = _data.lock(); data \
 			&& (data->setIdleSize(1, Arithmetic::INCREASE) == 0 \
 			|| data->getIdleSize() >= data->getTotalSize()))
-			data->_condition.notify_one(Structure::Condition::Strategy::RELAXED);
+			data->_condition.notify_one(Condition<>::Strategy::RELAXED);
 	};
 
 	// 初始化线程并放入线程表
@@ -323,7 +321,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 void ThreadPool::destroy(DataType&& _data)
 {
 	using Arithmetic = Structure::Arithmetic;
-	using Strategy = Structure::Condition::Strategy;
+	using Strategy = Condition<>::Strategy;
 
 	// 避免重复销毁
 	if (!_data->isValid()) return;
