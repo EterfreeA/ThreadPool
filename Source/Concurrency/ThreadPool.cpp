@@ -40,14 +40,12 @@ struct ThreadPool::Structure
 		DECREASE	// 自减
 	};
 
-	using Condition = Condition<>;
-
 	using Notify = TaskManager::ThreadNotify;
 	using FetchType = Thread::FetchType;
 	using ReplyType = Thread::ReplyType;
 
 	std::atomic_bool _valid;			// 线程有效性
-	Condition _condition;				// 强化条件变量
+	Condition<> _condition;				// 强化条件变量
 	std::thread _thread;				// 守护线程
 	std::list<Thread> _threadTable;		// 线程表
 
@@ -123,7 +121,7 @@ void ThreadPool::Structure::setCapacity(SizeType _capacity, \
 	auto capacity = this->_capacity.exchange(_capacity, \
 		std::memory_order::relaxed);
 	if (_notified and capacity != _capacity)
-		_condition.notify_one(Condition::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Strategy::RELAXED);
 }
 
 // 获取线程池容量
@@ -208,7 +206,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 void ThreadPool::destroy(DataType&& _data)
 {
 	using Arithmetic = Structure::Arithmetic;
-	using Strategy = Structure::Condition::Strategy;
+	using Strategy = Condition<>::Strategy;
 
 	// 避免重复销毁
 	if (not _data->isValid()) return;
@@ -364,7 +362,7 @@ auto ThreadPool::getConcurrency() noexcept -> SizeType
 ThreadPool::ThreadPool(SizeType _capacity) : \
 	_atomic(std::make_shared<Structure>())
 {
-	using Strategy = Structure::Condition::Strategy;
+	using Strategy = Condition<>::Strategy;
 	using TaskType = TaskManager::TaskType;
 
 	// 加载非原子数据

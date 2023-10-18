@@ -18,10 +18,8 @@ struct SpinAdapter::Structure
 		FINAL,		// 最终态
 	};
 
-	using Condition = Condition<>;
-
 	std::mutex _threadMutex;
-	Condition _condition;
+	Condition<> _condition;
 
 	mutable std::mutex _stateMutex;
 	State _state;
@@ -67,7 +65,7 @@ bool SpinAdapter::Structure::start()
 	if (_adaptee) _adaptee->start();
 	setState(State::RUNNABLE);
 
-	_condition.notify_one(Condition::Strategy::RELAXED);
+	_condition.notify_one(Condition<>::Strategy::RELAXED);
 	return true;
 }
 
@@ -77,7 +75,7 @@ void SpinAdapter::Structure::stop()
 	auto state = setState(State::FINAL);
 	if (state == State::FINAL) return;
 
-	_condition.notify_one(Condition::Strategy::RELAXED);
+	_condition.notify_one(Condition<>::Strategy::RELAXED);
 
 	if (state == State::RUNNING)
 		_condition.wait([this]
