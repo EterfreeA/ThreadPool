@@ -5,9 +5,9 @@
 #include <string>
 #include <algorithm>
 
-#include "Core/Common.hpp"
+#include "Platform/Common.h"
 
-ETERFREE_SPACE_BEGIN
+PLATFORM_SPACE_BEGIN
 
 // 获取错误描述
 bool formatError(std::string& _buffer, std::uint64_t _error);
@@ -46,4 +46,4 @@ _Type reverse(_Type _value) noexcept
 	return _value;
 }
 
-ETERFREE_SPACE_END
+PLATFORM_SPACE_END

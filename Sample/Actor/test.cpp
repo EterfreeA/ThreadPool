@@ -10,11 +10,13 @@
 #include <atomic>
 #include <thread>
 
-using ThreadPool = Eterfree::ThreadPool;
+USING_ETERFREE_SPACE
+
+using ThreadPool = Concurrency::ThreadPool;
 using SizeType = ThreadPool::SizeType;
 
 using Message = std::chrono::nanoseconds::rep;
-using TaskMapper = Eterfree::TaskMapper<Message>;
+using TaskMapper = Concurrency::TaskMapper<Message>;
 
 static constexpr Message SLEEP_TIME = 1000000;
 static constexpr SizeType HANDLER_NUMBER = 17;
@@ -26,7 +28,7 @@ static void handle(Message& _message)
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
 
-	Eterfree::sleepFor(_message);
+	Platform::sleepFor(_message);
 
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);

@@ -30,6 +30,7 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Source\Concurrency\Common.h" />
     <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp" />
     <ClInclude Include="..\Source\Concurrency\TaskManager.h" />
     <ClInclude Include="..\Source\Concurrency\TaskPool.h" />
@@ -42,7 +43,9 @@
     <ClInclude Include="..\Source\Core\Logger.h" />
     <ClInclude Include="..\Source\Core\SpinAdapter.h" />
     <ClInclude Include="..\Source\Core\Timer.h" />
+    <ClInclude Include="..\Source\Platform\Common.h" />
     <ClInclude Include="..\Source\Platform\Core\Common.h" />
+    <ClInclude Include="..\Source\Sequence\Common.h" />
     <ClInclude Include="..\Source\Sequence\Sorter.hpp" />
     <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp" />
   </ItemGroup>

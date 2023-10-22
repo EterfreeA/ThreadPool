@@ -46,7 +46,7 @@
 #include "Sequence/Sorter.hpp"
 #include "TaskPool.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 /*
 继承类模板enable_shared_from_this，当TaskMapper被shared_ptr托管，传递this给其它函数时，
@@ -79,6 +79,8 @@ private:
 	using HandleMapper = std::unordered_map<IndexType, std::shared_ptr<Handler>>;
 	using QueueMapper = std::unordered_map<IndexType, std::shared_ptr<QueueType>>;
 
+	using Sorter = Sequence::Sorter<IndexType, Record>;
+
 private:
 	mutable std::mutex _notifyMutex; // 通知互斥元
 	Notify _notify; // 通知函数子
@@ -97,7 +99,7 @@ private:
 	Atomic _size; // 任务数量
 
 	mutable std::mutex _sortMutex; // 排序互斥元
-	Sorter<IndexType, Record> _sorter; // 排序者
+	Sorter _sorter; // 排序者
 
 private:
 	// 获取原子
@@ -879,4 +881,4 @@ void TaskMapper<_Message>::clear()
 		queue->clear();
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

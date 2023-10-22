@@ -2,7 +2,7 @@
 
 #include <thread>
 
-ETERFREE_SPACE_BEGIN
+PLATFORM_SPACE_BEGIN
 
 // 暂停指定时间
 void sleepFor(std::chrono::nanoseconds::rep _duration)
@@ -16,4 +16,4 @@ void sleepFor(std::chrono::nanoseconds::rep _duration)
 	}
 }
 
-ETERFREE_SPACE_END
+PLATFORM_SPACE_END

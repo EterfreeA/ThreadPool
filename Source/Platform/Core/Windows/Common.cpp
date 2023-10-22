@@ -10,7 +10,7 @@
 
 #undef ERROR
 
-ETERFREE_SPACE_BEGIN
+PLATFORM_SPACE_BEGIN
 
 // 获取错误描述
 bool formatError(std::string& _buffer, std::uint64_t _error)
@@ -183,4 +183,4 @@ void sleepFor(std::chrono::nanoseconds::rep _duration)
 	}
 }
 
-ETERFREE_SPACE_END
+PLATFORM_SPACE_END

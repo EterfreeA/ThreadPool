@@ -10,6 +10,9 @@
 
 USING_ETERFREE_SPACE
 
+using TaskQueue = Concurrency::TaskQueue;
+using ThreadPool = Concurrency::ThreadPool;
+
 class Task : public PeriodicTask
 {
 public:

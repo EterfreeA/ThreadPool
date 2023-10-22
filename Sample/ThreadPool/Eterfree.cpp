@@ -21,15 +21,17 @@
 #include <atomic>
 #include <thread>
 
-using ThreadPool = Eterfree::ThreadPool;
+USING_ETERFREE_SPACE
+
+using ThreadPool = Concurrency::ThreadPool;
 using TimeType = std::chrono::nanoseconds::rep;
 
 #if defined TASK_QUEUE
-using TaskPool = Eterfree::TaskQueue;
+using TaskPool = Concurrency::TaskQueue;
 
 #elif defined TASK_MAPPER
 using Message = TimeType;
-using TaskPool = Eterfree::TaskMapper<Message>;
+using TaskPool = Concurrency::TaskMapper<Message>;
 
 static constexpr bool PARALLEL = true;
 #endif
@@ -45,7 +47,7 @@ static void task()
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
 
-	Eterfree::sleepFor(SLEEP_TIME);
+	Platform::sleepFor(SLEEP_TIME);
 
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);
@@ -75,7 +77,7 @@ static void handle(Message& _message)
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
 
-	Eterfree::sleepFor(_message);
+	Platform::sleepFor(_message);
 
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);

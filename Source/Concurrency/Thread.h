@@ -43,9 +43,9 @@
 #include <atomic>
 #include <thread>
 
-#include "Core/Common.hpp"
+#include "Common.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 class Thread final
 {
@@ -142,4 +142,4 @@ public:
 	bool notify();
 };
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

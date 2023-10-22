@@ -9,7 +9,7 @@
 #include <list>
 #include <thread>
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 // 生成原子的设置函数
 #define SET_ATOMIC(SizeType, Arithmetic, functor, field) \
@@ -495,4 +495,4 @@ auto ThreadPool::getProxy() const noexcept \
 	return load();
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

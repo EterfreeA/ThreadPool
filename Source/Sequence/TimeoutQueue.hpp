@@ -27,9 +27,9 @@
 #include <map>
 #include <vector>
 
-#include "Core/Common.hpp"
+#include "Common.h"
 
-ETERFREE_SPACE_BEGIN
+SEQUENCE_SPACE_BEGIN
 
 template <typename _TimeType, typename _Element>
 class TimeoutQueue final
@@ -116,4 +116,4 @@ bool TimeoutQueue<_TimeType, _Element>::pop(Vector& _vector)
 	return true;
 }
 
-ETERFREE_SPACE_END
+SEQUENCE_SPACE_END

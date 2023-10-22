@@ -11,6 +11,9 @@
 
 USING_ETERFREE_SPACE
 
+using TaskQueue = Concurrency::TaskQueue;
+using ThreadPool = Concurrency::ThreadPool;
+
 static std::atomic_flag flag;
 static Condition condition;
 
