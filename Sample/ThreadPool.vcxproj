@@ -105,21 +105,25 @@
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\Build\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Binary\</OutDir>
+    <TargetName>Test</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\Build\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Binary\</OutDir>
+    <TargetName>Test</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)..\Build\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Binary\</OutDir>
+    <TargetName>Test</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)..\Build\$(Platform)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)..\Binary\</OutDir>
+    <TargetName>Test</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
