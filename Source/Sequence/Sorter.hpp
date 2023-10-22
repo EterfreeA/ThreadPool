@@ -33,9 +33,9 @@
 #include <iterator>
 #include <algorithm>
 
-#include "Core/Common.hpp"
+#include "Common.h"
 
-ETERFREE_SPACE_BEGIN
+SEQUENCE_SPACE_BEGIN
 
 template <typename _IDType>
 class SortedRecord
@@ -537,4 +537,4 @@ auto SharedSorter<_IDType, _Record>::get(SizeType _index, SizeType _size, \
 	return recordList;
 }
 
-ETERFREE_SPACE_END
+SEQUENCE_SPACE_END

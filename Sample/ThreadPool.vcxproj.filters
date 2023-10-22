@@ -90,5 +90,14 @@
     <ClInclude Include="..\Source\Concurrency\TaskManager.h">
       <Filter>Concurrency</Filter>
     </ClInclude>
+    <ClInclude Include="..\Source\Sequence\Common.h">
+      <Filter>Sequence</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Platform\Common.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Concurrency\Common.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -20,10 +20,10 @@
 #include <functional>
 #include <memory>
 
-#include "Core/Common.hpp"
+#include "Common.h"
 #include "TaskPool.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 class TaskManager final
 {
@@ -67,4 +67,4 @@ public:
 	void clear();
 };
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

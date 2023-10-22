@@ -142,7 +142,7 @@ public:
 	using TaskType = std::shared_ptr<TimedTask>;
 
 private:
-	using TaskQueue = TimeoutQueue<SystemTime, TaskType>;
+	using TaskQueue = Sequence::TimeoutQueue<SystemTime, TaskType>;
 
 private:
 	std::mutex _timeMutex;

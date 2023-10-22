@@ -6,7 +6,7 @@
 #include <mutex>
 #include <shared_mutex>
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 struct TaskManager::Structure
 {
@@ -15,7 +15,7 @@ struct TaskManager::Structure
 	using Atomic = std::atomic<SizeType>;
 
 	using Mapper = std::map<IndexType, PoolType>;
-	using Sorter = Sorter<IndexType, Record>;
+	using Sorter = Sequence::Sorter<IndexType, Record>;
 
 	mutable std::mutex _notifyMutex;
 	ThreadNotify _threadNotify;
@@ -291,4 +291,4 @@ void TaskManager::clear()
 		_data->clear();
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

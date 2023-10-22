@@ -33,7 +33,7 @@
 
 #include "TaskPool.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 class TaskQueue : public TaskPool, \
 	public std::enable_shared_from_this<TaskQueue>
@@ -214,4 +214,4 @@ bool TaskQueue::put(_Functor&& _functor, _Args&&... _args)
 		std::forward<_Args>(_args)...));
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

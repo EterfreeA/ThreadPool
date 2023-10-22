@@ -69,7 +69,7 @@ void Timer::waitFor(SteadyTime& _timePoint, \
 	if (difference <= realTime) difference += _duration;
 
 	auto sleepTime = difference - realTime;
-	sleepFor(sleepTime);
+	Platform::sleepFor(sleepTime);
 
 	timePoint = TimedTask::getSteadyTime();
 	time = duration_cast<TimeType>(timePoint - _timePoint);

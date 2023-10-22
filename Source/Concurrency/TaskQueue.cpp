@@ -1,6 +1,6 @@
 ﻿#include "TaskQueue.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 // 过滤无效任务
 //template <typename _ListType>
@@ -195,4 +195,4 @@ auto TaskQueue::clear() -> SizeType
 	return exchange(_size, 0);
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

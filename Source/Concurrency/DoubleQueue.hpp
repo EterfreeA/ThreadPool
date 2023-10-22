@@ -29,9 +29,9 @@
 #include <atomic>
 #include <mutex>
 
-#include "Core/Common.hpp"
+#include "Common.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 template <typename _Element>
 class DoubleQueue final
@@ -314,4 +314,4 @@ auto DoubleQueue<_Element>::clear() -> SizeType
 	return exchange(_size, 0);
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

@@ -40,10 +40,10 @@
 #include <memory>
 #include <atomic>
 
-#include "Core/Common.hpp"
+#include "Common.h"
 #include "TaskManager.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 class ThreadPool final
 {
@@ -168,4 +168,4 @@ public:
 	TaskManager* getTaskManager() const;
 };
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

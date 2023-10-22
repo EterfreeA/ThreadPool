@@ -42,10 +42,12 @@ static auto getConcurrency() noexcept
 
 static void task()
 {
+	USING_ETERFREE_SPACE;
+
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
 
-	Eterfree::sleepFor(SLEEP_TIME);
+	Platform::sleepFor(SLEEP_TIME);
 
 	counter.fetch_add(1, \
 		std::memory_order::relaxed);

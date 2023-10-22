@@ -25,10 +25,10 @@
 #include <functional>
 #include <optional>
 
-#include "Core/Common.hpp"
 #include "Core/Timer.h"
+#include "Common.h"
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 class TaskPool
 {
@@ -59,4 +59,4 @@ public:
 	virtual bool take(TaskType&) = 0;
 };
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

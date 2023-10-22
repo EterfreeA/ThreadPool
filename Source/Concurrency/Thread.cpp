@@ -7,7 +7,7 @@
 #include <exception>
 #include <mutex>
 
-ETERFREE_SPACE_BEGIN
+CONCURRENCY_SPACE_BEGIN
 
 // 线程数据结构体
 struct Thread::Structure
@@ -348,4 +348,4 @@ bool Thread::notify()
 	return true;
 }
 
-ETERFREE_SPACE_END
+CONCURRENCY_SPACE_END

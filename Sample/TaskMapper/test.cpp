@@ -9,9 +9,10 @@
 #include <atomic>
 #include <thread>
 
-using Condition = Eterfree::Condition<>;
-using TaskMapper = Eterfree::TaskMapper<const char*>;
-using ThreadPool = Eterfree::ThreadPool;
+USING_ETERFREE_SPACE
+
+using TaskMapper = Concurrency::TaskMapper<const char*>;
+using ThreadPool = Concurrency::ThreadPool;
 
 static std::atomic_flag flag;
 static Condition condition;

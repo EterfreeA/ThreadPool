@@ -14,16 +14,18 @@
 #undef TASK_QUEUE
 #undef TASK_MAPPER
 
-using ThreadPool = Eterfree::ThreadPool;
+USING_ETERFREE_SPACE
+
+using ThreadPool = Concurrency::ThreadPool;
 using SizeType = ThreadPool::SizeType;
 
-using IndexType = Eterfree::TaskPool::IndexType;
+using IndexType = Concurrency::TaskPool::IndexType;
 using TimeType = std::chrono::nanoseconds::rep;
 
-using TaskQueue = Eterfree::TaskQueue;
+using TaskQueue = Concurrency::TaskQueue;
 
 using Message = TimeType;
-using TaskMapper = Eterfree::TaskMapper<Message>;
+using TaskMapper = Concurrency::TaskMapper<Message>;
 
 static constexpr IndexType TASK_QUEUE = 1;
 static constexpr IndexType TASK_MAPPER = 2;
@@ -42,7 +44,7 @@ static void task()
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
 
-	Eterfree::sleepFor(SLEEP_TIME);
+	Platform::sleepFor(SLEEP_TIME);
 	add(1);
 }
 
@@ -70,7 +72,7 @@ static void handle(Message& _message)
 	for (volatile auto index = 0UL; \
 		index < 10000UL; ++index);
 
-	Eterfree::sleepFor(_message);
+	Platform::sleepFor(_message);
 	add(1);
 }
 
