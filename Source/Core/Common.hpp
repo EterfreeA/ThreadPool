@@ -23,9 +23,10 @@
 "Instead, use the name: " STRING(signature) ".")]]
 
 // 自定义名称空间
-#define ETERFREE_SPACE_BEGIN namespace Eterfree {
+#define ETERFREE_SPACE Eterfree
+#define ETERFREE_SPACE_BEGIN namespace ETERFREE_SPACE {
 #define ETERFREE_SPACE_END }
-#define USING_ETERFREE_SPACE using namespace Eterfree;
+#define USING_ETERFREE_SPACE using namespace ETERFREE_SPACE;
 
 ETERFREE_SPACE_BEGIN
 
