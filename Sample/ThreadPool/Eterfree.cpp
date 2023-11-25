@@ -8,7 +8,7 @@
 #include <atomic>
 #include <thread>
 
-using ThreadPool = Eterfree::ThreadPool;
+using ThreadPool = ETERFREE_SPACE::ThreadPool;
 
 static constexpr std::chrono::nanoseconds::rep SLEEP_TIME = 1000000;
 
