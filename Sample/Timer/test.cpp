@@ -1,5 +1,5 @@
-﻿#include "Concurrency/Thread.h"
-#include "Core/Timer.h"
+﻿#include "Eterfree/Concurrency/Thread.h"
+#include "Eterfree/Core/Timer.h"
 
 #include <chrono>
 #include <cstdlib>

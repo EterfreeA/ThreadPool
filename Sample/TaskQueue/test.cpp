@@ -1,6 +1,6 @@
-﻿#include "Concurrency/TaskQueue.h"
-#include "Concurrency/ThreadPool.h"
-#include "Core/Condition.hpp"
+﻿#include "Eterfree/Concurrency/TaskQueue.h"
+#include "Eterfree/Concurrency/ThreadPool.h"
+#include "Eterfree/Core/Condition.hpp"
 
 #include <chrono>
 #include <cstdlib>

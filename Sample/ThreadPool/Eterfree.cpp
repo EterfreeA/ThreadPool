@@ -5,12 +5,12 @@
 #define TASK_MAPPER
 
 #include "Common.h"
-#include "Concurrency/ThreadPool.h"
+#include "Eterfree/Concurrency/ThreadPool.h"
 
 #if defined TASK_QUEUE
-#include "Concurrency/TaskQueue.h"
+#include "Eterfree/Concurrency/TaskQueue.h"
 #elif defined TASK_MAPPER
-#include "Concurrency/TaskMapper.hpp"
+#include "Eterfree/Concurrency/TaskMapper.hpp"
 #endif
 
 #include <chrono>

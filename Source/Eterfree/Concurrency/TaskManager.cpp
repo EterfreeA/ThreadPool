@@ -1,5 +1,5 @@
 ﻿#include "TaskManager.h"
-#include "Sequence/Sorter.hpp"
+#include "Eterfree/Sequence/Sorter.hpp"
 
 #include <map>
 #include <atomic>

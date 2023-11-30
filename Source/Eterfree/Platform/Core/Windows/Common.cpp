@@ -1,5 +1,5 @@
-﻿#include "Platform/Core/Common.h"
-#include "Core/Logger.h"
+﻿#include "Eterfree/Platform/Core/Common.h"
+#include "Eterfree/Core/Logger.h"
 
 #include <cstdio>
 #include <sstream>

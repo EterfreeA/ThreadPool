@@ -25,7 +25,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "Sequence/TimeoutQueue.hpp"
+#include "Eterfree/Sequence/TimeoutQueue.hpp"
 #include "SpinAdapter.h"
 
 ETERFREE_SPACE_BEGIN

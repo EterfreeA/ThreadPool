@@ -1,6 +1,6 @@
-﻿#include "Concurrency/TaskMapper.hpp"
-#include "Concurrency/ThreadPool.h"
-#include "Core/Condition.hpp"
+﻿#include "Eterfree/Concurrency/TaskMapper.hpp"
+#include "Eterfree/Concurrency/ThreadPool.h"
+#include "Eterfree/Core/Condition.hpp"
 
 #include <chrono>
 #include <cstdlib>

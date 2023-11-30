@@ -41,9 +41,9 @@
 #include <mutex>
 #include <shared_mutex>
 
-#include "Core/Logger.h"
-#include "Core/Timer.h"
-#include "Sequence/Sorter.hpp"
+#include "Eterfree/Core/Logger.h"
+#include "Eterfree/Core/Timer.h"
+#include "Eterfree/Sequence/Sorter.hpp"
 #include "TaskPool.h"
 
 CONCURRENCY_SPACE_BEGIN

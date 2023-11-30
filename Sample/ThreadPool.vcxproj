@@ -19,35 +19,35 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Source\Concurrency\TaskManager.cpp" />
-    <ClCompile Include="..\Source\Concurrency\TaskQueue.cpp" />
-    <ClCompile Include="..\Source\Concurrency\Thread.cpp" />
-    <ClCompile Include="..\Source\Concurrency\ThreadPool.cpp" />
-    <ClCompile Include="..\Source\Core\Logger.cpp" />
-    <ClCompile Include="..\Source\Core\SpinAdapter.cpp" />
-    <ClCompile Include="..\Source\Core\Timer.cpp" />
-    <ClCompile Include="..\Source\Platform\Core\Windows\Common.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Concurrency\TaskManager.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Concurrency\TaskQueue.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Concurrency\Thread.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Concurrency\ThreadPool.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Core\Logger.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Core\SpinAdapter.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Core\Timer.cpp" />
+    <ClCompile Include="..\Source\Eterfree\Platform\Core\Windows\Common.cpp" />
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Source\Concurrency\Common.h" />
-    <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp" />
-    <ClInclude Include="..\Source\Concurrency\TaskManager.h" />
-    <ClInclude Include="..\Source\Concurrency\TaskPool.h" />
-    <ClInclude Include="..\Source\Concurrency\TaskMapper.hpp" />
-    <ClInclude Include="..\Source\Concurrency\TaskQueue.h" />
-    <ClInclude Include="..\Source\Concurrency\Thread.h" />
-    <ClInclude Include="..\Source\Concurrency\ThreadPool.h" />
-    <ClInclude Include="..\Source\Core\Common.hpp" />
-    <ClInclude Include="..\Source\Core\Condition.hpp" />
-    <ClInclude Include="..\Source\Core\Logger.h" />
-    <ClInclude Include="..\Source\Core\SpinAdapter.h" />
-    <ClInclude Include="..\Source\Core\Timer.h" />
-    <ClInclude Include="..\Source\Platform\Common.h" />
-    <ClInclude Include="..\Source\Platform\Core\Common.h" />
-    <ClInclude Include="..\Source\Sequence\Common.h" />
-    <ClInclude Include="..\Source\Sequence\Sorter.hpp" />
-    <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\Common.h" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\DoubleQueue.hpp" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskManager.h" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskMapper.hpp" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskPool.h" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskQueue.h" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\Thread.h" />
+    <ClInclude Include="..\Source\Eterfree\Concurrency\ThreadPool.h" />
+    <ClInclude Include="..\Source\Eterfree\Core\Common.hpp" />
+    <ClInclude Include="..\Source\Eterfree\Core\Condition.hpp" />
+    <ClInclude Include="..\Source\Eterfree\Core\Logger.h" />
+    <ClInclude Include="..\Source\Eterfree\Core\SpinAdapter.h" />
+    <ClInclude Include="..\Source\Eterfree\Core\Timer.h" />
+    <ClInclude Include="..\Source\Eterfree\Platform\Common.h" />
+    <ClInclude Include="..\Source\Eterfree\Platform\Core\Common.h" />
+    <ClInclude Include="..\Source\Eterfree\Sequence\Common.h" />
+    <ClInclude Include="..\Source\Eterfree\Sequence\Sorter.hpp" />
+    <ClInclude Include="..\Source\Eterfree\Sequence\TimeoutQueue.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

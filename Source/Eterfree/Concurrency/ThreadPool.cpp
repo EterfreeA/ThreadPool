@@ -1,7 +1,7 @@
 ﻿#include "ThreadPool.h"
 #include "Thread.h"
-#include "Core/Condition.hpp"
-#include "Core/Logger.h"
+#include "Eterfree/Core/Condition.hpp"
+#include "Eterfree/Core/Logger.h"
 
 #include <utility>
 #include <cstdint>

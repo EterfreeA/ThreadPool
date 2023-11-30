@@ -1,7 +1,7 @@
-﻿#include "Concurrency/TaskMapper.hpp"
-#include "Concurrency/TaskQueue.h"
-#include "Concurrency/ThreadPool.h"
-#include "Platform/Core/Common.h"
+﻿#include "Eterfree/Concurrency/TaskMapper.hpp"
+#include "Eterfree/Concurrency/TaskQueue.h"
+#include "Eterfree/Concurrency/ThreadPool.h"
+#include "Eterfree/Platform/Core/Common.h"
 
 #include <chrono>
 #include <cstdlib>

@@ -1,6 +1,6 @@
 ﻿#include "Timer.h"
 #include "Logger.h"
-#include "Platform/Core/Common.h"
+#include "Eterfree/Platform/Core/Common.h"
 
 #include <utility>
 #include <exception>

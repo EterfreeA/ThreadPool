@@ -19,85 +19,85 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test.cpp" />
-    <ClCompile Include="..\Source\Core\Logger.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\Concurrency\TaskQueue.cpp">
+    <ClCompile Include="..\Source\Eterfree\Concurrency\TaskManager.cpp">
       <Filter>Concurrency</Filter>
     </ClCompile>
-    <ClCompile Include="..\Source\Platform\Core\Windows\Common.cpp">
+    <ClCompile Include="..\Source\Eterfree\Concurrency\TaskQueue.cpp">
+      <Filter>Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Eterfree\Concurrency\Thread.cpp">
+      <Filter>Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Eterfree\Concurrency\ThreadPool.cpp">
+      <Filter>Concurrency</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Eterfree\Core\Logger.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Eterfree\Core\SpinAdapter.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Eterfree\Core\Timer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source\Eterfree\Platform\Core\Windows\Common.cpp">
       <Filter>Platform\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\Concurrency\Thread.cpp">
-      <Filter>Concurrency</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\Concurrency\ThreadPool.cpp">
-      <Filter>Concurrency</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\Core\Timer.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\Core\SpinAdapter.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Source\Concurrency\TaskManager.cpp">
-      <Filter>Concurrency</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Source\Core\Common.hpp">
+    <ClInclude Include="..\Source\Eterfree\Concurrency\Common.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\DoubleQueue.hpp">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskManager.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskMapper.hpp">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskPool.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\TaskQueue.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\Thread.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Concurrency\ThreadPool.h">
+      <Filter>Concurrency</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Source\Eterfree\Core\Common.hpp">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Core\Logger.h">
+    <ClInclude Include="..\Source\Eterfree\Core\Condition.hpp">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\DoubleQueue.hpp">
-      <Filter>Concurrency</Filter>
+    <ClInclude Include="..\Source\Eterfree\Core\Logger.h">
+      <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\TaskPool.h">
-      <Filter>Concurrency</Filter>
+    <ClInclude Include="..\Source\Eterfree\Core\SpinAdapter.h">
+      <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\TaskMapper.hpp">
-      <Filter>Concurrency</Filter>
+    <ClInclude Include="..\Source\Eterfree\Core\Timer.h">
+      <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\TaskQueue.h">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\Thread.h">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\ThreadPool.h">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Sequence\Sorter.hpp">
+    <ClInclude Include="..\Source\Eterfree\Sequence\Common.h">
       <Filter>Sequence</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Sequence\TimeoutQueue.hpp">
+    <ClInclude Include="..\Source\Eterfree\Sequence\Sorter.hpp">
       <Filter>Sequence</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Platform\Core\Common.h">
-      <Filter>Platform\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Core\Timer.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Core\Condition.hpp">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Core\SpinAdapter.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\TaskManager.h">
-      <Filter>Concurrency</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Source\Sequence\Common.h">
+    <ClInclude Include="..\Source\Eterfree\Sequence\TimeoutQueue.hpp">
       <Filter>Sequence</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Platform\Common.h">
+    <ClInclude Include="..\Source\Eterfree\Platform\Common.h">
       <Filter>Platform</Filter>
     </ClInclude>
-    <ClInclude Include="..\Source\Concurrency\Common.h">
-      <Filter>Concurrency</Filter>
+    <ClInclude Include="..\Source\Eterfree\Platform\Core\Common.h">
+      <Filter>Platform\Core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
