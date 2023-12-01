@@ -47,7 +47,7 @@ template <typename _Size = std::size_t>
 class Condition final
 {
 public:
-	enum class Strategy : std::uint8_t
+	enum class Policy : std::uint8_t
 	{
 		STRICT, RELAXED
 	};
@@ -83,11 +83,11 @@ public:
 
 	void exit();
 
-	void notify_one(Strategy _strategy = Strategy::STRICT);
+	void notify_one(Policy _policy = Policy::STRICT);
 
-	void notify_all(Strategy _strategy = Strategy::STRICT);
+	void notify_all(Policy _policy = Policy::STRICT);
 
-	void notify(Size _size, Strategy _strategy = Strategy::STRICT);
+	void notify(Size _size, Policy _policy = Policy::STRICT);
 
 	template <typename _Predicate>
 	void notify_one(_Predicate _predicate);
@@ -132,29 +132,29 @@ void Condition<_Size>::exit()
 }
 
 template <typename _Size>
-void Condition<_Size>::notify_one(Strategy _strategy)
+void Condition<_Size>::notify_one(Policy _policy)
 {
 	std::unique_lock lock(_mutex);
-	if (_strategy == Strategy::RELAXED) lock.unlock();
+	if (_policy == Policy::RELAXED) lock.unlock();
 
 	_condition.notify_one();
 }
 
 template <typename _Size>
-void Condition<_Size>::notify_all(Strategy _strategy)
+void Condition<_Size>::notify_all(Policy _policy)
 {
 	std::unique_lock lock(_mutex);
-	if (_strategy == Strategy::RELAXED) lock.unlock();
+	if (_policy == Policy::RELAXED) lock.unlock();
 
 	_condition.notify_all();
 }
 
 template <typename _Size>
 void Condition<_Size>::notify(Size _size, \
-	Strategy _strategy)
+	Policy _policy)
 {
 	std::unique_lock lock(_mutex);
-	if (_strategy == Strategy::RELAXED)
+	if (_policy == Policy::RELAXED)
 		lock.unlock();
 
 	for (decltype(_size) index = 0; \

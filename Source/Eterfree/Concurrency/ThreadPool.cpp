@@ -121,7 +121,7 @@ void ThreadPool::Structure::setCapacity(SizeType _capacity, \
 	auto capacity = this->_capacity.exchange(_capacity, \
 		std::memory_order::relaxed);
 	if (_notified and capacity != _capacity)
-		_condition.notify_one(Condition<>::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Policy::RELAXED);
 }
 
 // 获取线程池容量
@@ -206,7 +206,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 void ThreadPool::destroy(DataType&& _data)
 {
 	using Arithmetic = Structure::Arithmetic;
-	using Strategy = Condition<>::Strategy;
+	using Policy = Condition<>::Policy;
 
 	// 避免重复销毁
 	if (not _data->isValid()) return;
@@ -215,7 +215,7 @@ void ThreadPool::destroy(DataType&& _data)
 	_data->setValid(false);
 
 	// 通知守护线程退出
-	_data->_condition.notify_all(Strategy::RELAXED);
+	_data->_condition.notify_all(Policy::RELAXED);
 
 	// 分离守护线程
 	//_data->_thread.detach();
@@ -362,7 +362,7 @@ auto ThreadPool::getConcurrency() noexcept -> SizeType
 ThreadPool::ThreadPool(SizeType _capacity) : \
 	_atomic(std::make_shared<Structure>())
 {
-	using Strategy = Condition<>::Strategy;
+	using Policy = Condition<>::Policy;
 	using TaskType = TaskManager::TaskType;
 
 	// 加载非原子数据
@@ -372,7 +372,7 @@ ThreadPool::ThreadPool(SizeType _capacity) : \
 	data->_notify = [_data = std::weak_ptr(data)]
 	{
 		if (auto data = _data.lock())
-			data->_condition.notify_one(Strategy::RELAXED);
+			data->_condition.notify_one(Policy::RELAXED);
 	};
 
 	// 定义获取函数子
@@ -392,7 +392,7 @@ ThreadPool::ThreadPool(SizeType _capacity) : \
 		if (auto data = _data.lock(); data \
 			and (data->setIdleSize(1, Structure::Arithmetic::INCREASE) == 0 \
 			or data->getIdleSize() >= data->getTotalSize()))
-			data->_condition.notify_one(Strategy::RELAXED);
+			data->_condition.notify_one(Policy::RELAXED);
 	};
 
 	// 配置通知函数子

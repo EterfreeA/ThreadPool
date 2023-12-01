@@ -65,7 +65,7 @@ bool SpinAdapter::Structure::start()
 	if (_adaptee) _adaptee->start();
 	setState(State::RUNNABLE);
 
-	_condition.notify_one(Condition<>::Strategy::RELAXED);
+	_condition.notify_one(Condition<>::Policy::RELAXED);
 	return true;
 }
 
@@ -75,7 +75,7 @@ void SpinAdapter::Structure::stop()
 	auto state = setState(State::FINAL);
 	if (state == State::FINAL) return;
 
-	_condition.notify_one(Condition<>::Strategy::RELAXED);
+	_condition.notify_one(Condition<>::Policy::RELAXED);
 
 	if (state == State::RUNNING)
 		_condition.wait([this]
