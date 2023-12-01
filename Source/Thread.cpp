@@ -341,8 +341,8 @@ bool Thread::configure(TaskType&& _task, \
 // 激活线程
 bool Thread::notify()
 {
+	using Policy = Condition<>::Policy;
 	using State = Structure::State;
-	using Strategy = Condition<>::Strategy;
 
 	auto data = load();
 	if (!data)
@@ -360,7 +360,7 @@ bool Thread::notify()
 	if (state != State::RUNNABLE)
 		return false;
 
-	data->_condition.notify_one(Strategy::RELAXED);
+	data->_condition.notify_one(Policy::RELAXED);
 	return true;
 }
 

@@ -142,7 +142,7 @@ void ThreadPool::Structure::setCapacity(SizeType _capacity, \
 	auto capacity = this->_capacity.exchange(_capacity, \
 		std::memory_order_relaxed);
 	if (_notified && capacity != _capacity)
-		_condition.notify_one(Condition<>::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Policy::RELAXED);
 }
 
 // 放入任务
@@ -151,7 +151,7 @@ bool ThreadPool::Structure::pushTask(const TaskType& _task)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = _taskQueue->push(_task);
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition<>::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Policy::RELAXED);
 	return result.has_value();
 }
 
@@ -161,7 +161,7 @@ bool ThreadPool::Structure::pushTask(TaskType&& _task)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = _taskQueue->push(std::forward<TaskType>(_task));
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition<>::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Policy::RELAXED);
 	return result.has_value();
 }
 
@@ -174,7 +174,7 @@ bool ThreadPool::Structure::pushTask(TaskQueue& _taskQueue)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(_taskQueue);
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition<>::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Policy::RELAXED);
 	return result.has_value();
 }
 
@@ -187,7 +187,7 @@ bool ThreadPool::Structure::pushTask(TaskQueue&& _taskQueue)
 	// 若放入任务之前，任务队列为空，则通知守护线程
 	auto result = this->_taskQueue->push(std::forward<TaskQueue>(_taskQueue));
 	if (result && result.value() == 0)
-		_condition.notify_one(Condition<>::Strategy::RELAXED);
+		_condition.notify_one(Condition<>::Policy::RELAXED);
 	return result.has_value();
 }
 
@@ -294,7 +294,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 		if (auto data = _data.lock(); data \
 			&& (data->setIdleSize(1, Arithmetic::INCREASE) == 0 \
 			|| data->getIdleSize() >= data->getTotalSize()))
-			data->_condition.notify_one(Condition<>::Strategy::RELAXED);
+			data->_condition.notify_one(Condition<>::Policy::RELAXED);
 	};
 
 	// 初始化线程并放入线程表
@@ -321,7 +321,7 @@ void ThreadPool::create(DataType&& _data, SizeType _capacity)
 void ThreadPool::destroy(DataType&& _data)
 {
 	using Arithmetic = Structure::Arithmetic;
-	using Strategy = Condition<>::Strategy;
+	using Policy = Condition<>::Policy;
 
 	// 避免重复销毁
 	if (!_data->isValid()) return;
@@ -330,7 +330,7 @@ void ThreadPool::destroy(DataType&& _data)
 	_data->setValid(false);
 
 	// 通知守护线程退出
-	_data->_condition.notify_all(Strategy::RELAXED);
+	_data->_condition.notify_all(Policy::RELAXED);
 
 	// 分离守护线程
 	//_data->_thread.detach();
