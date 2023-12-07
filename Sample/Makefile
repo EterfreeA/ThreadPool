@@ -1,17 +1,28 @@
-﻿Root=..
-Source=$(Root)/Source
-Include=$(Root)/Source
-Binary=$(Root)/Binary
+﻿IGNORE := .
+ROOT := ..
+SOURCE := $(ROOT)/Source
+INCLUDE := $(ROOT)/Source
+BINARY := $(ROOT)/Binary
 
-CC=g++
-CFLAG=-std=c++20 -I$(Include) -c
+CXXFLAGS := -std=c++20 -I$(INCLUDE)
 
-OBJS=$(Source)/Concurrency/TaskManager.o $(Source)/Concurrency/TaskQueue.o $(Source)/Concurrency/Thread.o $(Source)/Concurrency/ThreadPool.o $(Source)/Core/Logger.o $(Source)/Core/Timer.o $(Source)/Core/SpinAdapter.o $(Source)/Platform/Core/Linux/Common.o test.o
+TARGET := $(BINARY)/test
 
-default:$(OBJS)
-	${CC} $^ -o $(Binary)/test
-%.o:%.cpp
-	$(CC) $(CFLAG) $< -o $@
+OBJECTS :=
+OBJECTS += $(SOURCE)/Eterfree/Concurrency/TaskManager.o
+OBJECTS += $(SOURCE)/Eterfree/Concurrency/TaskQueue.o
+OBJECTS += $(SOURCE)/Eterfree/Concurrency/Thread.o
+OBJECTS += $(SOURCE)/Eterfree/Concurrency/ThreadPool.o
+OBJECTS += $(SOURCE)/Eterfree/Core/Logger.o
+OBJECTS += $(SOURCE)/Eterfree/Core/SpinAdapter.o
+OBJECTS += $(SOURCE)/Eterfree/Core/Timer.o
+OBJECTS += $(SOURCE)/Eterfree/Platform/Core/Linux/Common.o
+OBJECTS += test.o
+
+default: $(OBJECTS)
+	${CXX} $^ -o $(TARGET)
+%.o: %.cpp
+	${CXX} $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(OBJS) $(Binary)/test
+	rm -rf $(OBJECTS) $(TARGET)
