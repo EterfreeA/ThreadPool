@@ -1,17 +1,22 @@
-﻿Root=..
-Source=$(Root)/Source
-Include=$(Root)/Source
-Binary=$(Root)/Binary
+﻿IGNORE := .
+ROOT := ..
+SOURCE := $(ROOT)/Source
+INCLUDE := $(ROOT)/Source
+BINARY := $(ROOT)/Binary
 
-CC=g++
-CFLAG=-std=c++17 -I$(Include) -c
+CXXFLAGS := -std=c++17 -I$(Include)
 
-OBJS=$(Source)/Thread.o $(Source)/ThreadPool.o test.o
+TARGET := $(BINARY)/test
 
-default:$(OBJS)
-	${CC} $^ -o $(Binary)/test
-%.o:%.cpp
-	$(CC) $(CFLAG) $< -o $@
+OBJECTS :=
+OBJECTS += $(SOURCE)/Thread.o
+OBJECTS += $(SOURCE)/ThreadPool.o
+OBJECTS += test.o
+
+default: $(OBJECTS)
+	${CXX} $^ -o $(TARGET)
+%.o: %.cpp
+	${CXX} $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(OBJS) $(Binary)/test
+	rm -rf $(OBJECTS) $(TARGET)
