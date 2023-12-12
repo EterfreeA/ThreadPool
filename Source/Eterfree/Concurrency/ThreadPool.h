@@ -115,7 +115,7 @@ public:
 	ThreadPool& operator=(const ThreadPool&) = delete;
 
 	// 默认移动赋值运算符函数
-	ThreadPool& operator=(ThreadPool&& _another) noexcept;
+	ThreadPool& operator=(ThreadPool&& _threadPool) noexcept;
 
 	// 获取线程池容量
 	SizeType getCapacity() const noexcept;

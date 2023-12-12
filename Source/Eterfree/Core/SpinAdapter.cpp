@@ -161,32 +161,32 @@ SpinAdapter::~SpinAdapter() noexcept
 	}
 }
 
-auto SpinAdapter::operator=(const SpinAdapter& _another) \
+auto SpinAdapter::operator=(const SpinAdapter& _adapter) \
 -> SpinAdapter&
 {
-	if (&_another != this)
+	if (&_adapter != this)
 	{
 		std::lock_guard lock(this->_mutex);
 		stop(this->_master);
 
 		this->_master = false;
-		this->_data = _another.load();
+		this->_data = _adapter.load();
 	}
 	return *this;
 }
 
-auto SpinAdapter::operator=(SpinAdapter&& _another) noexcept \
+auto SpinAdapter::operator=(SpinAdapter&& _adapter) noexcept \
 -> SpinAdapter&
 {
-	if (&_another != this)
+	if (&_adapter != this)
 	{
 		try
 		{
 			std::lock_guard thisLock(this->_mutex);
 			stop(this->_master);
 
-			std::lock_guard anotherLock(_another._mutex);
-			move(*this, std::forward<SpinAdapter>(_another));
+			std::lock_guard anotherLock(_adapter._mutex);
+			move(*this, std::forward<SpinAdapter>(_adapter));
 		}
 		catch (std::exception& exception)
 		{

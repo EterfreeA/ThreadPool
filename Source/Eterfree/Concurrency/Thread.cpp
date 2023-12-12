@@ -198,12 +198,12 @@ Thread::~Thread() noexcept
 }
 
 // 默认移动赋值运算符函数
-auto Thread::operator=(Thread&& _another) noexcept \
+auto Thread::operator=(Thread&& _thread) noexcept \
 -> Thread&
 {
-	if (&_another != this)
+	if (&_thread != this)
 	{
-		auto data = exchange(_another._atomic, nullptr);
+		auto data = exchange(_thread._atomic, nullptr);
 		if (data = exchange(this->_atomic, data))
 		{
 			try

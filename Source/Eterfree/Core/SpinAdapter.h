@@ -73,9 +73,9 @@ public:
 
 	~SpinAdapter() noexcept;
 
-	SpinAdapter& operator=(const SpinAdapter& _another);
+	SpinAdapter& operator=(const SpinAdapter& _adapter);
 
-	SpinAdapter& operator=(SpinAdapter&& _another) noexcept;
+	SpinAdapter& operator=(SpinAdapter&& _adapter) noexcept;
 
 	void operator()();
 

@@ -83,13 +83,13 @@ struct TaskManager::Structure::Record
 		return _index;
 	}
 
-	bool operator<(const Record& _another) const noexcept;
+	bool operator<(const Record& _record) const noexcept;
 };
 
-bool TaskManager::Structure::Record::operator<(const Record& _another) const noexcept
+bool TaskManager::Structure::Record::operator<(const Record& _record) const noexcept
 {
-	return this->_time < _another._time \
-		or this->_time == _another._time and this->_index < _another._index;
+	return this->_time < _record._time \
+		or this->_time == _record._time and this->_index < _record._index;
 }
 
 void TaskManager::Structure::configure(const ThreadNotify& _notify)

@@ -48,7 +48,7 @@ public:
 
 	virtual explicit operator IDType() const = 0;
 
-	bool operator<(const SortedRecord& _another) const noexcept
+	bool operator<(const SortedRecord& _record) const noexcept
 	{
 		return false;
 	}
@@ -180,7 +180,7 @@ private:
 	 * 复制数据
 	 * 复制所有记录，拷贝内存数据。
 	 */
-	void copy(const SharedSorter& _another);
+	void copy(const SharedSorter& _sorter);
 
 	/*
 	 * 根据指定方向遍历，获取指定ID的排名
@@ -208,7 +208,7 @@ public:
 
 	SharedSorter(SharedSorter&&) = default;
 
-	SharedSorter& operator=(const SharedSorter& _another);
+	SharedSorter& operator=(const SharedSorter& _sorter);
 
 	SharedSorter& operator=(SharedSorter&&) noexcept = default;
 
@@ -292,9 +292,9 @@ struct SharedSorter<_IDType, _Record>::Node
 	Node(const Record& _record) : \
 		_record(std::make_shared<Record>(_record)) {}
 
-	bool operator<(const Node& _another) const noexcept
+	bool operator<(const Node& _node) const noexcept
 	{
-		return *this->_record < *_another._record;
+		return *this->_record < *_node._record;
 	}
 };
 
@@ -398,9 +398,9 @@ bool Sorter<_IDType, _Record>::get(RecordList& _recordList, \
 
 // 复制数据
 template <typename _IDType, typename _Record>
-void SharedSorter<_IDType, _Record>::copy(const SharedSorter& _another)
+void SharedSorter<_IDType, _Record>::copy(const SharedSorter& _sorter)
 {
-	std::transform(_another._idMapper.cbegin(), _another._idMapper.cend(), \
+	std::transform(_sorter._idMapper.cbegin(), _sorter._idMapper.cend(), \
 		std::inserter(this->_idMapper, this->_idMapper.begin()), \
 		[this](const PairType& _pair)
 		{
@@ -438,14 +438,14 @@ void SharedSorter<_IDType, _Record>::get(RecordList& _recordList, \
 }
 
 template <typename _IDType, typename _Record>
-auto SharedSorter<_IDType, _Record>::operator=(const SharedSorter& _another) \
+auto SharedSorter<_IDType, _Record>::operator=(const SharedSorter& _sorter) \
 -> SharedSorter&
 {
-	if (&_another != this)
+	if (&_sorter != this)
 	{
 		clear();
-		this->_idMapper.rehash(_another._idMapper.bucket_count());
-		copy(_another);
+		this->_idMapper.rehash(_sorter._idMapper.bucket_count());
+		copy(_sorter);
 	}
 	return *this;
 }

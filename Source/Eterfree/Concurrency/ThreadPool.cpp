@@ -422,12 +422,12 @@ ThreadPool::~ThreadPool() noexcept
 }
 
 // 默认移动赋值运算符函数
-auto ThreadPool::operator=(ThreadPool&& _another) noexcept \
+auto ThreadPool::operator=(ThreadPool&& _threadPool) noexcept \
 -> ThreadPool&
 {
-	if (&_another != this)
+	if (&_threadPool != this)
 	{
-		auto data = exchange(_another._atomic, nullptr);
+		auto data = exchange(_threadPool._atomic, nullptr);
 		if (data = exchange(this->_atomic, data))
 		{
 			try

@@ -303,7 +303,7 @@ struct TaskMapper<_Message>::Record
 		return _index;
 	}
 
-	bool operator<(const Record& _another) const noexcept;
+	bool operator<(const Record& _record) const noexcept;
 };
 
 template <typename _Message>
@@ -434,10 +434,10 @@ auto TaskMapper<_Message>::Queue::clear()
 }
 
 template <typename _Message>
-bool TaskMapper<_Message>::Record::operator<(const Record& _another) const noexcept
+bool TaskMapper<_Message>::Record::operator<(const Record& _record) const noexcept
 {
-	return this->_time < _another._time \
-		or this->_time == _another._time and this->_index < _another._index;
+	return this->_time < _record._time \
+		or this->_time == _record._time and this->_index < _record._index;
 }
 
 // 设置是否闲置
