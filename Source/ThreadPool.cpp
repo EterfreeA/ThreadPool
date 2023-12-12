@@ -505,15 +505,15 @@ ThreadPool::~ThreadPool() noexcept
 }
 
 // 默认移动赋值运算符函数
-auto ThreadPool::operator=(ThreadPool&& _another) noexcept \
+auto ThreadPool::operator=(ThreadPool&& _threadPool) noexcept \
 -> ThreadPool&
 {
-	if (&_another != this)
+	if (&_threadPool != this)
 	{
 		try
 		{
 			auto data = move(*this, \
-				std::forward<ThreadPool>(_another));
+				std::forward<ThreadPool>(_threadPool));
 
 			if (data) destroy(std::move(data));
 		}

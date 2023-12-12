@@ -220,15 +220,15 @@ Thread::~Thread() noexcept
 }
 
 // 默认移动赋值运算符函数
-auto Thread::operator=(Thread&& _another) noexcept \
+auto Thread::operator=(Thread&& _thread) noexcept \
 -> Thread&
 {
-	if (&_another != this)
+	if (&_thread != this)
 	{
 		try
 		{
 			auto data = move(*this, \
-				std::forward<Thread>(_another));
+				std::forward<Thread>(_thread));
 
 			destroy(std::move(data));
 		}

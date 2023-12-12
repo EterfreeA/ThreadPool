@@ -119,7 +119,7 @@ public:
 	Thread& operator=(const Thread&) = delete;
 
 	// 默认移动赋值运算符函数
-	Thread& operator=(Thread&& _another) noexcept;
+	Thread& operator=(Thread&& _thread) noexcept;
 
 	// 获取线程唯一标识
 	ThreadID getID() const;

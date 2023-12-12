@@ -99,9 +99,9 @@ public:
 
 	DoubleQueue(DoubleQueue&& _another);
 
-	DoubleQueue& operator=(const DoubleQueue& _another);
+	DoubleQueue& operator=(const DoubleQueue& _doubleQueue);
 
-	DoubleQueue& operator=(DoubleQueue&& _another);
+	DoubleQueue& operator=(DoubleQueue&& _doubleQueue);
 
 	auto capacity() const noexcept
 	{
@@ -180,27 +180,27 @@ DoubleQueue<_Element>::DoubleQueue(DoubleQueue&& _another)
 }
 
 template <typename _Element>
-auto DoubleQueue<_Element>::operator=(const DoubleQueue& _another) \
+auto DoubleQueue<_Element>::operator=(const DoubleQueue& _doubleQueue) \
 -> DoubleQueue&
 {
-	if (&_another != this)
+	if (&_doubleQueue != this)
 	{
 		std::scoped_lock lock(this->_exitMutex, this->_entryMutex, \
-			_another._exitMutex, _another._entryMutex);
-		copy(*this, _another);
+			_doubleQueue._exitMutex, _doubleQueue._entryMutex);
+		copy(*this, _doubleQueue);
 	}
 	return *this;
 }
 
 template <typename _Element>
-auto DoubleQueue<_Element>::operator=(DoubleQueue&& _another) \
+auto DoubleQueue<_Element>::operator=(DoubleQueue&& _doubleQueue) \
 -> DoubleQueue&
 {
-	if (&_another != this)
+	if (&_doubleQueue != this)
 	{
 		std::scoped_lock lock(this->_exitMutex, this->_entryMutex, \
-			_another._exitMutex, _another._entryMutex);
-		move(*this, std::forward<DoubleQueue>(_another));
+			_doubleQueue._exitMutex, _doubleQueue._entryMutex);
+		move(*this, std::forward<DoubleQueue>(_doubleQueue));
 	}
 	return *this;
 }
